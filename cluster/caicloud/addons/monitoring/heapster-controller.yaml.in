@@ -20,7 +20,7 @@ spec:
         kubernetes.io/cluster-service: "true"
     spec:
       containers:
-        - image: index.caicloud.io/kubernetes/heapster:canary
+        - image: index.caicloud.io/caicloud/google-heapster:v0.19.0
           name: heapster
           resources:
             limits:
@@ -30,5 +30,5 @@ spec:
             - /heapster
             - --source=kubernetes:''
             - --sink=influxdb:http://monitoring-influxdb:8086
-            - --stats_resolution=30s
-            - --sink_frequency=1m
+            - --stats_resolution=10s
+            - --sink_frequency=30s
