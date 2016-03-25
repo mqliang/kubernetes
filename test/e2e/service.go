@@ -486,7 +486,7 @@ var _ = framework.KubeDescribe("Services", func() {
 
 	It("should be able to change the type and ports of a service [Slow]", func() {
 		// requires cloud load-balancer support
-		framework.SkipUnlessProviderIs("gce", "gke", "aws")
+		framework.SkipUnlessProviderIs("gce", "gke", "aws", "caicloud-anchnet")
 
 		loadBalancerSupportsUDP := !framework.ProviderIs("aws")
 
