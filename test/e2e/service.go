@@ -59,6 +59,7 @@ const (
 	// On AWS there is a delay between ELB creation and serving traffic;
 	// a few minutes is typical, so use 10m.
 	loadBalancerLagTimeoutAWS = 10 * time.Minute
+	loadBalancerLagTimeoutAnchnet = 10 * time.Minute
 
 	// How long to wait for a load balancer to be created/modified.
 	//TODO: once support ticket 21807001 is resolved, reduce this timeout back to something reasonable
@@ -488,16 +489,21 @@ var _ = framework.KubeDescribe("Services", func() {
 		// requires cloud load-balancer support
 		framework.SkipUnlessProviderIs("gce", "gke", "aws", "caicloud-anchnet")
 
-		loadBalancerSupportsUDP := !framework.ProviderIs("aws")
+		loadBalancerSupportsUDP := !framework.ProviderIs("aws", "caicloud-anchnet")
 
 		loadBalancerLagTimeout := loadBalancerLagTimeoutDefault
 		if framework.ProviderIs("aws") {
 			loadBalancerLagTimeout = loadBalancerLagTimeoutAWS
 		}
+<<<<<<< HEAD
 		loadBalancerCreateTimeout := loadBalancerCreateTimeoutDefault
 		largeClusterMinNodesNumber := 100
 		if nodes := framework.GetReadySchedulableNodesOrDie(cs); len(nodes.Items) > largeClusterMinNodesNumber {
 			loadBalancerCreateTimeout = loadBalancerCreateTimeoutLarge
+=======
+		if providerIs("caicloud-anchnet") {
+			loadBalancerLagTimeout = loadBalancerLagTimeoutAnchnet
+>>>>>>> a089d00... More e2e fixes
 		}
 
 		// This test is more monolithic than we'd like because LB turnup can be
