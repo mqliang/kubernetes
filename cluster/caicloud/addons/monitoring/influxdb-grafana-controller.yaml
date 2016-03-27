@@ -11,7 +11,7 @@ spec:
   replicas: 1
   selector:
     k8s-app: influxGrafana
-    version: v2
+    version: v3
   template:
     metadata:
       labels:
@@ -20,12 +20,15 @@ spec:
         kubernetes.io/cluster-service: "true"
     spec:
       containers:
-        - image: index.caicloud.io/tutum/influxdb:0.9
+        - image: index.caicloud.io/caicloudgcr/google_containers_heapster_influxdb:v0.5
           name: influxdb
           resources:
             limits:
               cpu: 100m
-              memory: 200Mi
+              memory: 500Mi
+            requests:
+              cpu: 100m
+              memory: 500Mi
           ports:
             - containerPort: 8083
               hostPort: 8083
@@ -34,7 +37,7 @@ spec:
           volumeMounts:
           - name: influxdb-persistent-storage
             mountPath: /data
-        - image: index.caicloud.io/caicloud/google_heapster_grafana:v2.6.0-2
+        - image: index.caicloud.io/caicloudgcr/google_containers_heapster_grafana:v2.6.0-2
           name: grafana
           env:
           resources:
