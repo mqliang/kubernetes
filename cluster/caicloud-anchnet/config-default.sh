@@ -421,9 +421,13 @@ function calculate-default {
   fi
 
   # Calculate heapster memory limit based on number of nodes. Number come from
-  # cluster/addons/cluster-monitoring/influxdb/heapster-controller.yaml
+  # cluster/caicloud/addons/monitoring/heapster-controller.yaml.in
   METRICS_MEMORY="$((200 + ${NUM_NODES} * 4))Mi"
   EVENTER_MEMORY="$((200 * 1024 + ${NUM_NODES} * 500))Ki"
+
+  # cluster/caicloud/addons/quota.yaml.in
+  QUOTA_MEMORY="$((3015 + ${NUM_NODES} * 205))Mi"
+  QUOTA_CPU="$((1400 + ${NUM_NODES} * 20))m"
 }
 
 calculate-default

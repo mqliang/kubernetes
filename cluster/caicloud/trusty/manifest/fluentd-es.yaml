@@ -11,9 +11,10 @@ spec:
     image: index.caicloud.io/caicloudgcr/google_containers_fluentd-elasticsearch:1.15
     resources:
       limits:
+        cpu: 100m
         memory: 200Mi
       requests:
-        cpu: 100m
+        cpu: 20m
         memory: 200Mi
     args:
     - -q

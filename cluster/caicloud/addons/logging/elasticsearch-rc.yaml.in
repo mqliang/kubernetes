@@ -26,8 +26,10 @@ spec:
           # keep request = limit to keep this container in guaranteed class
           limits:
             cpu: 300m
+            memory: 1Gi
           requests:
             cpu: 300m
+            memory: 1Gi
         ports:
         - containerPort: 9200
           name: db
@@ -49,6 +51,13 @@ spec:
             value: "every().day"
           - name: HOST_ADDR
             value: "localhost"
+        resources:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+          requests:
+            cpu: 5m
+            memory: 5Mi
       volumes:
       - name: es-persistent-storage
         emptyDir: {}
