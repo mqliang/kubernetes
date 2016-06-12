@@ -103,10 +103,7 @@ function create-registry-addon {
 
 
 create-kube-system-namespace
-
-if [[ "${ENABLE_KUBE_SYSTEM_QUOTA}" == "true" ]]; then
-  create-kube-system-quota
-fi
+create-kube-system-quota
 
 if [[ "${ENABLE_CLUSTER_DNS}" == "true" ]]; then
   create-dns-addon
