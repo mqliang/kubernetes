@@ -229,6 +229,41 @@ EOF
   fi
 }
 
+# Create docker options with flanneld environment
+#
+# Output:
+#   A file with docker configs under ~/kube/configs/docker
+#
+# Assumed vars:
+#   REGISTRY_MIRROR
+function create-docker-opts {
+  cat <<EOF > ~/kube/configs/docker
+#!/bin/sh
+
+attempt=0
+while true; do
+  echo "Attemp \$((\$attempt+1)) to check for subnet.env set by flannel"
+  if [ -f "/run/flannel/subnet.env" ] && \\
+      grep -q "FLANNEL_SUBNET" /run/flannel/subnet.env && \\
+      grep -q "FLANNEL_MTU" /run/flannel/subnet.env ; then
+    break
+  else
+    if (( attempt > 60 )); then
+      echo "timeout waiting for subnet.env from flannel"
+      exit 2
+    fi
+    attempt=\$((attempt+1))
+    sleep 3
+  fi
+done
+
+. /run/flannel/subnet.env
+DOCKER_OPTS="-H tcp://127.0.0.1:4243 -H unix:///var/run/docker.sock \\
+--bip=\${FLANNEL_SUBNET} --mtu=\${FLANNEL_MTU} \\
+--registry-mirror=${REGISTRY_MIRROR} "
+EOF
+}
+
 # Config flanneld options in etcd. The method is called from master, and
 # master should have etcdctl available.
 #
@@ -259,32 +294,8 @@ function config-etcd-flanneld {
   done
 }
 
-# Configure docker network settings to use flannel overlay network.
-#
-# Input:
-#   $1 File to write docker config, e.g. /etc/default/docker, /etc/sysconfig/docker.
-#
-# Assumed vars:
-#   REGISTRY_MIRROR
+# Safely restart docker daemon
 function restart-docker {
-  # Wait for /run/flannel/subnet.env to be ready.
-  attempt=0
-  while true; do
-    echo "Attempt $(($attempt+1)) to check for subnet.env set by flannel"
-    if [[ -f /run/flannel/subnet.env ]] && \
-         grep -q "FLANNEL_SUBNET" /run/flannel/subnet.env && \
-         grep -q "FLANNEL_MTU" /run/flannel/subnet.env ; then
-      break
-    else
-      if (( attempt > 60 )); then
-        echo "timeout waiting for subnet.env from flannel"
-        exit 2
-      fi
-      attempt=$((attempt+1))
-      sleep 3
-    fi
-  done
-
   # In order for docker to correctly use flannel setting, we first stop docker,
   # flush nat table, delete docker0 and then start docker. Missing any one of
   # the steps may result in wrong iptable rules, see:
@@ -294,9 +305,5 @@ function restart-docker {
   sudo ip link set dev docker0 down
   sudo brctl delbr docker0
 
-  source /run/flannel/subnet.env
-  echo DOCKER_OPTS=\"-H tcp://127.0.0.1:4243 -H unix:///var/run/docker.sock \
-       --bip=${FLANNEL_SUBNET} --mtu=${FLANNEL_MTU} \
-       --registry-mirror=${REGISTRY_MIRROR} \" > ${1}
   sudo service docker start
 }
