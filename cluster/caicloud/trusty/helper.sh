@@ -94,7 +94,7 @@ function send-master-files {
     echo "create-kubelet-opts    'master'"
     echo "create-kube-proxy-opts 'master'"
     echo "create-flanneld-opts   'master'"
-    echo "craate-docker-opts"
+    echo "create-docker-opts"
     # Create the system directories used to hold the final data.
     echo "sudo mkdir -p /opt/bin"
     echo "sudo mkdir -p /etc/kubernetes"
@@ -268,7 +268,7 @@ function send-node-files-internal {
     echo "create-kubelet-opts    'node' ${3}"
     echo "create-kube-proxy-opts 'node'"
     echo "create-flanneld-opts   'node'"
-    echo "craate-docker-opts"
+    echo "create-docker-opts"
     # Create the system directories used to hold the final data.
     echo "sudo mkdir -p /opt/bin"
     echo "sudo mkdir -p /etc/kubernetes"
