@@ -1,0 +1,14 @@
+---
+# Install python yaml package.
+
+- name: Set pyyaml package name
+  set_fact:
+    pyyaml_name: python-yaml
+
+- name: Overwrite pyyaml package name for non-Debian
+  set_fact:
+    pyyaml_name: PyYAML
+  when: ansible_distribution != "Debian" and ansible_distribution != "Ubuntu"
+
+- name: Install python yaml
+  package: name="{{ pyyaml_name }}" state=latest

@@ -1,0 +1,45 @@
+---
+
+# The etcd version to install.
+etcd_version: 2.2.4
+
+# The default url to download the etcd tar from.
+etcd_download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"
+etcd_download_url: "{{ etcd_download_url_base }}/etcd-v{{ etcd_version }}-linux-amd64.tar.gz"
+
+#
+# DO NOT CHANGE
+#
+# The following settings are meant to be configurable, but using non-default
+# values are not tested so it might cause system to misbehave. Aslo, it's
+# rarely needed to change the values.
+#
+
+# Main ports for etcd.
+etcd_client_port: 2379
+etcd_peer_port: 2380
+
+etcd_peers_group: etcd
+etcd_url_scheme: http
+etcd_peer_url_scheme: http
+
+# Default etcd configuration directory. For upstart, this will be overriden
+# to "/etc/default".
+etcd_config_dir: "/etc/sysconfig"
+etcd_data_dir: "/var/lib/etcd"
+
+etcd_ca_file: "{{ etcd_config_dir }}/ca.crt"
+etcd_cert_file: "{{ etcd_config_dir }}/server.crt"
+etcd_key_file: "{{ etcd_config_dir }}/server.key"
+etcd_peer_ca_file: "{{ etcd_config_dir }}/ca.crt"
+etcd_peer_cert_file: "{{ etcd_config_dir }}/peer.crt"
+etcd_peer_key_file: "{{ etcd_config_dir }}/peer.key"
+
+etcd_initial_cluster_state: new
+etcd_initial_cluster_token: etcd-k8-cluster
+
+etcd_machine_address: "{{ hostvars[inventory_hostname]['ansible_' + etcd_interface].ipv4.address }}"
+etcd_initial_advertise_peer_urls: "{{ etcd_peer_url_scheme }}://{{ etcd_machine_address }}:{{ etcd_peer_port }}"
+etcd_listen_peer_urls: "{{ etcd_peer_url_scheme }}://0.0.0.0:{{ etcd_peer_port }}"
+etcd_advertise_client_urls: "{{ etcd_url_scheme }}://{{ etcd_machine_address }}:{{ etcd_client_port }}"
+etcd_listen_client_urls: "{{ etcd_url_scheme }}://0.0.0.0:{{ etcd_client_port }}"

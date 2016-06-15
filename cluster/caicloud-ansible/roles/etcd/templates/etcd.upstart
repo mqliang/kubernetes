@@ -1,0 +1,21 @@
+description "etcd 2.x"
+
+start on (net-device-up and local-filesystems and runlevel [2345])
+stop on runlevel [016]
+
+respawn
+respawn limit 10 5
+
+limit nofile 65536 65536
+
+script
+  if [ -f "{{ etcd_config_dir }}/etcd.conf" ]; then
+    set -a
+    . {{ etcd_config_dir }}/etcd.conf
+    set +a
+  fi
+
+  mkdir -p {{ etcd_data_dir }}
+  chdir {{ etcd_data_dir }}
+  exec {{ bin_dir }}/etcd >>/var/log/etcd.log 2>&1
+end script

@@ -1,0 +1,20 @@
+---
+
+- name: Monitoring | Assures {{ kube_config_dir }}/addons/cluster-monitoring dir exists
+  file: path={{ kube_addons_dir }}/cluster-monitoring state=directory
+
+- name: Monitoring | Install template from converted saltfile
+  template:
+  args:
+    src: "cluster-monitoring/{{ item }}.j2"
+    dest: "{{ kube_addons_dir }}/cluster-monitoring/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - monitoring-controller.yaml
+    - monitoring-service.yaml
+    - grafana-service.yaml
+    - heapster-controller.yaml
+    - heapster-service.yaml
+    - influxdb-service.yaml
