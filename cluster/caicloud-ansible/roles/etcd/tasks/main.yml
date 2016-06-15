@@ -1,0 +1,55 @@
+---
+# Main tasks for installing etcd.
+
+#
+# Prepare installation.
+
+- name: Override etcd config file directory for upstart
+  set_fact:
+    etcd_config_dir: "/etc/default"
+  when: kubernetes_use_upstart
+
+- name: Create etcd config directory
+  file: path={{ etcd_config_dir }} state=directory
+
+- name: Create etcd data directory
+  file: path={{ etcd_data_dir }} state=directory
+
+#
+# Install etcd and create configuration file.
+
+- name: Install etcd from qiniu
+  include: qiniu.yml
+
+- name: Write etcd config file
+  template: src=etcd.conf.j2 dest={{ etcd_config_dir }}/etcd.conf
+  notify:
+    - restart etcd
+
+- name: Create upstart script for upstart based distribution
+  template: src=etcd.upstart dest=/etc/init/etcd.conf
+  notify:
+    - restart etcd
+  when: kubernetes_use_upstart
+
+- name: Write etcd systemd unit file for systemd based distribution
+  template: src=etcd.service dest=/etc/systemd/system/etcd.service
+  notify:
+    - reload systemd
+    - restart etcd
+  register: etcd_unit
+  when: not kubernetes_use_upstart
+
+#
+# Enable and start etcd.
+
+- name: Reload systemd if etcd systemd unit file changed
+  command: systemctl --system daemon-reload
+  when: not kubernetes_use_upstart and etcd_unit.changed
+
+- name: Enable etcd
+  service: name=etcd enabled=yes
+
+- name: Start etcd
+  service: name=etcd state=started
+  register: etcd_started

@@ -1,0 +1,5 @@
+---
+
+dependencies:
+  - { role: prologue }
+  - { role: kubernetes-base }

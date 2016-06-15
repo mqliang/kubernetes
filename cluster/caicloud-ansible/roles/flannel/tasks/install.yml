@@ -1,0 +1,25 @@
+---
+# Install flannel and configure it.
+#
+
+- name: Install flannel from qiniu
+  include: qiniu.yml
+
+- name: Add flanneld systemd unit file
+  template: src=flanneld.service dest=/etc/systemd/system/flanneld.service
+  register: flanneld_service
+  notify:
+    - reload systemd
+    - restart flannel
+  when: not kubernetes_use_upstart
+
+- name: Create upstart script
+  template: src=flanneld.upstart dest=/etc/init/flanneld.conf
+  notify:
+    - restart flannel
+  when: kubernetes_use_upstart
+
+- name: Install flannel config file
+  template: src=flanneld.j2 dest={{ flannel_config_dir }}/flanneld
+  notify:
+    - restart flannel

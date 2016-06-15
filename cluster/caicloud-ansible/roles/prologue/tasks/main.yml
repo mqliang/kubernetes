@@ -1,0 +1,27 @@
+---
+# Common tasks for all other roles.
+
+- name: Create the directory used to store binaries
+  file: path={{ bin_dir }} state=directory
+
+- name: Create ansible temp directory
+  file: path={{ ansible_temp_dir }} state=directory
+
+- name: Set all interfaces to 'eth1' for vagrant and anchnet
+  set_fact:
+    etcd_interface: "eth1"
+    flannel_interface: "eth1"
+    kube_apiserver_advertise_interface: "eth1"
+    kubelet_node_ip_interface: "eth1"
+  when: host_provider == 'vagrant' or host_provider == 'anchnet'
+
+- name: Determin kubernetes_use_upstart
+  set_fact:
+    kubernetes_use_upstart: false
+
+- set_fact:
+    kubernetes_use_upstart: true
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 15
+
+- name: Display system information
+  debug: msg="{{ ansible_distribution }} {{ ansible_distribution_version }}"

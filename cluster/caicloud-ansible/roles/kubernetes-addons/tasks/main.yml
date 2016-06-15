@@ -1,0 +1,61 @@
+---
+# Tasks for installing kubernetes addons.
+
+#
+# Determine init system.
+
+- name: Determine addons_use_upstart
+  set_fact:
+    addons_use_upstart: false
+
+- set_fact:
+    addons_use_upstart: true
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 15
+
+#
+# Install addons based on configuration.
+
+- name: Write kube-system namespace resource
+  copy: src="namespace.yaml" dest="{{ kube_config_dir }}/addons/namespace.yaml"
+
+- include: dns.yml
+  when: dns_setup
+
+- include: cluster-monitoring.yml
+  when: cluster_monitoring
+
+- include: cluster-logging.yml
+  when: cluster_logging
+
+- include: kube-dash.yml
+  when: kube_dash
+
+- name: Install required packages and addon scripts
+  include: generic-install.yml
+
+- name: Write kube-addons script from kubernetes
+  copy:
+    src=kube-addons.sh
+    dest={{ kube_script_dir }}/kube-addons.sh mode=0755
+  notify:
+    - restart kube-addons
+
+- name: Write kube-addon-update script from kubernetes
+  copy:
+    src=kube-addon-update.sh
+    dest={{ kube_script_dir }}/kube-addon-update.sh mode=0755
+  notify:
+    - restart kube-addons
+
+- name: Install kube-addons service
+  template: src=kube-addons.service.j2 dest=/etc/systemd/system/kube-addons.service
+  notify:
+    - reload and restart kube-addons
+  when: not addons_use_upstart
+
+- name: Install kube-addons upstart configuration
+  template: src=kube-addons.upstart.j2 dest=/etc/init/kube-addons.conf
+  when: addons_use_upstart
+
+- name: Enable and start kube addons
+  service: name=kube-addons enabled=yes state=started

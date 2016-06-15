@@ -1,0 +1,42 @@
+---
+# Download kubernetes binaries and link it to `bin_dir`.
+# TODO: Download in master and copy to nodes.
+
+- name: Create directory for current Kubernetes release
+  file: path="{{ kube_current_release_directory }}" state=directory
+
+- name: Check if tar file exists
+  stat: path="{{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz"
+  register: kube_tarball
+
+- name: Download caicloud kubernetes tar file
+  get_url:
+    url: "{{ kube_download_url }}"
+    dest: "{{ kube_current_release_directory }}"
+    validate_certs: False
+    timeout: 30
+  environment:
+    http_proxy: "{{ http_proxy|default('') }}"
+    https_proxy: "{{ https_proxy|default('') }}"
+    no_proxy: "{{ no_proxy|default('') }}"
+  when: kube_tarball.stat.exists == False
+
+- name: Extract tar file
+  unarchive:
+    src: "{{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz"
+    dest: /usr/local
+    copy: no
+
+- name: Create symlinks
+  file:
+    src: "/usr/local/caicloud-kube/{{ item }}"
+    dest: "{{ bin_dir }}/{{ item }}"
+    state: link
+    force: yes
+  with_items:
+    - kubectl
+    - kubelet
+    - kube-apiserver
+    - kube-scheduler
+    - kube-controller-manager
+    - kube-proxy
