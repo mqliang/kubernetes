@@ -72,6 +72,10 @@ function deploy-addons {
           s|{{ pillar\['paging_url'\] }}|${PAGING_EXTERNAL_ADDR}|g;\
           s/{{ pillar\['running_enviroment'\] }}/${RUNNING_ENV}/g" ${monitoring_rc_file} > ${KUBE_TEMP}/monitoring-controller.yaml
 
+  # Replace placeholder with our configuration for kube-system quota
+  local -r quota_file="${KUBE_ROOT}/cluster/caicloud/addons/quota.yaml.in"
+  sed -e "s/{{ pillar\['quota_cpu'\] }}/${QUOTA_CPU}/g;s/{{ pillar\['quota_memory'\] }}/${QUOTA_MEMORY}/g" ${quota_file} > ${KUBE_TEMP}/quota.yaml
+
   # Copy addon configurationss and startup script to master instance under ~/kube.
   rm -rf ${KUBE_TEMP}/addons
   mkdir -p ${KUBE_TEMP}/addons/dns ${KUBE_TEMP}/addons/logging ${KUBE_TEMP}/addons/dashboard ${KUBE_TEMP}/addons/monitoring ${KUBE_TEMP}/addons/registry
@@ -103,6 +107,7 @@ function deploy-addons {
   scp-to-instance-expect "${MASTER_SSH_EXTERNAL}" \
     "${KUBE_TEMP}/addons \
     ${KUBE_ROOT}/cluster/caicloud/addons/namespace.yaml \
+    ${KUBE_TEMP}/quota.yaml \
     ${KUBE_ROOT}/cluster/caicloud/addons/addons-start.sh" \
     "~/kube"
 

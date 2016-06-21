@@ -24,6 +24,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+ENABLE_KUBE_SYSTEM_QUOTA=${ENABLE_KUBE_SYSTEM_QUOTA:-true}
 ENABLE_CLUSTER_DNS=${ENABLE_CLUSTER_DNS:-false}
 ENABLE_CLUSTER_LOGGING=${ENABLE_CLUSTER_LOGGING:-false}
 ENABLE_CLUSTER_DASHBOARD=${ENABLE_CLUSTER_DASHBOARD:-false}
@@ -66,6 +67,10 @@ function create-kube-system-namespace {
   create-resource-from-file ~/kube/namespace.yaml 100 10 "default"
 }
 
+function create-kube-system-quota {
+  create-resource-from-file ~/kube/quota.yaml 100 10 "${SYSTEM_NAMESPACE}"
+}
+
 function create-dns-addon {
   for obj in $(find ~/kube/addons/dns -type f -name \*.yaml -o -name \*.json); do
     create-resource-from-file ${obj} 10 10 "${SYSTEM_NAMESPACE}"
@@ -98,6 +103,7 @@ function create-registry-addon {
 
 
 create-kube-system-namespace
+create-kube-system-quota
 
 if [[ "${ENABLE_CLUSTER_DNS}" == "true" ]]; then
   create-dns-addon
