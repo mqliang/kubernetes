@@ -94,6 +94,7 @@ function send-master-files {
     echo "create-kubelet-opts    'master'"
     echo "create-kube-proxy-opts 'master'"
     echo "create-flanneld-opts   'master'"
+    echo "create-docker-opts"
     # Create the system directories used to hold the final data.
     echo "sudo mkdir -p /opt/bin"
     echo "sudo mkdir -p /etc/kubernetes"
@@ -137,7 +138,7 @@ function send-master-files {
     # After starting etcd, configure flannel options.
     echo "config-etcd-flanneld"
     # After starting flannel, configure docker network to use flannel overlay.
-    echo "restart-docker /etc/default/docker"
+    echo "restart-docker"
     # Note: After using iptables mode, we need to change flannel to use --ip-masq, but
     # it won't take effect after docker restart, we have to restart flannel again.
     echo "sudo service flanneld restart"
@@ -267,6 +268,7 @@ function send-node-files-internal {
     echo "create-kubelet-opts    'node' ${3}"
     echo "create-kube-proxy-opts 'node'"
     echo "create-flanneld-opts   'node'"
+    echo "create-docker-opts"
     # Create the system directories used to hold the final data.
     echo "sudo mkdir -p /opt/bin"
     echo "sudo mkdir -p /etc/kubernetes"
@@ -295,7 +297,7 @@ function send-node-files-internal {
     # start upon flannel start.
     echo "sudo service flanneld start"
     # After starting flannel, configure docker network to use flannel overlay.
-    echo "restart-docker /etc/default/docker"
+    echo "restart-docker"
     # Note: After using iptables mode, we need to change flannel to use --ip-masq, but
     # it won't take effect after docker restart, we have to restart flannel again.
     echo "sudo service flanneld restart"
