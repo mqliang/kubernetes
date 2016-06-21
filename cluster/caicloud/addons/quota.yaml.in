@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: kube-system
+  namespace: kube-system
+spec:
+  hard:
+    cpu: {{ pillar['quota_cpu'] }}
+    memory: {{ pillar['quota_memory'] }}
