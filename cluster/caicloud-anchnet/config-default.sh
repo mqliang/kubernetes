@@ -55,7 +55,7 @@ BUILD_TARBALL=${BUILD_TARBALL:-"N"}
 
 # The version of caicloud release to use if building release is not required.
 # E.g. v1.0.2, 2015-09-09-15-30-30, etc.
-CAICLOUD_KUBE_VERSION=${CAICLOUD_KUBE_VERSION:-"v0.8.1"}
+CAICLOUD_KUBE_VERSION=${CAICLOUD_KUBE_VERSION:-"v1.2.4+v0.9.1"}
 
 # Project ID actually stands for anchnet sub-account. If PROJECT_ID and PROJECT_USER
 # are not set, all the subsequent anchnet calls will use main account in anchnet.
