@@ -49,4 +49,24 @@ kube-add-nodes
 echo "... calling report-new-nodes" >&2
 report-new-nodes
 
+# still need to validate cluster after scaling up
+echo "... calling validate-cluster" >&2
+
+# Override errexit
+(validate-new-node) && validate_result="$?" || validate_result="$?"
+
+# We have two different failure modes from validate cluster:
+# - 1: fatal error - cluster won't be working correctly
+# - 2: weak error - something went wrong, but cluster probably will be working correctly
+# We always exit in case 1), but if EXIT_ON_WEAK_ERROR != true, then we don't fail on 2).
+if [[ "${validate_result}" == "1" ]]; then
+  exit 1
+elif [[ "${validate_result}" == "2" ]]; then
+  if [[ "${EXIT_ON_WEAK_ERROR}" == "true" ]]; then
+    exit 1;
+  else
+    echo "...ignoring non-fatal errors in validate-cluster" >&2
+  fi
+fi
+
 exit 0
