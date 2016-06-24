@@ -147,15 +147,27 @@ function detect-minions {
 # - make sure instance can ping itself via hostname (rarely needed)
 function setup-baremetal-instances {
   IFS=',' read -ra instance_ssh_info <<< "${INSTANCE_SSH_EXTERNAL}"
+  INSTANCE_HOSTNAME_ARR=""
+  for (( i = 0; i < ${#instance_ssh_info[*]}; i++ )); do
+    INSTANCE_HOSTNAME=`ssh-to-instance "${instance_ssh_info[$i]}" "hostname"`
+    INSTANCE_HOSTNAME=$(echo ${INSTANCE_HOSTNAME} | tr -d '\r')
+    if [[ -z "${INSTANCE_HOSTNAME_ARR-}" ]]; then
+      INSTANCE_HOSTNAME_ARR="${INSTANCE_HOSTNAME}"
+    else
+      INSTANCE_HOSTNAME_ARR="${INSTANCE_HOSTNAME_ARR},${INSTANCE_HOSTNAME}"
+    fi
+  done
+  # Take out the first since it's master
+  NODE_HOSTNAME_ARR=${INSTANCE_HOSTNAME_ARR#*,}
 
+  IFS=',' read -ra instance_hostnames <<< "${INSTANCE_HOSTNAME_ARR}"
   # Get hostname of all instances and add them to master's setup script.
   (
     echo "#!/bin/bash"
     grep -v "^#" "${KUBE_ROOT}/cluster/caicloud/${KUBE_DISTRO}/helper.sh"
     for (( i = 0; i < ${#instance_ssh_info[*]}; i++ )); do
-      INSTANCE_HOSTNAME=`ssh-to-instance "${instance_ssh_info[$i]}" "hostname"`
       IFS=':@' read -ra ssh_info <<< "${instance_ssh_info[$i]}"
-      echo "add-hosts-entry ${INSTANCE_HOSTNAME} ${ssh_info[2]}"
+      echo "add-hosts-entry ${instance_hostnames[$i]} ${ssh_info[2]}"
     done
     echo ""
   ) > "${KUBE_TEMP}/master-host-setup.sh"
