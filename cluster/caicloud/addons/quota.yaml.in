@@ -3,6 +3,8 @@ kind: ResourceQuota
 metadata:
   name: kube-system
   namespace: kube-system
+  labels:
+    kubernetes-admin.caicloud.io/type: partition
 spec:
   hard:
     cpu: {{ pillar['quota_cpu'] }}

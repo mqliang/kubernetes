@@ -40,8 +40,6 @@
 #   DNS_REPLICAS
 #   DNS_SERVER_IP
 #   ELASTICSEARCH_REPLICAS
-#   KIBANA_REPLICAS
-#   KUBE_UI_REPLICAS
 #   MASTER_SSH_EXTERNAL
 function deploy-addons {
   log "+++++ Start deploying caicloud addons"
@@ -54,10 +52,6 @@ function deploy-addons {
   # Replace placeholder with our configuration for elasticsearch rc.
   local -r elasticsearch_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/logging/elasticsearch-rc.yaml.in"
   sed -e "s/{{ pillar\['elasticsearch_replicas'\] }}/${ELASTICSEARCH_REPLICAS}/g" ${elasticsearch_rc_file} > ${KUBE_TEMP}/elasticsearch-rc.yaml
-
-  # Replace placeholder with our configuration for kibana rc.
-  local -r kibana_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/logging/kibana-rc.yaml.in"
-  sed -e "s/{{ pillar\['kibana_replicas'\] }}/${KIBANA_REPLICAS}/g" ${kibana_rc_file} > ${KUBE_TEMP}/kibana-rc.yaml
 
   # Replace placeholder with our configuration for heapster rc.
   local -r heapster_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/monitoring/heapster-controller.yaml.in"
@@ -78,21 +72,15 @@ function deploy-addons {
 
   # Copy addon configurationss and startup script to master instance under ~/kube.
   rm -rf ${KUBE_TEMP}/addons
-  mkdir -p ${KUBE_TEMP}/addons/dns ${KUBE_TEMP}/addons/logging ${KUBE_TEMP}/addons/dashboard ${KUBE_TEMP}/addons/monitoring ${KUBE_TEMP}/addons/registry
+  mkdir -p ${KUBE_TEMP}/addons/dns ${KUBE_TEMP}/addons/logging ${KUBE_TEMP}/addons/monitoring ${KUBE_TEMP}/addons/registry
   # dns rc/svc
   cp ${KUBE_TEMP}/skydns-rc.yaml \
      ${KUBE_TEMP}/skydns-svc.yaml \
      ${KUBE_TEMP}/addons/dns
   # logging rc/svc
   cp ${KUBE_TEMP}/elasticsearch-rc.yaml \
-     ${KUBE_TEMP}/kibana-rc.yaml \
      ${KUBE_ROOT}/cluster/caicloud/addons/logging/elasticsearch-svc.yaml \
-     ${KUBE_ROOT}/cluster/caicloud/addons/logging/kibana-svc.yaml \
      ${KUBE_TEMP}/addons/logging
-  # dashboard rc/svc
-  cp ${KUBE_ROOT}/cluster/caicloud/addons/dashboard/dashboard-rc.yaml \
-     ${KUBE_ROOT}/cluster/caicloud/addons/dashboard/dashboard-svc.yaml \
-     ${KUBE_TEMP}/addons/dashboard
   # monitoring rc/svc
   cp ${KUBE_TEMP}/heapster-controller.yaml \
      ${KUBE_TEMP}/monitoring-controller.yaml \
@@ -107,6 +95,7 @@ function deploy-addons {
   scp-to-instance-expect "${MASTER_SSH_EXTERNAL}" \
     "${KUBE_TEMP}/addons \
     ${KUBE_ROOT}/cluster/caicloud/addons/namespace.yaml \
+    ${KUBE_ROOT}/cluster/caicloud/addons/limitrange.yaml \
     ${KUBE_TEMP}/quota.yaml \
     ${KUBE_ROOT}/cluster/caicloud/addons/addons-start.sh" \
     "~/kube"
@@ -117,7 +106,6 @@ function deploy-addons {
      ENABLE_CLUSTER_DNS=${ENABLE_CLUSTER_DNS} \
      ENABLE_CLUSTER_LOGGING=${ENABLE_CLUSTER_LOGGING} \
      ENABLE_CLUSTER_MONITORING=${ENABLE_CLUSTER_MONITORING} \
-     ENABLE_CLUSTER_DASHBOARD=${ENABLE_CLUSTER_DASHBOARD} \
      ENABLE_CLUSTER_REGISTRY=${ENABLE_CLUSTER_REGISTRY} \
      MASTER_INSECURE_ADDRESS=${MASTER_INSECURE_ADDRESS} \
      MASTER_INSECURE_PORT=${MASTER_INSECURE_PORT} \

@@ -5,6 +5,8 @@ metadata:
   namespace: kube-system
   labels:
     k8s-app: fluentd-logging
+    kubernetes-admin.caicloud.io/type: application
+    kubernetes-admin.caicloud.io/application: fluentd-elasticsearch
 spec:
   containers:
   - name: fluentd-elasticsearch
