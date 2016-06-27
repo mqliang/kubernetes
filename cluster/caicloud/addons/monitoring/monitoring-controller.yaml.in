@@ -7,6 +7,7 @@ metadata:
     k8s-app: monitoring
     version: v1
     kubernetes.io/cluster-service: "true"
+    kubernetes-admin.caicloud.io/type: application
 spec:
   replicas: 1
   selector:
@@ -18,6 +19,8 @@ spec:
         k8s-app: monitoring
         version: v1
         kubernetes.io/cluster-service: "true"
+        kubernetes-admin.caicloud.io/application: monitoring
+        kubernetes-admin.caicloud.io/type: application
     spec:
       containers:
         - image: index.caicloud.io/caicloudgcr/google_containers_heapster_influxdb:v0.5
@@ -69,7 +72,7 @@ spec:
           volumeMounts:
           - name: grafana-persistent-storage
             mountPath: /var
-        - image: index.caicloud.io/caicloud/monitoring:v0.1.10
+        - image: index.caicloud.io/caicloud/monitoring:v0.2.1
           name: monitoring
           imagePullPolicy: Always
           resources:

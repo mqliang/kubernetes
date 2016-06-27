@@ -7,6 +7,7 @@ metadata:
     k8s-app: kube-dns
     version: v11
     kubernetes.io/cluster-service: "true"
+    kubernetes-admin.caicloud.io/type: application
 spec:
   replicas: {{ pillar['dns_replicas'] }}
   selector:
@@ -18,6 +19,8 @@ spec:
         k8s-app: kube-dns
         version: v11
         kubernetes.io/cluster-service: "true"
+        kubernetes-admin.caicloud.io/type: application
+        kubernetes-admin.caicloud.io/application: kube-dns
     spec:
       containers:
       - name: etcd

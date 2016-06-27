@@ -27,7 +27,6 @@ set -o pipefail
 ENABLE_KUBE_SYSTEM_QUOTA=${ENABLE_KUBE_SYSTEM_QUOTA:-true}
 ENABLE_CLUSTER_DNS=${ENABLE_CLUSTER_DNS:-false}
 ENABLE_CLUSTER_LOGGING=${ENABLE_CLUSTER_LOGGING:-false}
-ENABLE_CLUSTER_DASHBOARD=${ENABLE_CLUSTER_DASHBOARD:-false}
 ENABLE_CLUSTER_MONITORING=${ENABLE_CLUSTER_MONITORING:-false}
 ENABLE_CLUSTER_REGISTRY=${ENABLE_CLUSTER_REGISTRY:-false}
 SYSTEM_NAMESPACE=${SYSTEM_NAMESPACE:-"kube-system"}
@@ -71,6 +70,10 @@ function create-kube-system-quota {
   create-resource-from-file ~/kube/quota.yaml 100 10 "${SYSTEM_NAMESPACE}"
 }
 
+function create-kube-system-limit-range {
+  create-resource-from-file ~/kube/limitrange.yaml 100 10 "${SYSTEM_NAMESPACE}"
+}
+
 function create-dns-addon {
   for obj in $(find ~/kube/addons/dns -type f -name \*.yaml -o -name \*.json); do
     create-resource-from-file ${obj} 10 10 "${SYSTEM_NAMESPACE}"
@@ -79,12 +82,6 @@ function create-dns-addon {
 
 function create-logging-addon {
   for obj in $(find ~/kube/addons/logging -type f -name \*.yaml -o -name \*.json); do
-    create-resource-from-file ${obj} 10 10 "${SYSTEM_NAMESPACE}"
-  done
-}
-
-function create-kube-dashboard-addon {
-  for obj in $(find ~/kube/addons/dashboard -type f -name \*.yaml -o -name \*.json); do
     create-resource-from-file ${obj} 10 10 "${SYSTEM_NAMESPACE}"
   done
 }
@@ -104,6 +101,7 @@ function create-registry-addon {
 
 create-kube-system-namespace
 create-kube-system-quota
+create-kube-system-limit-range
 
 if [[ "${ENABLE_CLUSTER_DNS}" == "true" ]]; then
   create-dns-addon
@@ -111,10 +109,6 @@ fi
 
 if [[ "${ENABLE_CLUSTER_LOGGING}" == "true" ]]; then
   create-logging-addon
-fi
-
-if [[ "${ENABLE_CLUSTER_DASHBOARD}" == "true" ]]; then
-  create-kube-dashboard-addon
 fi
 
 if [[ "${ENABLE_CLUSTER_MONITORING}" == "true" ]]; then

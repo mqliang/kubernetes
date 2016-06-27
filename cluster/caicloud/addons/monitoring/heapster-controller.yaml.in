@@ -7,6 +7,7 @@ metadata:
     k8s-app: heapster
     kubernetes.io/cluster-service: "true"
     version: v1.0.2
+    kubernetes-admin.caicloud.io/type: application
 spec:
   replicas: 1
   selector:
@@ -17,6 +18,8 @@ spec:
         k8s-app: heapster
         kubernetes.io/cluster-service: "true"
         version: v1.0.2
+        kubernetes-admin.caicloud.io/application: heapster
+        kubernetes-admin.caicloud.io/type: application
     spec:
       containers:
         - image: index.caicloud.io/caicloudgcr/google_containers_heapster:v1.0.2
