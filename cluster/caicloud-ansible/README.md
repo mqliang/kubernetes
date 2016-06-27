@@ -45,5 +45,5 @@ This will work on Ubuntu and CentOS.
 You can just setup certain parts instead of doing it all, e.g. to only run addons:
 
 ```
-`ansible-playbook -v -i cluster/caicloud-ansible/inventory.vagrant cluster/caicloud-ansible/cluster.yml` -t addons
+`ansible-playbook -v -i cluster/caicloud-ansible/inventory.vagrant cluster/caicloud-ansible/cluster.yml -t addons`
 ```

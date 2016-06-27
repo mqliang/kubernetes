@@ -19,6 +19,8 @@
   shell: "{{ bin_dir }}/etcdctl --no-sync --peers={{ peers }} set {{ conf_loc }} < {{ conf_file }}"
   run_once: true
   delegate_to: "{{ groups['etcd'][0] }}"
+  register: etcd_result
+  changed_when: "etcd_result.rc != 0"
 
 - name: Clean up the flannel config file
   file: path=/tmp/subnet-config.json state=absent

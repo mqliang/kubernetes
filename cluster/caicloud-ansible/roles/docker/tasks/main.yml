@@ -27,7 +27,7 @@
 
 - name: Verify docker config files exists
   file: path={{ docker_config_dir }}/{{ item }} state=touch
-  changed_when: false
+  changed_when: False
   with_items:
     - docker
     - docker-network
