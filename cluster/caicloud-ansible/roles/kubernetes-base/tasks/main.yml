@@ -29,9 +29,6 @@
 - name: Create the kubelet working directory
   file: path={{ kubelet_working_dir }} state=directory
 
-- name: Create addons directory
-  file: path={{ kube_addons_dir }} state=directory
-
 #
 # Misc preparations for bringing up cluster.
 

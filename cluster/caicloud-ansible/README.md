@@ -32,6 +32,11 @@ There are various places to configure cluster:
 
 The options are described there in full detail.
 
+## Bring up VMs (optional)
+
+The `inventory.vagrant` example inventory file is configured to use virtualbox machines in `cluster/caicloud-baremetal`.
+Change to that directory and run `vagrant up` will bring up three machines to test out the ansible playbook.
+
 ## Running the playbook
 
 After going through the setup, run the following command:

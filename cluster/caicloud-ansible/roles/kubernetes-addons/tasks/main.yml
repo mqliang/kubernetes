@@ -12,6 +12,9 @@
     addons_use_upstart: true
   when: ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 15
 
+- name: Create addons directory
+  file: path={{ kube_addons_dir }} state=directory
+
 #
 # Install addons based on configuration.
 
