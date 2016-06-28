@@ -367,7 +367,7 @@ function build-instance-image {
   scp-then-execute-expect ${MASTER_SSH_EXTERNAL} \
     ${KUBE_ROOT}/cluster/caicloud/tools/docker-config.json "~/.docker" \
     "mv ~/.docker/docker-config.json ~/.docker/config.json"
-  grep -IhEro "index.caicloud.io/[^\", ]*" ./cluster/caicloud | sort -u |
+  grep -IhEro "index.caicloud.io/[^\", ]*" ${KUBE_ROOT}/cluster/caicloud | sort -u |
     while read -r image; do
       ssh-to-instance-expect ${MASTER_SSH_EXTERNAL} "sudo docker pull $image || echo 'Command failed pulling image'"
       if [[ "$?" != 0 ]]; then
