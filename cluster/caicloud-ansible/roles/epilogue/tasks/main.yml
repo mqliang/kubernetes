@@ -15,7 +15,7 @@
 - name: Send nsenter to all instances
   copy: src=nsenter dest={{ bin_dir }}/nsenter
 
-- name: Logging | Copy upstart fluentd pod into each kubelet manifest
+- name: Logging | Copy upstart fluentd pod into manifest directory of each kubelet
   copy:
   args:
     src: "fluentd-es-upstart.yaml"
@@ -25,7 +25,7 @@
     group: root
   when: cluster_logging and kubernetes_use_upstart
 
-- name: Logging | Copy systemd fluentd pod into each kubelet manifest
+- name: Logging | Copy systemd fluentd pod into manifest directory of each kubelet
   copy:
   args:
     src: "fluentd-es-systemd.yaml"

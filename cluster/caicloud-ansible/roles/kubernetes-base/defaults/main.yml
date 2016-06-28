@@ -1,6 +1,6 @@
 ---
 
-# Version of Kubernetes binaries
+# Version of Kubernetes binaries.
 kube_version: v1.2.4+v0.9.0
 
 # The URL to download Kubernetes binaries from.
@@ -11,8 +11,13 @@ kube_download_url: "{{ kube_download_url_base }}/caicloud-kube-{{ kube_version }
 # DO NOT CHANGE section
 #
 
-# The secure port that kube-apiserver component listens on.
-kube_master_api_port: 443
+# The secure port that kube-apiserver component listens on. Note we use 6443 as
+# master secure port; all other components will connect to this port. In the
+# meanwhile, we run a nginx pod on master to serve 442 for inbound/outbound
+# traffic. This is necessary as certificates on 6443 must contain internal IP
+# address and service address (i.e. kubernetes.default.svc.cluster.local), which
+# can't be included in our public certificate.
+kube_master_api_port: 6443
 
 # The insecure port that kube-apiserver component listens on.
 kube_master_insecure_port: 8080
@@ -30,10 +35,16 @@ kube_config_dir: "/etc/kubernetes"
 # in /srv/kubernetes.  This puts them in a sane location.
 kube_script_dir: "{{ kube_config_dir}}/scripts"
 
-# This is where all the cert scripts and certs will be located.
+# This is where all the kube certs will be located.
 kube_cert_dir: "{{ kube_config_dir }}/certs"
 
-# The IP(s) for which the certificate will be valid
+# This is where all caicloudapp.com certs will be located.
+caicloudapp_cert_dir: "{{ kube_config_dir }}/caicloudapp_certs"
+
+# The directory to store master nginx config directory.
+master_nginx_conf_dir: "{{ kube_config_dir }}/nginx"
+
+# The IP(s) for which the certificate will be valid.
 kube_cert_ip: "{{ hostvars[inventory_hostname]['ansible_all_ipv4_addresses'] | join (',IP:') }}"
 
 # This is the group that the cert creation scripts chgrp the cert files to.
