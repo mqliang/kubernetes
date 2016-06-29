@@ -111,3 +111,8 @@ function clean-up-failed-nodes {
     anchnet-wait-job ${COMMAND_EXEC_RESPONSE} ${EIP_RELEASE_WAIT_RETRY} ${EIP_RELEASE_WAIT_INTERVAL}
   fi
 }
+
+function validate-new-node {
+  # TODO implement this
+  echo "Not implemented yet!"
+}
