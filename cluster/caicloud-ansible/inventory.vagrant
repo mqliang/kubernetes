@@ -1,0 +1,9 @@
+[masters]
+kubernetes-master ansible_host=192.168.205.10 ansible_user=vagrant ansible_ssh_pass=vagrant
+
+[etcd]
+kubernetes-master ansible_host=192.168.205.10 ansible_user=vagrant ansible_ssh_pass=vagrant
+
+[nodes]
+kubernetes-node-1 ansible_host=192.168.205.11 ansible_user=vagrant ansible_ssh_pass=vagrant
+kubernetes-node-2 ansible_host=192.168.205.12 ansible_user=vagrant ansible_ssh_pass=vagrant

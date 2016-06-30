@@ -1,0 +1,9 @@
+---
+# Install docker on centos.
+#
+
+- name: CentOS | Install GPG key
+  template: src="yum-docker.repo" dest="/etc/yum.repos.d/docker.repo"
+
+- name: CentOS | Install specific version of docker engine
+  yum: name=docker-engine-{{ docker_version }}

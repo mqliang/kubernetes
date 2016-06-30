@@ -1,0 +1,200 @@
+---
+# Install kubernetes master.
+
+#
+# Prepare for installation.
+
+# This is necessary since it affects the default 'kubernetes' service; without
+# which, 'kubernetes' service will have endpoint of interface eth0.
+- name: Set apiserver bind address to 'eth1' for vagrant, anchnet
+  set_fact:
+    kube_apiserver_bind_address: "{{ ansible_eth1.ipv4.address }}"
+  when: host_provider == 'vagrant' or host_provider == 'anchnet'
+
+- name: Determine which certificates to use
+  set_fact:
+    use_caicloudapp_certs: false
+
+- set_fact:
+    use_caicloudapp_certs: true
+  when: host_provider == 'anchnet'
+
+- name: Build master /etc/hosts file
+  lineinfile: dest=/etc/hosts regexp='.*{{ item }}$' line="{{ hostvars[item]['ansible_' +  kubelet_node_ip_interface].ipv4.address }} {{ item }}" state=present
+  with_items: "{{ groups['all'] }}"
+
+- name: Create caicloudapp certs directory
+  file:
+    path={{ caicloudapp_cert_dir }}
+    state=directory
+    mode=o-rwx
+    group={{ kube_cert_group }}
+
+- name: Create master nginx config directory
+  file:
+    path={{ master_nginx_conf_dir }}
+    state=directory
+
+#
+# Find tokens for master and nodes instances.
+
+- name: Get the master token values
+  slurp:
+    src: "{{ kube_token_dir }}/{{ item }}-{{ inventory_hostname }}.token"
+  with_items:
+    - "system:controller_manager"
+    - "system:scheduler"
+    - "system:kubectl"
+    - "system:kubelet"
+    - "system:proxy"
+  register: tokens
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Set token facts
+  set_fact:
+    controller_manager_token: "{{ tokens.results[0].content|b64decode }}"
+    scheduler_token: "{{ tokens.results[1].content|b64decode }}"
+    kubectl_token: "{{ tokens.results[2].content|b64decode }}"
+    kubelet_token: "{{ tokens.results[3].content|b64decode }}"
+    proxy_token: "{{ tokens.results[4].content|b64decode }}"
+
+- name: Ensure that a token auth file exists (addons may populate it)
+  file: path={{ kube_token_dir }}/known_tokens.csv state=touch
+  changed_when: false
+
+#
+# Install init scripts for all components.
+
+- name: Install master config files for upstart-based distribution
+  include: upstart-service.yml
+  when: kubernetes_use_upstart
+
+- name: Install master config files for systemd-based distribution
+  include: systemd-service.yml
+  when: not kubernetes_use_upstart
+
+- name: Write the delay-master-services target for systemd
+  copy: src=systemd/delay-master-services.target dest=/etc/systemd/system/ mode=0644
+  when: not kubernetes_use_upstart
+
+- name: Enable delay-master-services for systemd
+  service: name=delay-master-services.target enabled=yes
+  when: not kubernetes_use_upstart
+
+#
+# Install api server.
+
+- name: Write the config file for the api server
+  template: src=apiserver.j2 dest={{ kube_config_dir }}/apiserver
+  notify:
+    - restart apiserver
+
+# Add net_bind capability to kube-apiserver; otherwise it won't be able to bind
+# priviledged ports. Also, adding capability to /usr/bin/kube-apiserver is illegal
+# since it is a symlink: we must add it to the real binary.
+- name: Add cap_net_bind_service to kube-apiserver for systemd
+  capabilities:
+    path: /usr/local/caicloud-kube/kube-apiserver
+    capability: cap_net_bind_service=ep
+    state: present
+  when: not kubernetes_use_upstart
+
+- name: Start apiserver
+  service: name=kube-apiserver enabled=yes state=started
+  register: apiserver_started
+
+#
+# Install controller-manager.
+
+- name: Write the config file for the controller-manager
+  template: src=controller-manager.j2 dest={{ kube_config_dir }}/controller-manager
+  notify:
+    - restart controller-manager
+
+- name: Write the kubecfg (auth) file for controller-manager
+  template: src=controller-manager.kubeconfig.j2 dest={{ kube_config_dir }}/controller-manager.kubeconfig
+  notify:
+    - restart controller-manager
+
+- name: Start controller-manager
+  service: name=kube-controller-manager enabled=yes state=started
+  register: controller_manager_started
+
+#
+# Install scheduler.
+
+- name: Write the config file for the scheduler
+  template: src=scheduler.j2 dest={{ kube_config_dir }}/scheduler
+  notify:
+    - restart scheduler
+
+- name: Write the kubecfg (auth) file for scheduler
+  template: src=scheduler.kubeconfig.j2 dest={{ kube_config_dir }}/scheduler.kubeconfig
+  notify:
+    - restart scheduler
+
+- name: Start scheduler
+  service: name=kube-scheduler enabled=yes state=started
+  register: scheduler_started
+
+#
+# Install master kubelet.
+
+- name: Write the config files for kubelet
+  template: src=kubelet.j2 dest={{ kube_config_dir }}/kubelet
+  notify:
+    - restart kubelet
+
+- name: Write the kubecfg (auth) file for kubelet
+  template: src=kubelet.kubeconfig.j2 dest={{ kube_config_dir }}/kubelet.kubeconfig
+  notify:
+    - restart kubelet
+
+- name: Start kubelet
+  service: name=kubelet enabled=yes state=started
+  register: master_kubelet_started
+
+#
+# Install master kube-proxy.
+
+- name: Write the config files for proxy
+  template: src=proxy.j2 dest={{ kube_config_dir }}/proxy
+  notify:
+    - restart proxy
+
+- name: Write the kubecfg (auth) file for kube-proxy
+  template: src=proxy.kubeconfig.j2 dest={{ kube_config_dir }}/proxy.kubeconfig
+  notify:
+    - restart proxy
+
+- name: Start proxy
+  service: name=kube-proxy enabled=yes state=started
+  register: proxy_started
+
+#
+# Configure kubectl.
+
+- name: Write the kubecfg (auth) file for kubectl
+  template: src=kubectl.kubeconfig.j2 dest={{ kube_config_dir }}/kubectl.kubeconfig
+
+#
+# Install master nginx.
+
+- name: Copy caicloudapp.com certificates (ca, cert, key)
+  copy: src="caicloudapp_certs/" dest="{{ caicloudapp_cert_dir }}/"
+  when: use_caicloudapp_certs
+
+- name: Copy caicloudprivatetest.com certificates (ca, cert, key)
+  copy: src="caicloudprivatetest_certs/" dest="{{ caicloudapp_cert_dir }}/"
+  when: not use_caicloudapp_certs
+
+- name: Copy master nginx pod config
+  template: src=nginx.conf.j2 dest={{ master_nginx_conf_dir }}/nginx.conf
+
+- name: Copy master nginx pod into manifest directory of each kubelet
+  copy:
+    src: "nginx/nginx.yaml"
+    dest: "{{ kube_manifest_dir }}"
+    mode: 0644
+    owner: root
+    group: root

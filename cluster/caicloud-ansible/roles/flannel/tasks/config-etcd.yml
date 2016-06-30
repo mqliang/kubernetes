@@ -1,0 +1,28 @@
+---
+# Prepare and write flannel configuration to etcd.
+#
+
+- name: Set facts for etcdctl command
+  set_fact:
+    peers: "{% for hostname in groups['etcd'] %}http://{{ hostvars[hostname]['ansible_' + etcd_interface].ipv4.address }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
+    conf_file: "/tmp/subnet-conf.json"
+    conf_loc: "/{{ cluster_name }}/network/config"
+  run_once: true
+  delegate_to: "{{ groups['etcd'][0] }}"
+
+- name: Create flannel config file to go in etcd
+  template: src=subnet-conf.json.j2 dest={{ conf_file }}
+  run_once: true
+  delegate_to: "{{ groups['etcd'][0] }}"
+
+- name: Load the flannel config file into etcd
+  shell: "{{ bin_dir }}/etcdctl --no-sync --peers={{ peers }} set {{ conf_loc }} < {{ conf_file }}"
+  run_once: true
+  delegate_to: "{{ groups['etcd'][0] }}"
+  register: etcd_result
+  changed_when: "etcd_result.rc != 0"
+
+- name: Clean up the flannel config file
+  file: path=/tmp/subnet-config.json state=absent
+  run_once: true
+  delegate_to: "{{ groups['etcd'][0] }}"

@@ -1,0 +1,68 @@
+---
+
+# Version of Kubernetes binaries.
+kube_version: v1.2.4+v0.9.0
+
+# The URL to download Kubernetes binaries from.
+kube_download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"
+kube_download_url: "{{ kube_download_url_base }}/caicloud-kube-{{ kube_version }}.tar.gz"
+
+#
+# DO NOT CHANGE section
+#
+
+# The secure port that kube-apiserver component listens on. Note we use 6443 as
+# master secure port; all other components will connect to this port. In the
+# meanwhile, we run a nginx pod on master to serve 442 for inbound/outbound
+# traffic. This is necessary as certificates on 6443 must contain internal IP
+# address and service address (i.e. kubernetes.default.svc.cluster.local), which
+# can't be included in our public certificate.
+kube_master_api_port: 6443
+
+# The insecure port that kube-apiserver component listens on.
+kube_master_insecure_port: 8080
+
+# The secure address that kube-apiserver component listens on.
+kube_apiserver_bind_address: "0.0.0.0"
+
+# This directory is where all the additional config stuff goes the kubernetes
+# normally puts in /srv/kubernets. This puts them in a sane location.
+# Editting this value will almost surely break something. DON'T CHANGE IT.
+# Things like the systemd scripts are hard coded to look in here.
+kube_config_dir: "/etc/kubernetes"
+
+# This directory is where all the additional scripts go that Kubernetes normally puts
+# in /srv/kubernetes.  This puts them in a sane location.
+kube_script_dir: "{{ kube_config_dir}}/scripts"
+
+# This is where all the kube certs will be located.
+kube_cert_dir: "{{ kube_config_dir }}/certs"
+
+# This is where all caicloudapp.com certs will be located.
+caicloudapp_cert_dir: "{{ kube_config_dir }}/caicloudapp_certs"
+
+# The directory to store master nginx config directory.
+master_nginx_conf_dir: "{{ kube_config_dir }}/nginx"
+
+# The IP(s) for which the certificate will be valid.
+kube_cert_ip: "{{ hostvars[inventory_hostname]['ansible_all_ipv4_addresses'] | join (',IP:') }}"
+
+# This is the group that the cert creation scripts chgrp the cert files to.
+kube_cert_group: "kube-cert"
+
+# This is where all of the bearer tokens will be stored
+kube_token_dir: "{{ kube_config_dir }}/tokens"
+
+# The directory to store all addon yaml files.
+kube_addons_dir: "{{ kube_config_dir }}/addons"
+
+# This is where you can drop yaml/json files and the kubelet will run those
+# pods on startup.
+kube_manifest_dir: "{{ kube_config_dir }}/manifests"
+
+# Systemd unit file is hardcoded to use the directory.
+kubelet_working_dir: "/var/lib/kubelet"
+
+# Directory to store downloaded Kubernetes releases.
+kube_releases_directory: "/etc/caicloud"
+kube_current_release_directory: "/etc/caicloud/{{ kube_version }}"

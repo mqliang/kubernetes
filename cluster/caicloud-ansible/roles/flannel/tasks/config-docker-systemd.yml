@@ -1,0 +1,29 @@
+---
+# Override default systemd unit file and add flannel as docker dependency.
+#
+
+- name: Add docker systemd unit file
+  template: src=docker.service dest=/etc/systemd/system
+  register: docker_service
+  notify:
+    - reload systemd
+    - restart docker
+
+# Docker is installed via package manager, which by default links to /usr/lib/systemd;
+# we need to re-link it to /etc/systemd/system/docker.service.
+- name: Disable docker to re-link systemd file
+  service: name=docker enabled=no
+
+- name: Enable docker to re-link systemd file
+  service: name=docker enabled=yes
+
+- name: Create docker systemd dropin directory
+  file: path=/etc/systemd/system/docker.service.d state=directory
+
+- name: Add docker drop-in with dependency on flannel
+  copy:
+    src: 40-docker-depends-on-flannel.conf
+    dest: /etc/systemd/system/docker.service.d/40-docker-depends-on-flannel.conf
+  notify:
+    - reload systemd
+    - restart docker

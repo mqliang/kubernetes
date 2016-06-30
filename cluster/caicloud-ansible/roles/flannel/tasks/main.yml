@@ -1,0 +1,54 @@
+---
+# Main tasks for installing flannel and configuring docker.
+#
+
+#
+# Prepare installation.
+
+- name: Override flannel config file directory for upstart
+  set_fact:
+    flannel_config_dir: "/etc/default"
+  when: kubernetes_use_upstart
+
+- name: Create config file directory
+  file: path={{ flannel_config_dir }} state=directory
+
+#
+# Write etcd configuration, then install and config flannel.
+
+- name: Prepare and write flannel configuration to etcd
+  include: config-etcd.yml
+
+- name: Install and configure flannel
+  include: install.yml
+  when: inventory_hostname in groups['masters'] + groups['nodes']
+
+#
+# Configure docker to use flannel network.
+
+- name: Configure docker to use flannel network for upstart
+  include: config-docker-upstart.yml
+  when: kubernetes_use_upstart
+
+- name: Configure docker to use flannel network for systemd
+  include: config-docker-systemd.yml
+  when: not kubernetes_use_upstart
+
+#
+# Enable and start flannel. Note we wait for flannel environment file to
+# be created before handlers are triggered.
+
+- name: Enable flannel
+  service: name=flanneld enabled=yes
+
+- name: Start flannel
+  service: name=flanneld state=started
+  notify:
+    restart docker
+
+- name: wait for flannel subnet.env
+  wait_for:
+    path: /run/flannel/subnet.env
+    delay: 5
+    timeout: 60
+  register: wait_flannel

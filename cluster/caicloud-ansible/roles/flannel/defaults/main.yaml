@@ -1,0 +1,44 @@
+---
+
+# The flannel version to install.
+flannel_version: 0.5.5
+
+# The default url to download the flannel tar from.
+flannel_download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"
+flannel_download_url: "{{ flannel_download_url_base }}/flannel-{{ flannel_version }}-linux-amd64.tar.gz"
+
+# The backend that flannel should use.
+flannel_backend: "vxlan"
+
+# Flannel internal network (optional). When flannel is used, it will assign IP
+# addresses from this range to individual pods.
+# This network must be unused in your network infrastructure!
+flannel_subnet: 172.16.0.0
+
+# Flannel internal network total size (optional). This is the prefix of the
+# entire flannel overlay network.  So the entirety of 172.16.0.0/12 must be
+# unused in your environment.
+flannel_prefix: 12
+
+# Flannel internal network (optional). This is the size allocation that flannel
+# will give to each node on your network.  With these defaults you should have
+# room for 4096 nodes with 254 pods per node.
+flannel_host_prefix: 24
+
+# Additional options for flannel daemon.
+flannel_opts: "-ip-masq=true"
+
+#
+# DO NOT CHANGE section
+#
+# The following settings are meant to be configurable, but using non-default
+# values are not tested so it might cause system to misbehave. Aslo, it's
+# rarely needed to change the values.
+#
+
+# TCP port used by etcd clients. Also resides in "roles/etcd/defaults/main.yaml"
+etcd_client_port: 2379
+
+# Default flannel configuration directory. For upstart, this will be overriden
+# to "/etc/default".
+flannel_config_dir: "/etc/sysconfig"

@@ -1,0 +1,34 @@
+---
+# Download flannel and link it to `bin_dir`.
+#
+
+- name: Check if tar file exists
+  stat: path="{{ ansible_temp_dir }}/flannel-{{ flannel_version }}-linux-amd64.tar.gz"
+  register: flannel_tarball
+
+- name: Download tar file
+  get_url:
+    url: "{{ flannel_download_url }}"
+    dest: "{{ ansible_temp_dir }}"
+    validate_certs: False
+  environment:
+    http_proxy: "{{ http_proxy|default('') }}"
+    https_proxy: "{{ https_proxy|default('') }}"
+    no_proxy: "{{ no_proxy|default('') }}"
+  when: flannel_tarball.stat.exists == False
+
+- name: Extract tar file
+  unarchive:
+    src: "{{ ansible_temp_dir }}/flannel-{{ flannel_version }}-linux-amd64.tar.gz"
+    dest: /usr/local
+    copy: no
+
+- name: Create symlinks
+  file:
+    src: "/usr/local/flannel-{{ flannel_version }}/{{ item }}"
+    dest: "{{ bin_dir }}/{{ item }}"
+    state: link
+    force: yes
+  with_items:
+    - flanneld
+    - mk-docker-opts.sh

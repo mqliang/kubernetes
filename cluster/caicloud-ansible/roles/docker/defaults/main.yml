@@ -1,0 +1,12 @@
+---
+
+# The docker version to install (instead of latest).
+docker_version: "1.9.1"
+
+#
+# DO NOT CHANGE section
+#
+
+# Default docker configuration directory (for systemd). We'll
+# override it for upstart in ansible task.
+docker_config_dir: "/etc/sysconfig"

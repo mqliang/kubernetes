@@ -1,0 +1,17 @@
+---
+# Install DNS addon.
+
+- name: DNS | Mare sure dns direcotry exists
+  file: path={{ kube_addons_dir }}/dns state=directory
+
+- name: DNS | Write dns template from converted saltfiles
+  template:
+  args:
+    src: "dns/{{ item }}.j2"
+    dest: "{{ kube_addons_dir }}/dns/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - skydns-rc.yaml
+    - skydns-svc.yaml

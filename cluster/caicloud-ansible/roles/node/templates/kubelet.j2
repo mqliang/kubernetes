@@ -1,0 +1,28 @@
+###
+# kubernetes kubelet (node) config
+
+# The address for the info server to serve on (set to 0.0.0.0 or "" for all interfaces)
+KUBELET_ADDRESS="--address=0.0.0.0"
+
+# The port for the info server to serve on
+# KUBELET_PORT="--port=10250"
+
+# You may leave this blank to use the actual hostname
+KUBELET_HOSTNAME="--hostname-override={{ inventory_hostname }}"
+
+# Location of the api-server
+KUBELET_API_SERVER="--api-servers=https://{{ hostvars[groups['masters'][0]]['ansible_' + kube_apiserver_advertise_interface].ipv4.address }}:{{ kube_master_api_port }}"
+
+{% set kubelet_options = [] -%}
+{% if dns_setup -%}
+{{ kubelet_options.append('--cluster-dns=' + dns_server)|default('', true) -}}
+{{ kubelet_options.append('--cluster-domain=' + dns_domain)|default('', true) -}}
+{% endif -%}
+{% if networking == "opencontrail" -%}
+{{ kubelet_options.append('--network-plugin=opencontrail')|default('', true) -}}
+{% endif -%}
+{% if networking == "contiv" -%}
+{{ kubelet_options.append('--network-plugin=cni')|default('', true) -}}
+{% endif -%}
+
+KUBELET_ARGS="--kubeconfig={{ kube_config_dir }}/kubelet.kubeconfig --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['ansible_' + kubelet_node_ip_interface].ipv4.address }} {{ kubelet_options|join(' ') }}"
