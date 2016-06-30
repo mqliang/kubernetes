@@ -1,0 +1,7 @@
+---
+# Configure docker to use flannel network
+
+- name: Ubuntu | Configure docker to use flannel network
+  template: src=docker.upstart.conf dest=/etc/default/docker
+  notify:
+    - restart flannel

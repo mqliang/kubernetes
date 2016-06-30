@@ -1,0 +1,64 @@
+---
+# This playbook deploys kubernetes cluster on caicloud supported platforms.
+
+- name: Install etcd
+  hosts: etcd
+  become: yes
+  roles:
+    - etcd
+  tags:
+    - etcd
+
+- name: Install docker
+  hosts: all
+  become: yes
+  roles:
+    - docker
+  tags:
+    - docker
+
+- name: Install flannel
+  hosts:
+    - masters
+    - nodes
+  become: yes
+  roles:
+    - { role: flannel, when: networking == 'flannel' }
+  tags:
+    - network-service
+    - flannel
+
+- name: Install kubernetes masters
+  hosts: masters
+  become: yes
+  roles:
+    - master
+  tags:
+    - masters
+
+- name: Install kubernetes nodes
+  hosts: nodes
+  become: yes
+  roles:
+    - node
+  tags:
+    - nodes
+
+- name: Install kubernetes addons
+  hosts: masters
+  become: yes
+  roles:
+    - kubernetes-addons
+  tags:
+    - addons
+
+- name: Install runtime dependencies and manifests
+  hosts:
+    - masters
+    - nodes
+  become: yes
+  roles:
+    - epilogue
+  tags:
+    - epilogue
+    - addons

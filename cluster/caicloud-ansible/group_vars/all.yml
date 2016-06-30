@@ -1,0 +1,98 @@
+# This value determines how kubernetes binaries, config files, and service
+# files are loaded onto the target machines.
+
+# The provider of these machines, valid options: vagrant|anchnet|other. For
+# private cloud, set this to 'other'.
+host_provider: vagrant
+
+# Name of the cluster.
+cluster_name: "kube-default"
+
+# Network implementation, valid options: flannel
+networking: flannel
+
+# The infra container image name.
+pod_infra_container_image: "index.caicloud.io/caicloudgcr/google_containers_pause:1.0"
+
+# The set of admission_controllers used in cluster.
+admission_controllers: NamespaceLifecycle,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota
+
+# Kubernetes internal network for services.
+kube_service_addresses: 10.254.0.0/16
+
+# Turn to false to disable logging with elasticsearch.
+cluster_logging: true
+
+# Turn to false to disable cluster monitoring with heapster and influxdb.
+cluster_monitoring: true
+
+# Turn to false to disable the kube-dash addon for this cluster.
+kube_dash: true
+
+# Turn to false to disable DNS configuration.
+dns_setup: true
+
+# Number of dns replicas.
+dns_replicas: 1
+
+# Internal DNS domain name. This domain must not be used in internal network.
+# Services will be discoverable under <service-name>.<namespace>.<domainname>,
+# e.g. myservice.default.svc.cluster.local.
+dns_domain: "cluster.local"
+
+# IP address of the DNS server. The IP address must be from the range specified
+# as kube_service_addresses. This magic will actually pick the 100th ip address
+# in the kube_service_addresses range and use that.
+dns_server: "{{ kube_service_addresses|ipaddr('net')|ipaddr(100)|ipaddr('address') }}"
+
+# Number of elasticsearch replicas.
+elasticsearch_replicas: 2
+
+# Memory requests for heapster metrics.
+metrics_memory_initial: 200
+metrics_memory_per_node: 4
+metrics_memory: "{{ metrics_memory_initial + (metrics_memory_per_node * (groups['nodes'] | count)) }}Mi"
+
+# Memory requests for heapster eventer.
+eventer_memory_initial: 200
+eventer_memory_per_node: 500
+eventer_memory: "{{ eventer_memory_initial + (eventer_memory_per_node * (groups['nodes'] | count) / 1024) | round | int }}Mi"
+
+# Used by monitoring to indicate which environment we are running on.
+running_enviroment: "dev"
+
+# These environment vars are used by monitoring and have fake default values.
+# The default value are mainly used for getting us through the kube-up process
+# when doing kube-up by hand (e.g. deploying caicloud stack on private cloud)
+# since we don't have any real values for these env vars yet. For clusters
+# brought up by caicloud stack (user clusters), these values are passed in by cds.
+cluster_id: "32793e34-79d2-432b-ac17-708b61b80e6a"
+cluster_token: "eSbsyAr2eDatXBxa"
+caicloud_uid: "110ec58a-a0f2-4ac4-8393-c866d813b8d1"
+paging_url: "http://paging-dev/api/paging"
+
+#
+# DO NOT CHANGE
+#
+# The following interfaces will be changed based on provider.
+#
+
+# The interface where kubelet, controller manager connects to apiserver. Ansible
+# task will convert this to ip address; then set it to kubelet flag. Therefore,
+# the address must be stable across restart.
+kube_apiserver_advertise_interface: "{{ ansible_default_ipv4.interface }}"
+
+# The interface whose address kubelet uses as its node ip.
+kubelet_node_ip_interface: "{{ ansible_default_ipv4.interface }}"
+
+# Interface on which etcd listens. Useful on systems when default interface is
+# not connected to other machines; for example, in Vagrant + Virtualbox, we'll
+# need to set the value to a custom interface (e.g. eth1). Note this variable
+# can't be set in per-host manner with current implementation. Default value
+# is ansible default interface, but ansible will change it for certain type of
+# provider, e.g. vagrant.
+etcd_interface: "{{ ansible_default_ipv4.interface }}"
+
+# Interface for flannel to listen on. Default value is ansible default interface,
+# but ansible will change it for certain type of provider, e.g. vagrant.
+flannel_interface: "{{ ansible_default_ipv4.interface }}"

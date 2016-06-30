@@ -1,0 +1,47 @@
+---
+# Base kubernetes tasks for all masters/nodes, including:
+#  - create various directories (see defaults/main.yml)
+#  - write global config file
+#  - download and link all kubernetes binaries
+#  - generate certs and tokens
+#
+# Notes about configurations:
+# - For upstart, components' configurations are located at /etc/default/$name; which
+#   loads its configs from /etc/kubernetes/ directory.
+# - For systemd, components' configurations are written directly in unit files, i.e.
+#   /etc/systemd/system/$name; which also loads its configs from /etc/kubernetes/.
+
+#
+# Make sure directories exist.
+
+- name: Create kubernetes config directory
+  file: path={{ kube_config_dir }} state=directory
+
+- name: Create kubernetes script directory
+  file: path={{ kube_script_dir }} state=directory
+
+- name: Create kubernetes manifest directory
+  file: path={{ kube_manifest_dir }} state=directory
+
+- name: Create binary directory
+  file: path={{ bin_dir }} state=directory
+
+- name: Create the kubelet working directory
+  file: path={{ kubelet_working_dir }} state=directory
+
+#
+# Misc preparations for bringing up cluster.
+
+- name: Write the global config file for all components
+  template: src=config.j2 dest={{ kube_config_dir }}/config
+  notify:
+    - restart daemons
+
+- name: Download and extract tar file from qiniu for all hosts
+  include: qiniu.yml
+
+- name: Generate certs (or use ca-signed certs) and tokens
+  include: secrets.yml
+
+- name: Send docker config.json to all instances to pull image
+  copy: src=docker-config.json dest={{ kubelet_working_dir }}/config.json

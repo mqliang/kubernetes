@@ -1,0 +1,45 @@
+---
+
+- name: restart flannel
+  service: name=flanneld state=restarted
+  notify:
+    - restart docker
+
+- name: restart docker
+  command: /bin/true
+  notify:
+    - check docker existence
+    - stop docker
+    - delete docker0
+    - start docker
+    - restart flannel without restarting docker
+
+- name: start docker
+  command: /bin/true
+  notify:
+    - check docker existence
+    - docker start service
+
+# If rc!=2 (No such file or directory), assume that docker has installed.
+- name: check docker existence
+  command: "docker version"
+  register: has_docker
+  changed_when: false
+  failed_when: false
+
+- name: stop docker
+  service: name=docker state=stopped
+  when: has_docker.rc|int != 2
+
+- name: delete docker0
+  command: ip link delete docker0
+  when: has_docker.rc|int != 2
+
+- name: docker start service
+  service: name=docker state=started
+  when: has_docker.rc|int != 2
+
+# After using iptables mode, we need to change flannel to use --ip-masq, but
+# it won't take effect after docker restart, we have to restart flannel again.
+- name: restart flannel without restarting docker
+  service: name=flanneld state=restarted

@@ -1,0 +1,14 @@
+# Flanneld configuration options
+
+# etcd url location.
+FLANNEL_ETCD="{% for hostname in groups['etcd'] %}http://{{ hostvars[hostname]['ansible_' + etcd_interface].ipv4.address }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
+
+# etcd config key. This is the configuration key that flannel queries
+# for address range assignment
+FLANNEL_ETCD_KEY="/{{ cluster_name }}/network"
+
+# Interface to use.
+FLANNEL_INTERFACE="{{ flannel_interface }}"
+
+# Any additional options that to pass to flannel.
+FLANNEL_OPTIONS="{{ flannel_opts | default('') }}"

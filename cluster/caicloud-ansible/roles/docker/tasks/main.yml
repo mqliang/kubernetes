@@ -1,0 +1,63 @@
+---
+# Main tasks for installing docker.
+#   systemd service configuration uses EnvironmentFile (docker and docker-network)
+#   upstart service configuration sources "{{docker_config_dir}}/docker"
+
+#
+# Determine init system and create config directory.
+
+- name: Override docker config file directory for Debian and Ubuntu
+  set_fact:
+    docker_config_dir: "/etc/default"
+  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+
+- name: Local vars for systemd installs
+  set_fact:
+    docker_config_net: "{{ docker_config_dir }}/docker-network"
+    docker_env_export: ""
+
+- name: Override local vars for upstart installs
+  set_fact:
+    docker_config_net: "{{ docker_config_dir }}/docker"
+    docker_env_export: "export "
+  when: kubernetes_use_upstart
+
+- name: Create config file directory
+  file: path={{ docker_config_dir }} state=directory
+
+- name: Verify docker config files exists
+  file: path={{ docker_config_dir }}/{{ item }} state=touch
+  changed_when: False
+  with_items:
+    - docker
+    - docker-network
+
+#
+# Install and configure docker on different distribution.
+
+- name: Ubuntu | Install docker on ubuntu
+  include: ubuntu-install.yml
+  when: ansible_distribution == "Ubuntu"
+
+- name: Centos | Install docker on centos
+  include: centos-install.yml
+  when: ansible_distribution == "CentOS"
+
+- name: Create docker dropin directory for systemd
+  file: path=/etc/systemd/system/docker.service.d state=directory mode=0755
+  when: not kubernetes_use_upstart
+
+- name: Write docker dropin environment file for systemd
+  copy: src=10-env-file.conf dest=/etc/systemd/system/docker.service.d/10-env-file.conf
+  notify:
+    - reload systemd
+  when: not kubernetes_use_upstart
+
+#
+# Enable and start docker
+
+- name: Enable docker
+  service: name=docker enabled=yes
+
+- name: Start docker
+  service: name=docker state=started

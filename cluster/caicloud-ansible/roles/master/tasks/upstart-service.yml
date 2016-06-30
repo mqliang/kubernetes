@@ -1,0 +1,42 @@
+---
+# Install ubuntu upstart files.
+
+- name: Upstart | Write upstart config files
+  copy:
+    src=init_conf/{{ item }}.conf
+    dest=/etc/init/{{ item }}.conf
+  register: "{{ item }}_config"
+  notify:
+    - restart daemons
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    - kubelet
+    - kube-proxy
+
+- name: Upstart | Write upstart script files
+  copy:
+    src=init_scripts/{{ item}}
+    dest=/etc/init.d/{{ item }}
+  register: "{{ item }}_service"
+  notify:
+    - restart daemons
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    - kubelet
+    - kube-proxy
+
+- name: Upstart | Write kubernetes master default files
+  template: src={{ item }}-default.j2 dest="/etc/default/{{ item }}"
+  register: "{{ item }}_default"
+  notify:
+    - restart daemons
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    - kubelet
+    - kube-proxy
