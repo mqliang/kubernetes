@@ -34,12 +34,10 @@ function kube-add-nodes {
   ensure-temp-dir
   ensure-ssh-agent
 
-  # Set up new nodes.
-  IFS=',' read -ra node_ssh_info <<< "${NODE_SSH_EXTERNAL}"
-  for (( i = 0; i < ${#node_ssh_info[*]}; i++ )); do
-    IFS=':@' read -ra ssh_info <<< "${node_ssh_info[$i]}"
-    setup-instance "${ssh_info[2]}" "${ssh_info[0]}" "${ssh_info[1]}"
-  done
+  # Set up all instances. Note we are setting up master instance again to
+  # copy over the public key because we might be doing scale up on a different
+  # machine.
+  setup-instances
   setup-baremetal-instances
 
   # Clean up created node if we failed after new nodes are created.
