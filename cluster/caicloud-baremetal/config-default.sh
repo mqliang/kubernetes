@@ -84,7 +84,7 @@ REGISTER_MASTER_SCHEDULABLE=${REGISTER_MASTER_SCHEDULABLE:-"false"}
 #
 
 # URL path of the server hosting caicloud kubernetes release.
-CAICLOUD_HOST_URL=${CAICLOUD_HOST_URL:-"http://7xli2p.dl1.z0.glb.clouddn.com"}
+CAICLOUD_HOST_URL=${CAICLOUD_HOST_URL:-"http://172.31.31.1"}
 
 # Caicloud registry mirror.
 REGISTRY_MIRROR=${REGISTRY_MIRROR:-"https://docker-mirror.caicloud.io"}
@@ -93,9 +93,7 @@ REGISTRY_MIRROR=${REGISTRY_MIRROR:-"https://docker-mirror.caicloud.io"}
 # first one failed, then switch to second one, etc. Make sure retry count is larger
 # than the list; otherwise not all of the mirrors will be used.
 APT_MIRRORS=${APT_MIRRORS:-"\
-http://mirrors.aliyun.com/ubuntu/,\
-http://mirrors.163.com/ubuntu/,\
-http://ftp.sjtu.edu.cn/ubuntu/"}
+http://repos.zpepc.com.cn/ubuntu/"}
 
 # -----------------------------------------------------------------------------
 # Parameter from executor for cluster addons.
@@ -159,7 +157,7 @@ BASE_DOMAIN_NAME=${BASE_DOMAIN_NAME:-"caicloudapp.com"}
 ADMISSION_CONTROL=NamespaceLifecycle,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota
 
 # The infra container used for every Pod.
-POD_INFRA_CONTAINER="caicloudgcr/pause:1.0"
+POD_INFRA_CONTAINER="docker-registry.caicloudprivatetest.com/caicloud/pause:1.0"
 
 # Namespace used to create cluster wide services, e.g. logging, dns, etc.
 # The name is from upstream and shouldn't be changed.
@@ -169,6 +167,26 @@ SYSTEM_NAMESPACE="kube-system"
 # --insecure-registry for local registries.
 DOCKER_OPTS=""
 
+APT_MIRRORS_DOCKER=${APT_MIRRORS_DOCKER:-"http://get.caicloud.io/docker"}
+
+DNS_IMAGE_ETCD="index.caicloud.io/caicloudgcr/google_containers_etcd-amd64:2.2.1"
+DNS_IMAGE_KUBE2SKY="index.caicloud.io/caicloudgcr/google_containers_kube2sky:1.14"
+DNS_IMAGE_SKYDNS="index.caicloud.io/caicloudgcr/google_containers_skydns:2015-10-13-8c72f8c"
+DNS_IMAGE_HEALTHZ="index.caicloud.io/caicloudgcr/google_containers_exechealthz:1.0"
+
+ELASTICSEARCH_IMAGE_ELASTICSEARCH="index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.8.2"
+ELASTICSEARCH_IMAGE_ESCRON="index.caicloud.io/caicloud/es-cron:v0.1.2"
+
+HEAPSTER_IMAGE_HEAPSTER="index.caicloud.io/caicloudgcr/google_containers_heapster:v1.0.2"
+MONITORING_IMAGE_INFLUXDB="index.caicloud.io/caicloudgcr/google_containers_heapster_influxdb:v0.5"
+MONITORING_IMAGE_GRAFANA="index.caicloud.io/caicloudgcr/google_containers_heapster_grafana:v2.6.0-2"
+MONITORING_IMAGE_MONITORING="index.caicloud.io/caicloud/monitoring:v0.2.2-rc3"
+
+REGISTRY_IMAGE="index.caicloud.io/registry:2.2"
+
+FLUENTD_ELASTICSEARCH_IMAGE="index.caicloud.io/caicloudgcr/google_containers_fluentd-elasticsearch:1.15"
+MASTER_NGINX_IMAGE="index.caicloud.io/caicloud/nginx:1.9.4"
+REGISTRY_PROXY_IMAGE="index.caicloud.io/caicloudgcr/google_containers_kube-registry-proxy:0.3"
 
 # -----------------------------------------------------------------------------
 # Derived params for kube-up (calculated based on above params: DO NOT CHANGE).

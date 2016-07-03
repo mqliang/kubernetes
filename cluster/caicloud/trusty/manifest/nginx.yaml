@@ -6,7 +6,7 @@ spec:
   hostNetwork: true
   containers:
   - name: master-nginx
-    image: index.caicloud.io/caicloud/nginx:1.9.4
+    image: {{ pillar['master_nginx_image'] }}
     resources:
       limits:
         cpu: 100m

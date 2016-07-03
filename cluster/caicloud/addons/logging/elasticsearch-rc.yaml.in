@@ -23,7 +23,7 @@ spec:
         kubernetes-admin.caicloud.io/type: application
     spec:
       containers:
-      - image: index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.8.2
+      - image: {{ pillar['elasticsearch_image_elasticsearch'] }}
         name: elasticsearch-logging
         resources:
           # keep request = limit to keep this container in guaranteed class
@@ -43,7 +43,7 @@ spec:
         volumeMounts:
         - name: es-persistent-storage
           mountPath: /data
-      - image: index.caicloud.io/caicloud/es-cron:v0.1.2
+      - image: {{ pillar['elasticsearch_image_escron'] }}
         name: crontab-curator
         env:
           - name: CURATOR_TIME_UNIT
