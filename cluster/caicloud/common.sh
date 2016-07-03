@@ -1390,3 +1390,48 @@ function report-user-message {
   # "1" is the log level set in executor; the level means "Info" and will be sent to end user.
   report-log-entry "1" "$1"
 }
+
+# Create inventory file for ansible
+#
+# Assumed vars:
+#   MASTER_SSH_INFO
+#   NODE_SSH_INFO
+#   KUBE_CURRENT
+function create-inventory-file {
+  inventory_file=$KUBE_CURRENT/inventory
+  # Set master roles
+  echo "[masters]" > $inventory_file
+  IFS=',' read -ra master_ssh_info <<< "${MASTER_SSH_INFO}"
+  for (( i = 0; i < ${#master_ssh_info[*]}; i++ )); do
+    j=$((i+1))
+    IFS=':@' read -ra ssh_info <<< "${master_ssh_info[$i]}"
+    echo "kubernetes-master-${j} ansible_host=${ssh_info[2]} ansible_user=${ssh_info[0]} ansible_ssh_pass=${ssh_info[1]}" >> $inventory_file
+  done
+  echo "" >> $inventory_file
+
+  # Set etcd roles
+  echo "[etcd]" >> $inventory_file
+  # It's the same with masters
+  for (( i = 0; i < ${#master_ssh_info[*]}; i++ )); do
+    j=$((i+1))
+    IFS=':@' read -ra ssh_info <<< "${master_ssh_info[$i]}"
+    echo "kubernetes-master-${j} ansible_host=${ssh_info[2]} ansible_user=${ssh_info[0]} ansible_ssh_pass=${ssh_info[1]}" >> $inventory_file
+  done
+  echo "" >> $inventory_file
+
+  # Set node roles
+  echo "[nodes]" >> $inventory_file
+  IFS=',' read -ra node_ssh_info <<< "${NODE_SSH_INFO}"
+  for (( i = 0; i < ${#node_ssh_info[*]}; i++ )); do
+    j=$((i+1))
+    IFS=':@' read -ra ssh_info <<< "${node_ssh_info[$i]}"
+    echo "kubernetes-node-${j} ansible_host=${ssh_info[2]} ansible_user=${ssh_info[0]} ansible_ssh_pass=${ssh_info[1]}" >> $inventory_file
+  done
+  echo "" >> $inventory_file
+}
+
+# Assumed vars:
+#   KUBE_CURRENT
+function start-kubernetes-by-ansible {
+  ansible-playbook -v -i $KUBE_CURRENT/inventory --extra-vars "@$KUBE_CURRENT/extra_vars.json" $KUBE_CURRENT/cluster.yml
+}
