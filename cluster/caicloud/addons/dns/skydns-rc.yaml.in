@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: etcd
-        image: index.caicloud.io/caicloudgcr/google_containers_etcd-amd64:2.2.1
+        image: {{ pillar['dns_image_etcd'] }}
         resources:
           # TODO: Set memory limits when we've profiled the container for large
           # clusters, then set request = limit to keep this container in
@@ -50,7 +50,7 @@ spec:
         - name: etcd-storage
           mountPath: /var/etcd/data
       - name: kube2sky
-        image: index.caicloud.io/caicloudgcr/google_containers_kube2sky:1.14
+        image: {{ pillar['dns_image_kube2sky'] }}
         resources:
           # TODO: Set memory limits when we've profiled the container for large
           # clusters, then set request = limit to keep this container in
@@ -85,7 +85,7 @@ spec:
         # command = "/kube2sky"
         - --domain={{ pillar['dns_domain'] }}
       - name: skydns
-        image: index.caicloud.io/caicloudgcr/google_containers_skydns:2015-10-13-8c72f8c
+        image: {{ pillar['dns_image_skydns'] }}
         resources:
           # TODO: Set memory limits when we've profiled the container for large
           # clusters, then set request = limit to keep this container in
@@ -111,7 +111,7 @@ spec:
           name: dns-tcp
           protocol: TCP
       - name: healthz
-        image: index.caicloud.io/caicloudgcr/google_containers_exechealthz:1.0
+        image: {{ pillar['dns_image_healthz'] }}
         resources:
           # keep request = limit to keep this container in guaranteed class
           limits:
