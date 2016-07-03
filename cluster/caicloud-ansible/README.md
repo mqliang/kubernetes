@@ -1,54 +1,51 @@
-# Kubernetes Ansible
+# Caicloud ansible cloudprovider
 
-This playbook and set of roles set up a Kubernetes cluster onto machines. They can be real hardware, VMs, things in
-a public cloud, etc. Anything that you can connect to via SSH.
+Ansible cloudprovider provides an ansible deployment of kubernetes cluster. It assumes nothing but a few running instances.
 
-## Before starting
+## Create a development cluster
 
-* Record the masters' IP address/hostname (only support a single master)
-* Record the etcd's IP address/hostname (often same as master, only one)
-* Record the nodes' IP addresses/hostname (master will be added as scheduling disabled)
-* Make sure your ansible running machine has ansible 2.0 and python-netaddr installed.
-
-## Setup
-
-### Configure inventory
-
-Add the system information gathered above into the 'inventory' file, or create a new inventory file for the cluster.
-
-### Configure Cluster options
-
-There are various places to configure cluster:
-
-- `group_vars/all.yml`: contains cluster level options like cluster name, addons, network plugin, etc.
-
-- `roles/etcd/default/main.yml`: contains options for etcd.
-
-- `roles/docker/default/main.yml`: contains options for docker.
-
-- `roles/flannel/default/main.yml`: contains options for flannel.
-
-- `roles/kubernetes-base/default/main.yml`: contains options for kubernetes.
-
-The options are described there in full detail.
-
-## Bring up VMs (optional)
-
-The `inventory.vagrant` example inventory file is configured to use virtualbox machines in `cluster/caicloud-baremetal`.
-Change to that directory and run `vagrant up` will bring up three machines to test out the ansible playbook.
-
-## Running the playbook
-
-After going through the setup, run the following command:
-
-`ansible-playbook -v -i cluster/caicloud-ansible/inventory.vagrant cluster/caicloud-ansible/cluster.yml`
-
-This will work on Ubuntu and CentOS.
-
-### Targeted runs
-
-You can just setup certain parts instead of doing it all, e.g. to only run addons:
-
+To create a kubernetes cluster for local developement, first create VMs using Vagrant file:
 ```
-`ansible-playbook -v -i cluster/caicloud-ansible/inventory.vagrant cluster/caicloud-ansible/cluster.yml -t addons`
+VAGRANT_VAGRANTFILE=Vagrantfile.ubuntu vagrant up
+or
+VAGRANT_VAGRANTFILE=Vagrantfile.centos vagrant up
 ```
+
+This will create three ubuntu VMs with dedicated IP addresses. 
+
+## Set environment variables
+
+We must set the following two environment variables:
+```
+MASTER_SSH_INFO
+    The master node ssh information in the format of "username:password@ip_address". HA master is currently supported.
+
+NODE_SSH_INFO
+    The worker node ssh information in the format of "username:password@ip_address".
+```
+
+## Change default configurations
+
+We can change the default configurations of the kubernetes cluster by environment variables. If not seting these environment variables, It will use the default values. For details, please refer to [README-ANSIBLE](README-ANSIBLE.md).
+
+Naming rules of environment variables:
+```
+CAICLOUD_K8S_CFG_XX_YY
+```
+
+`CAICLOUD_K8S_CFG_` is the prefix, and `XX_YY` is the variable name in uppercase.
+
+For example, default value of `host_provider` variable is `"vagrant"`, if we want to change the default value to `"anchnet"`, we should set the `CAICLOUD_K8S_CFG_HOST_PROVIDER` environment variable:
+```
+export CAICLOUD_K8S_CFG_HOST_PROVIDER="anchnet"
+```
+
+## Bring up kubernete cluster
+
+Now, to bring up kubernete cluster, simply run:
+```
+KUBERNETES_PROVIDER=caicloud-ansible ./cluster/kube-up.sh
+```
+
+## Bring down kubernetes cluster
+Todo...
