@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# In kube-up.sh, bash is set to exit on error. However, we need to retry
+# on error. Therefore, we disable errexit here.
+set +o errexit
+
 KUBE_CURRENT=$(dirname "${BASH_SOURCE}")
 KUBE_ROOT="$KUBE_CURRENT/../.."
 
@@ -58,9 +62,10 @@ function kube-up {
   ensure-temp-dir
   ensure-ssh-agent
 
-  create-inventory-file
-
   setup-instances
+
+  create-inventory-file
+  create-extra-vars-json-file
 
   start-kubernetes-by-ansible $KUBE_ROOT/cluster/caicloud-ansible
 }

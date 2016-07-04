@@ -1430,6 +1430,41 @@ function create-inventory-file {
   echo "" >> $inventory_file
 }
 
+# -----------------------------------------------------------------------------
+# Create extra vars json file for ansible-playbook
+#
+# Environment variables passing in a json formatted string to extra-vars.
+# If not seting these environment variables, It will use the default values.
+#
+# We will resolve the following environment variables:
+#   CAICLOUD_CONFIG_XX_YY
+#
+# Assumed vars:
+#   KUBE_CURRENT
+# -----------------------------------------------------------------------------
+function create-extra-vars-json-file {
+  EXTRA_VARS_FILE="${KUBE_CURRENT}/extra_vars.json"
+  touch ${EXTRA_VARS_FILE}
+
+  echo "{" > ${EXTRA_VARS_FILE}
+
+  OLDIFS=$IFS
+  # resolve CAICLOUD_CONFIG_XX_YY environment variables.
+  set | grep "^CAICLOUD_K8S_CFG_*" | \
+  while read line; do
+    IFS='=' read -ra var_array <<< "${line}"
+    # Get XX_YY and change into lowercase: xx_yy
+    var_name=$(echo ${var_array[0]#CAICLOUD_K8S_CFG_} | tr '[:upper:]' '[:lower:]')
+    echo "  \"${var_name}\": ${var_array[1]}," >> ${EXTRA_VARS_FILE}
+  done
+  IFS=$OLDIFS
+
+  # Remove the trailing comma
+  sed -i -zr 's/,([^,]*$)/\1/' ${EXTRA_VARS_FILE}
+
+  echo "}" >> ${EXTRA_VARS_FILE}
+}
+
 # Assumed vars:
 #   KUBE_CURRENT
 function start-kubernetes-by-ansible {
