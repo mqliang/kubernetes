@@ -27,8 +27,7 @@ NODE_SSH_INFO=${NODE_SSH_INFO:-"vagrant:vagrant@192.168.205.11,vagrant:vagrant@1
 function calculate-default {
   INSTANCE_SSH_EXTERNAL="${MASTER_SSH_INFO},${NODE_SSH_INFO}"
 
-  # We will install kubelet on masters and nodes, so they will all be considered as nodes.
-  IFS=',' read -ra ssh_info <<< "${INSTANCE_SSH_EXTERNAL}"
+  IFS=',' read -ra ssh_info <<< "${NODE_SSH_INFO}"
   export NUM_NODES=${#ssh_info[@]}
 }
 
