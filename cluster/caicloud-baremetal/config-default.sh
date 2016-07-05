@@ -84,7 +84,7 @@ REGISTER_MASTER_SCHEDULABLE=${REGISTER_MASTER_SCHEDULABLE:-"false"}
 #
 
 # URL path of the server hosting caicloud kubernetes release.
-CAICLOUD_HOST_URL=${CAICLOUD_HOST_URL:-"http://172.31.31.1"}
+CAICLOUD_HOST_URL=${CAICLOUD_HOST_URL:-"http://7xli2p.dl1.z0.glb.clouddn.com"}
 
 # Caicloud registry mirror.
 REGISTRY_MIRROR=${REGISTRY_MIRROR:-"https://docker-mirror.caicloud.io"}
@@ -93,7 +93,9 @@ REGISTRY_MIRROR=${REGISTRY_MIRROR:-"https://docker-mirror.caicloud.io"}
 # first one failed, then switch to second one, etc. Make sure retry count is larger
 # than the list; otherwise not all of the mirrors will be used.
 APT_MIRRORS=${APT_MIRRORS:-"\
-http://repos.zpepc.com.cn/ubuntu/"}
+http://mirrors.aliyun.com/ubuntu/,\
+http://mirrors.163.com/ubuntu/,\
+http://ftp.sjtu.edu.cn/ubuntu/"}
 
 # -----------------------------------------------------------------------------
 # Parameter from executor for cluster addons.
@@ -157,7 +159,7 @@ BASE_DOMAIN_NAME=${BASE_DOMAIN_NAME:-"caicloudapp.com"}
 ADMISSION_CONTROL=NamespaceLifecycle,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota
 
 # The infra container used for every Pod.
-POD_INFRA_CONTAINER="docker-registry.caicloudprivatetest.com/caicloud/pause:1.0"
+POD_INFRA_CONTAINER="caicloudgcr/pause:1.0"
 
 # Namespace used to create cluster wide services, e.g. logging, dns, etc.
 # The name is from upstream and shouldn't be changed.
