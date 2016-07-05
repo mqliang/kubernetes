@@ -1,0 +1,35 @@
+---
+# Tasks for for the control machine.
+
+- name: Create kubeconfig file directory
+  file: path={{ ansible_env.HOME }}/.kube state=directory
+
+- name: Get the content of kubeconfig for kubectl from master
+  slurp:
+    src: "{{ cm_kubectl_kubeconfig }}"
+  register: cmkubeconfig
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Register the decoded kubeconfig content
+  set_fact:
+    cmkubeconfig_decoded: "{{ cmkubeconfig.content|b64decode }}"
+
+- name: Create .kube/config file in HOME directory
+  copy: content="{{ cmkubeconfig_decoded }}" dest="{{ ansible_env.HOME }}/.kube/config"
+
+- name: Choose caicloud domain
+  set_fact:
+    caicloud_domain: "{{ cluster_name }}.{{ caicloud_private_test_domain }}"
+
+- set_fact:
+    caicloud_domain: "{{ cluster_name }}.{{ caicloud_app_domain }}"
+  when: host_provider == 'anchnet'
+
+# Note: cluster_vip is from extra vars.
+# /etc/hosts is in Unix, Unix-like, POSIX OS.
+- name: Map caicloud domain name to ip address
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "^{{ cluster_vip }}"
+    line: "{{ cluster_vip }}  {{ caicloud_domain }}"
+    state: present

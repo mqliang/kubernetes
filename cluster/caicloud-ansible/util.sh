@@ -22,7 +22,7 @@ KUBE_CURRENT=$(dirname "${BASH_SOURCE}")
 KUBE_ROOT="$KUBE_CURRENT/../.."
 
 # Get cluster configuration parameters from config-default.
-source "${KUBE_ROOT}/cluster/caicloud-baremetal/config-default.sh"
+source "${KUBE_ROOT}/cluster/caicloud-ansible/config-default.sh"
 source "${KUBE_ROOT}/cluster/caicloud/common.sh"
 
 # -----------------------------------------------------------------------------
@@ -67,7 +67,7 @@ function kube-up {
   create-inventory-file
   create-extra-vars-json-file
 
-  start-kubernetes-by-ansible $KUBE_ROOT/cluster/caicloud-ansible
+  start-kubernetes-by-ansible
 }
 
 # Delete a kubernetes cluster

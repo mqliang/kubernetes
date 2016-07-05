@@ -27,8 +27,21 @@ NODE_SSH_INFO=${NODE_SSH_INFO:-"vagrant:vagrant@192.168.205.11,vagrant:vagrant@1
 function calculate-default {
   INSTANCE_SSH_EXTERNAL="${MASTER_SSH_INFO},${NODE_SSH_INFO}"
 
-  IFS=',' read -ra ssh_info <<< "${NODE_SSH_INFO}"
+  IFS=',' read -ra ssh_info <<< "${INSTANCE_SSH_EXTERNAL}"
   export NUM_NODES=${#ssh_info[@]}
+
+  if [[ -z "${CLUSTER_VIP-}" ]]; then
+    IFS=',' read -ra ssh_info <<< "${MASTER_SSH_INFO}"
+    NUM_MASTERS=${#ssh_info[@]}
+    if [[ $NUM_MASTERS -gt 1 ]]; then
+      echo "Warning: you have ${NUM_MASTERS} masters, but you don't set CLUSTER_VIP environment variable."
+    fi
+    # We will use the ip of the first master
+    first_master_ssh_info=${MASTER_SSH_INFO%%,*}
+    CLUSTER_VIP=${first_master_ssh_info#*@}
+  fi
+
+  CAICLOUD_K8S_CFG_CLUSTER_VIP=${CLUSTER_VIP}
 }
 
 calculate-default

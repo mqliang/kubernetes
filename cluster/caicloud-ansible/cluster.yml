@@ -62,3 +62,11 @@
   tags:
     - epilogue
     - addons
+
+- name: Install kubeconfig for kubectl and add dns to hosts
+  hosts:
+    - localhost
+  roles:
+    - control-machine
+  tags:
+    - control-machine

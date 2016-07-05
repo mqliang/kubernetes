@@ -62,6 +62,10 @@
   file: path={{ kube_token_dir }}/known_tokens.csv state=touch
   changed_when: false
 
+- name: Ensure that a basic auth file exists
+  file: path={{ kube_token_dir }}/basic-auth.csv state=touch
+  changed_when: false
+
 #
 # Install init scripts for all components.
 
