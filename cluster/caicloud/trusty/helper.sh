@@ -159,13 +159,13 @@ function send-master-files {
   sed -e "s/{{ pillar\['master_secure_location'\] }}/${MASTER_SECURE_ADDRESS}/g" ${nginx_conf_file} > ${KUBE_TEMP}/nginx.conf
 
   local -r fluentd_yaml_file="${KUBE_ROOT}/cluster/caicloud/trusty/manifest/fluentd-es.yaml"
-  sed -e "s/{{ pillar\['fluentd_elasticsearch_image'\] }}/${FLUENTD_ELASTICSEARCH_IMAGE}/g" ${fluentd_yaml_file} > ${KUBE_TEMP}/fluentd-es.yaml
+  sed -e "s|{{ pillar\['fluentd_elasticsearch_image'\] }}|${FLUENTD_ELASTICSEARCH_IMAGE}|g" ${fluentd_yaml_file} > ${KUBE_TEMP}/fluentd-es.yaml
 
   local -r registry_proxy_yaml_file="${KUBE_ROOT}/cluster/caicloud/trusty/manifest/registry-proxy.yaml"
-  sed -e "s/{{ pillar\['registry_proxy_image'\] }}/${REGISTRY_PROXY_IMAGE}/g" ${registry_proxy_yaml_file} > ${KUBE_TEMP}/registry-proxy.yaml
+  sed -e "s|{{ pillar\['registry_proxy_image'\] }}|${REGISTRY_PROXY_IMAGE}|g" ${registry_proxy_yaml_file} > ${KUBE_TEMP}/registry-proxy.yaml
 
   local -r nginx_yaml_file="${KUBE_ROOT}/cluster/caicloud/trusty/manifest/nginx.yaml"
-  sed -e "s/{{ pillar\['master_nginx_image'\] }}/${MASTER_NGINX_IMAGE}/g" ${nginx_yaml_file} > ${KUBE_TEMP}/nginx.yaml
+  sed -e "s|{{ pillar\['master_nginx_image'\] }}|${MASTER_NGINX_IMAGE}|g" ${nginx_yaml_file} > ${KUBE_TEMP}/nginx.yaml
 
   cp -r ${KUBE_ROOT}/cluster/caicloud/trusty/master/init_conf \
      ${KUBE_ROOT}/cluster/caicloud/trusty/master/init_scripts \
