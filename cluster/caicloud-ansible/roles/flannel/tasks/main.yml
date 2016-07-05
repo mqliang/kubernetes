@@ -49,6 +49,7 @@
 - name: wait for flannel subnet.env
   wait_for:
     path: /run/flannel/subnet.env
+    state: present
     delay: 5
     timeout: 60
   register: wait_flannel

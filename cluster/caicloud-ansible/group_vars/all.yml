@@ -96,3 +96,10 @@ etcd_interface: "{{ ansible_default_ipv4.interface }}"
 # Interface for flannel to listen on. Default value is ansible default interface,
 # but ansible will change it for certain type of provider, e.g. vagrant.
 flannel_interface: "{{ ansible_default_ipv4.interface }}"
+
+# Kubeconfig for kubectl on the control machine.
+cm_kubectl_kubeconfig: "/etc/kubernetes/kubectl.cmkubeconfig"
+
+# Caicloud domain name
+caicloud_app_domain: "caicloudapp.com"
+caicloud_private_test_domain: "caicloudprivatetest.com"

@@ -1,0 +1,35 @@
+---
+# Generate basic auth and kubeconfig for control maichine to login to kubernetes cluster via http.
+
+- name: Copy the basic auth gen script
+  copy:
+    src=kube-gen-basic-auth.sh
+    dest={{ kube_script_dir }}
+    mode=0500
+  changed_when: false
+
+- name: Determine which certificates to use
+  set_fact:
+    kube_cert_ip_or_domain: "{{ cluster_name }}.{{ caicloud_private_test_domain }}"
+
+- set_fact:
+    kube_cert_ip_or_domain: "{{ cluster_name }}.{{ caicloud_app_domain }}"
+  when: host_provider == 'anchnet'
+
+- name: Generate basic auth for apiserver and kubeconfig for control machine 
+  command: "{{ kube_script_dir }}/kube-gen-basic-auth.sh"
+  args:
+    creates: "{{ kube_token_dir }}/basic-auth.csv"
+  environment:
+    TOKEN_DIR: "{{ kube_token_dir }}"
+    CM_KUBECONFIG: "{{ cm_kubectl_kubeconfig }}"
+    MASTER_IP: "{{ kube_cert_ip_or_domain }}"
+    USER_CERT_DIR: "{{ kube_cert_dir }}"
+    CAICLOUD_CERT_DIR: "{{ caicloudapp_cert_dir }}"
+    CONTEXT: "caicloud_{{ host_provider }}_{{ cluster_name }}"
+    USER_NAME: "{{ kube_user }}"
+    PASSWORD: "{{ kube_password }}"
+  register: genauth
+  changed_when: "'Done' in genauth.stdout"
+  notify:
+    - restart apiserver

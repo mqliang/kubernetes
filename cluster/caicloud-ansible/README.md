@@ -15,6 +15,7 @@ This will create three ubuntu VMs with dedicated IP addresses.
 
 ## Set environment variables
 
+### Required
 We must set the following two environment variables:
 ```
 MASTER_SSH_INFO
@@ -23,6 +24,16 @@ MASTER_SSH_INFO
 NODE_SSH_INFO
     The worker node ssh information in the format of "username:password@ip_address".
 ```
+
+### Optional
+We will map caicloud domain names [`caicloudapp.com` or `caicloudprivatetest.com`] to `CLUSTER_VIP`.
+
+```
+CLUSTER_VIP
+```
+
+In Kubernetes High Availability scenario, we **must** set the `CLUSTER_VIP` environment variable.  
+But in single master scenario, if not setting this environment variable, we will set it with the ip from `MASTER_SSH_INFO`.
 
 ## Change default configurations
 
