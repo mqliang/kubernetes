@@ -106,7 +106,7 @@ spec:
               value: "Y"
             - name: CLUSTER_ID
               value: {{ pillar['cluster_id'] }}
-            - name: UID
+            - name: USER_ID
               value: {{ pillar['caicloud_uid'] }}
             - name: CLUSTER_TOKEN
               value: {{ pillar['cluster_token'] }}
