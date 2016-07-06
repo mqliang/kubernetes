@@ -29,3 +29,8 @@
 - name: restart kubelet
   service: name=kubelet state=restarted
   when: master_kubelet_started.changed == false
+
+- name: restart proxy
+  service: name=kube-proxy state=restarted
+  when: proxy_started.changed == false
+  
