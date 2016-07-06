@@ -66,3 +66,7 @@ kubelet_working_dir: "/var/lib/kubelet"
 # Directory to store downloaded Kubernetes releases.
 kube_releases_directory: "/etc/caicloud"
 kube_current_release_directory: "/etc/caicloud/{{ kube_version }}"
+
+# The username/password here is used to login to kubernetes cluster.
+kube_user: "admin"
+kube_password: ""
