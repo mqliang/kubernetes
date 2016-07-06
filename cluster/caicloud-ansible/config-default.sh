@@ -34,7 +34,7 @@ function calculate-default {
     IFS=',' read -ra ssh_info <<< "${MASTER_SSH_INFO}"
     NUM_MASTERS=${#ssh_info[@]}
     if [[ $NUM_MASTERS -gt 1 ]]; then
-      echo "Warning: you have ${NUM_MASTERS} masters, but you don't set CLUSTER_VIP environment variable."
+      echo "Warning: you have ${NUM_MASTERS} masters, but you don't set CLUSTER_VIP environment variable. Now use the ip of the first master from MASTER_SSH_INFO as the CLUSTER_VIP."
     fi
     # We will use the ip of the first master
     first_master_ssh_info=${MASTER_SSH_INFO%%,*}
