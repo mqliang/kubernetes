@@ -10,7 +10,7 @@ metadata:
 spec:
   containers:
   - name: fluentd-elasticsearch
-    image: index.caicloud.io/caicloudgcr/google_containers_fluentd-elasticsearch:1.15
+    image: {{ pillar['fluentd_elasticsearch_image'] }}
     resources:
       limits:
         cpu: 100m

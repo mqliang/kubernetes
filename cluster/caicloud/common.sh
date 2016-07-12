@@ -46,16 +46,24 @@ function deploy-addons {
   # Replace placeholder with our configuration for dns rc/svc.
   local -r skydns_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/dns/skydns-rc.yaml.in"
   local -r skydns_svc_file="${KUBE_ROOT}/cluster/caicloud/addons/dns/skydns-svc.yaml.in"
-  sed -e "s/{{ pillar\['dns_replicas'\] }}/${DNS_REPLICAS}/g;s/{{ pillar\['dns_domain'\] }}/${DNS_DOMAIN}/g" ${skydns_rc_file} > ${KUBE_TEMP}/skydns-rc.yaml
+  sed -e "s/{{ pillar\['dns_replicas'\] }}/${DNS_REPLICAS}/g;\
+          s/{{ pillar\['dns_domain'\] }}/${DNS_DOMAIN}/g;\
+          s|{{ pillar\['dns_image_etcd'\] }}|${DNS_IMAGE_ETCD}|g;\
+          s|{{ pillar\['dns_image_kube2sky'\] }}|${DNS_IMAGE_KUBE2SKY}|g;\
+          s|{{ pillar\['dns_image_skydns'\] }}|${DNS_IMAGE_SKYDNS}|g;\
+          s|{{ pillar\['dns_image_healthz'\] }}|${DNS_IMAGE_HEALTHZ}|g" ${skydns_rc_file} > ${KUBE_TEMP}/skydns-rc.yaml
   sed -e "s/{{ pillar\['dns_server'\] }}/${DNS_SERVER_IP}/g" ${skydns_svc_file} > ${KUBE_TEMP}/skydns-svc.yaml
 
   # Replace placeholder with our configuration for elasticsearch rc.
   local -r elasticsearch_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/logging/elasticsearch-rc.yaml.in"
-  sed -e "s/{{ pillar\['elasticsearch_replicas'\] }}/${ELASTICSEARCH_REPLICAS}/g" ${elasticsearch_rc_file} > ${KUBE_TEMP}/elasticsearch-rc.yaml
+  sed -e "s/{{ pillar\['elasticsearch_replicas'\] }}/${ELASTICSEARCH_REPLICAS}/g;\
+          s|{{ pillar\['elasticsearch_image_elasticsearch'\] }}|${ELASTICSEARCH_IMAGE_ELASTICSEARCH}|g;\
+          s|{{ pillar\['elasticsearch_image_escron'\] }}|${ELASTICSEARCH_IMAGE_ESCRON}|g" ${elasticsearch_rc_file} > ${KUBE_TEMP}/elasticsearch-rc.yaml
 
   # Replace placeholder with our configuration for heapster rc.
   local -r heapster_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/monitoring/heapster-controller.yaml.in"
-  sed -e "s/{{ pillar\['metrics_memory'\] }}/${METRICS_MEMORY}/g;s/{{ pillar\['eventer_memory'\] }}/${EVENTER_MEMORY}/g" ${heapster_rc_file} > ${KUBE_TEMP}/heapster-controller.yaml
+  sed -e "s/{{ pillar\['metrics_memory'\] }}/${METRICS_MEMORY}/g;s/{{ pillar\['eventer_memory'\] }}/${EVENTER_MEMORY}/g;\
+          s|{{ pillar\['heapster_image_heapster'\] }}|${HEAPSTER_IMAGE_HEAPSTER}|g" ${heapster_rc_file} > ${KUBE_TEMP}/heapster-controller.yaml
 
   # Replace placeholder with our configuration for monitoring rc.
   local -r monitoring_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/monitoring/monitoring-controller.yaml.in"
@@ -64,11 +72,17 @@ function deploy-addons {
           s/{{ pillar\['cluster_token'\] }}/${CLUSTER_TOKEN}/g;\
           s/{{ pillar\['cluster_name'\] }}/${CLUSTER_ALIAS}/g;\
           s|{{ pillar\['paging_url'\] }}|${PAGING_EXTERNAL_ADDR}|g;\
-          s/{{ pillar\['running_enviroment'\] }}/${RUNNING_ENV}/g" ${monitoring_rc_file} > ${KUBE_TEMP}/monitoring-controller.yaml
+          s/{{ pillar\['running_enviroment'\] }}/${RUNNING_ENV}/g;\
+          s|{{ pillar\['monitoring_image_influxdb'\] }}|${MONITORING_IMAGE_INFLUXDB}|g;\
+          s|{{ pillar\['monitoring_image_grafana'\] }}|${MONITORING_IMAGE_GRAFANA}|g;\
+          s|{{ pillar\['monitoring_image_monitoring'\] }}|${MONITORING_IMAGE_MONITORING}|g" ${monitoring_rc_file} > ${KUBE_TEMP}/monitoring-controller.yaml
 
   # Replace placeholder with our configuration for kube-system quota
   local -r quota_file="${KUBE_ROOT}/cluster/caicloud/addons/quota.yaml.in"
   sed -e "s/{{ pillar\['quota_cpu'\] }}/${QUOTA_CPU}/g;s/{{ pillar\['quota_memory'\] }}/${QUOTA_MEMORY}/g" ${quota_file} > ${KUBE_TEMP}/quota.yaml
+
+  local -r registry_yaml_file="${KUBE_ROOT}/cluster/caicloud/addons/registry/registry-rc.yaml"
+  sed -e "s|{{ pillar\['registry_image'\] }}|${REGISTRY_IMAGE}|g" ${registry_yaml_file} > ${KUBE_TEMP}/registry-rc.yaml
 
   # Copy addon configurationss and startup script to master instance under ~/kube.
   rm -rf ${KUBE_TEMP}/addons
@@ -90,7 +104,7 @@ function deploy-addons {
      ${KUBE_ROOT}/cluster/caicloud/addons/monitoring/monitoring-service.yaml \
      ${KUBE_TEMP}/addons/monitoring
   # registry rc/svc
-  cp ${KUBE_ROOT}/cluster/caicloud/addons/registry/registry-rc.yaml ${KUBE_ROOT}/cluster/caicloud/addons/registry/registry-svc.yaml \
+  cp ${KUBE_TEMP}/registry-rc.yaml ${KUBE_ROOT}/cluster/caicloud/addons/registry/registry-svc.yaml \
      ${KUBE_TEMP}/addons/registry
   scp-to-instance-expect "${MASTER_SSH_EXTERNAL}" \
     "${KUBE_TEMP}/addons \

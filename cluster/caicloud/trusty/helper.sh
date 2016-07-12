@@ -157,11 +157,21 @@ function send-master-files {
 
   local -r nginx_conf_file="${KUBE_ROOT}/cluster/caicloud/addons/nginx/nginx.conf.in"
   sed -e "s/{{ pillar\['master_secure_location'\] }}/${MASTER_SECURE_ADDRESS}/g" ${nginx_conf_file} > ${KUBE_TEMP}/nginx.conf
+
+  local -r fluentd_yaml_file="${KUBE_ROOT}/cluster/caicloud/trusty/manifest/fluentd-es.yaml"
+  sed -e "s|{{ pillar\['fluentd_elasticsearch_image'\] }}|${FLUENTD_ELASTICSEARCH_IMAGE}|g" ${fluentd_yaml_file} > ${KUBE_TEMP}/fluentd-es.yaml
+
+  local -r registry_proxy_yaml_file="${KUBE_ROOT}/cluster/caicloud/trusty/manifest/registry-proxy.yaml"
+  sed -e "s|{{ pillar\['registry_proxy_image'\] }}|${REGISTRY_PROXY_IMAGE}|g" ${registry_proxy_yaml_file} > ${KUBE_TEMP}/registry-proxy.yaml
+
+  local -r nginx_yaml_file="${KUBE_ROOT}/cluster/caicloud/trusty/manifest/nginx.yaml"
+  sed -e "s|{{ pillar\['master_nginx_image'\] }}|${MASTER_NGINX_IMAGE}|g" ${nginx_yaml_file} > ${KUBE_TEMP}/nginx.yaml
+
   cp -r ${KUBE_ROOT}/cluster/caicloud/trusty/master/init_conf \
      ${KUBE_ROOT}/cluster/caicloud/trusty/master/init_scripts \
-     ${KUBE_ROOT}/cluster/caicloud/trusty/manifest/fluentd-es.yaml \
-     ${KUBE_ROOT}/cluster/caicloud/trusty/manifest/registry-proxy.yaml \
-     ${KUBE_ROOT}/cluster/caicloud/trusty/manifest/nginx.yaml \
+     ${KUBE_TEMP}/fluentd-es.yaml \
+     ${KUBE_TEMP}/registry-proxy.yaml \
+     ${KUBE_TEMP}/nginx.yaml \
      ${KUBE_ROOT}/cluster/caicloud/tools/docker-config.json \
      ${KUBE_TEMP}/nginx.conf \
      ${KUBE_TEMP}/kube-master/kube
@@ -315,8 +325,8 @@ function send-node-files-internal {
 
   cp -r ${KUBE_ROOT}/cluster/caicloud/trusty/node/init_conf \
      ${KUBE_ROOT}/cluster/caicloud/trusty/node/init_scripts \
-     ${KUBE_ROOT}/cluster/caicloud/trusty/manifest/fluentd-es.yaml \
-     ${KUBE_ROOT}/cluster/caicloud/trusty/manifest/registry-proxy.yaml \
+     ${KUBE_TEMP}/fluentd-es.yaml \
+     ${KUBE_TEMP}/registry-proxy.yaml \
      ${KUBE_ROOT}/cluster/caicloud/tools/nsenter \
      ${KUBE_ROOT}/cluster/caicloud/tools/docker-config.json \
      ${KUBE_TEMP}/kube-node${1}/kube
@@ -389,11 +399,11 @@ deb-src ${apt_mirror} trusty-security main restricted universe multiverse
 deb-src ${apt_mirror} trusty-updates main restricted universe multiverse
 EOL
 sudo sh -c 'cat > /etc/apt/sources.list.d/docker.list' << EOL
-deb \[arch=amd64\] http://get.caicloud.io/docker ubuntu-trusty main
+deb \[arch=amd64\] ${APT_MIRRORS_DOCKER} ubuntu-trusty main
 EOL
 sudo apt-get update
 sudo apt-get install --allow-unauthenticated -y docker-engine=${DOCKER_VERSION}-0~trusty && \
-sudo apt-get install -y bridge-utils socat || \
+sudo apt-get install -y --force-yes bridge-utils socat || \
 echo 'Command failed installing packages on remote host ${ssh_info[2]}'"
 
 expect {

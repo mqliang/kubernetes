@@ -3,6 +3,10 @@
 		"index.caicloud.io": {
 			"auth": "Y2FpY2xvdWQtazhzOmpKN0Rrak1NbEBqSjdEaWpSbGJeQl5zU3M=",
 			"email": ""
+		},
+	   "docker-registry.caicloudprivatetest.com": {
+		        "auth": "Y2FpY2xvdWRmb3JuYXg6YVlASm5kdDZ5fnkxMlBQTA==",
+		        "email": "caicloudfornax"
 		}
 	}
 }
