@@ -22,7 +22,7 @@ spec:
         kubernetes-admin.caicloud.io/type: application
     spec:
       containers:
-        - image: index.caicloud.io/caicloudgcr/google_containers_heapster:v1.0.2
+        - image: {{ pillar['heapster_image_heapster'] }}
           name: heapster
           resources:
             # keep request = limit to keep this container in guaranteed class
@@ -37,7 +37,7 @@ spec:
             - --source=kubernetes.summary_api:''
             - --sink=influxdb:http://monitoring-influxdb:8086
             - --metric_resolution=60s
-        - image: index.caicloud.io/caicloudgcr/google_containers_heapster:v1.0.2
+        - image: {{ pillar['heapster_image_heapster'] }}
           name: eventer
           resources:
             # keep request = limit to keep this container in guaranteed class

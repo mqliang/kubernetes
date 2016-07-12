@@ -169,6 +169,26 @@ SYSTEM_NAMESPACE="kube-system"
 # --insecure-registry for local registries.
 DOCKER_OPTS=""
 
+APT_MIRRORS_DOCKER=${APT_MIRRORS_DOCKER:-"http://get.caicloud.io/docker"}
+
+DNS_IMAGE_ETCD=${DNS_IMAGE_ETCD:-"index.caicloud.io/caicloudgcr/google_containers_etcd-amd64:2.2.1"}
+DNS_IMAGE_KUBE2SKY=${DNS_IMAGE_KUBE2SKY:-"index.caicloud.io/caicloudgcr/google_containers_kube2sky:1.14"}
+DNS_IMAGE_SKYDNS=${DNS_IMAGE_SKYDNS:-"index.caicloud.io/caicloudgcr/google_containers_skydns:2015-10-13-8c72f8c"}
+DNS_IMAGE_HEALTHZ=${DNS_IMAGE_HEALTHZ:-"index.caicloud.io/caicloudgcr/google_containers_exechealthz:1.0"}
+
+ELASTICSEARCH_IMAGE_ELASTICSEARCH=${ELASTICSEARCH_IMAGE_ELASTICSEARCH:-"index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.8.2"}
+ELASTICSEARCH_IMAGE_ESCRON=${ELASTICSEARCH_IMAGE_ESCRON:-"index.caicloud.io/caicloud/es-cron:v0.1.2"}
+
+HEAPSTER_IMAGE_HEAPSTER=${HEAPSTER_IMAGE_HEAPSTER:-"index.caicloud.io/caicloudgcr/google_containers_heapster:v1.0.2"}
+MONITORING_IMAGE_INFLUXDB=${MONITORING_IMAGE_INFLUXDB:-"index.caicloud.io/caicloudgcr/google_containers_heapster_influxdb:v0.5"}
+MONITORING_IMAGE_GRAFANA=${MONITORING_IMAGE_GRAFANA:-"index.caicloud.io/caicloudgcr/google_containers_heapster_grafana:v2.6.0-2"}
+MONITORING_IMAGE_MONITORING=${MONITORING_IMAGE_MONITORING:-"index.caicloud.io/caicloud/monitoring:v0.2.2-rc3"}
+
+REGISTRY_IMAGE=${REGISTRY_IMAGE:-"index.caicloud.io/registry:2.2"}
+
+FLUENTD_ELASTICSEARCH_IMAGE=${FLUENTD_ELASTICSEARCH_IMAGE:-"index.caicloud.io/caicloudgcr/google_containers_fluentd-elasticsearch:1.15"}
+MASTER_NGINX_IMAGE=${MASTER_NGINX_IMAGE:-"index.caicloud.io/caicloud/nginx:1.9.4"}
+REGISTRY_PROXY_IMAGE=${REGISTRY_PROXY_IMAGE:-"index.caicloud.io/caicloudgcr/google_containers_kube-registry-proxy:0.3"}
 
 # -----------------------------------------------------------------------------
 # Derived params for kube-up (calculated based on above params: DO NOT CHANGE).

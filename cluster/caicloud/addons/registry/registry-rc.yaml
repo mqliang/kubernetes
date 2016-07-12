@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: registry
-        image: index.caicloud.io/registry:2.2
+        image: {{ pillar['registry_image'] }}
         resources:
           limits:
             cpu: 100m
