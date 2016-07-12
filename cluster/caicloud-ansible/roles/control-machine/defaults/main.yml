@@ -1,0 +1,4 @@
+---
+
+# The directory where kubectl binaries are stored on both master and control machine.
+bin_dir: /usr/bin

@@ -43,3 +43,6 @@
 # it won't take effect after docker restart, we have to restart flannel again.
 - name: restart flannel without restarting docker
   service: name=flanneld state=restarted
+
+- name: reload systemd
+  command: systemctl --system daemon-reload

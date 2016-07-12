@@ -3,5 +3,18 @@
 
 - name: Ubuntu | Configure docker to use flannel network
   template: src=docker.upstart.conf dest=/etc/default/docker
+
+- name: Ubuntu | Update docker.conf to let docker depends on flannel
+  lineinfile:
+    dest: /etc/init/docker.conf
+    regexp: "^start on"
+    line: "start on started flanneld"
+    state: present
+
+- lineinfile:
+    dest: /etc/init/docker.conf
+    regexp: "^stop on"
+    line: "stop on stopping flanneld"
+    state: present
   notify:
     - restart flannel
