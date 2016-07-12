@@ -4,32 +4,52 @@
 - name: Create kubeconfig file directory
   file: path={{ ansible_env.HOME }}/.kube state=directory
 
-- name: Get the content of kubeconfig for kubectl from master
-  slurp:
-    src: "{{ cm_kubectl_kubeconfig }}"
-  register: cmkubeconfig
+- name: Set kubeconfig name for control machine according uid and cid
+  set_fact:
+    kubeconfig_name: "config_{{ cluster_name }}"
+
+- name: Fetch kubeconfig for kubectl from master
+  fetch: src={{ cm_kubectl_kubeconfig }} dest={{ ansible_env.HOME }}/.kube/{{ kubeconfig_name }} flat=yes
   delegate_to: "{{ groups['masters'][0] }}"
 
-- name: Register the decoded kubeconfig content
-  set_fact:
-    cmkubeconfig_decoded: "{{ cmkubeconfig.content|b64decode }}"
+- name: Create .kube/config soft link in {{ ansible_env.HOME }} directory
+  file: path={{ ansible_env.HOME }}/.kube/config src={{ ansible_env.HOME }}/.kube/{{ kubeconfig_name }} state=link
 
-- name: Create .kube/config file in HOME directory
-  copy: content="{{ cmkubeconfig_decoded }}" dest="{{ ansible_env.HOME }}/.kube/config"
+- name: Fetch kubectl binary from master
+  fetch: src={{ bin_dir }}/kubectl dest={{ bin_dir }}/kubectl flat=yes
+  delegate_to: "{{ groups['masters'][0] }}"
+  when: fetch_kubectl_binary is defined
 
-- name: Choose caicloud domain
+- name: Chmod kubectl binary with mode 0755
+  file: path={{ bin_dir }}/kubectl owner=root group=root mode=0755
+  when: fetch_kubectl_binary is defined
+
+- name: Check if deploying caicloudstack
   set_fact:
-    caicloud_domain: "{{ cluster_name }}.{{ caicloud_private_test_domain }}"
+    deploy_caicloudstack: false
 
 - set_fact:
-    caicloud_domain: "{{ cluster_name }}.{{ caicloud_app_domain }}"
-  when: host_provider == 'anchnet'
+    deploy_caicloudstack: true
+  when: (dns_host_name is defined) and (dns_host_name == "caicloudstack")
 
-# Note: cluster_vip is from extra vars.
-# /etc/hosts is in Unix, Unix-like, POSIX OS.
-- name: Map caicloud domain name to ip address
+- set_fact:
+    deploy_caicloudstack: false
+  when: host_provider == "anchnet"
+
+- name: Set default base domain name
+  set_fact:
+    domain_name: "{{ caicloud_private_test_domain }}"
+  when: deploy_caicloudstack
+
+- name: Set user defined domain name
+  set_fact:
+    domain_name: "{{ base_domain_name }}"
+  when: deploy_caicloudstack and (base_domain_name is defined)
+
+- name: Update /etc/hosts if deploying caicloudstack
   lineinfile:
     dest: /etc/hosts
-    regexp: "^{{ cluster_vip }}"
-    line: "{{ cluster_vip }}  {{ caicloud_domain }}"
+    regexp: "^{{ kube_master_ip }}"
+    line: "{{ kube_master_ip }} {{ dns_host_name }}.{{ domain_name }}"
     state: present
+  when: deploy_caicloudstack

@@ -20,6 +20,14 @@
 MASTER_SSH_INFO=${MASTER_SSH_INFO:-"vagrant:vagrant@192.168.205.10"}
 NODE_SSH_INFO=${NODE_SSH_INFO:-"vagrant:vagrant@192.168.205.11,vagrant:vagrant@192.168.205.12"}
 
+# Ansible 1.2.1 and later have host key checking enabled by default.
+# If a host is reinstalled and has a different key in ‘known_hosts’, this will 
+# result in an error message until corrected. If a host is not initially in 
+# ‘known_hosts’ this will result in prompting for confirmation of the key, 
+# which results in an interactive experience if using Ansible, from say, cron. 
+# You might not want this.
+export ANSIBLE_HOST_KEY_CHECKING=False
+
 # -----------------------------------------------------------------------------
 # Derived params for kube-up (calculated based on above params: DO NOT CHANGE).
 # If above configs are changed manually, remember to call the function.
@@ -30,18 +38,35 @@ function calculate-default {
   IFS=',' read -ra ssh_info <<< "${INSTANCE_SSH_EXTERNAL}"
   export NUM_NODES=${#ssh_info[@]}
 
-  if [[ -z "${CLUSTER_VIP-}" ]]; then
-    IFS=',' read -ra ssh_info <<< "${MASTER_SSH_INFO}"
-    NUM_MASTERS=${#ssh_info[@]}
-    if [[ $NUM_MASTERS -gt 1 ]]; then
-      echo "Warning: you have ${NUM_MASTERS} masters, but you don't set CLUSTER_VIP environment variable. Now use the ip of the first master from MASTER_SSH_INFO as the CLUSTER_VIP."
-    fi
-    # We will use the ip of the first master
-    first_master_ssh_info=${MASTER_SSH_INFO%%,*}
-    CLUSTER_VIP=${first_master_ssh_info#*@}
+  if [[ ! -z "${DNS_HOST_NAME-}" ]]; then
+    CAICLOUD_K8S_CFG_STRING_DNS_HOST_NAME=${DNS_HOST_NAME}
   fi
 
-  CAICLOUD_K8S_CFG_CLUSTER_VIP=${CLUSTER_VIP}
+  # USER_CERT_DIR and BASE_DOMAIN_NAME must both be set or not set.
+  check=0
+  if [[ ! -z "${BASE_DOMAIN_NAME-}" ]]; then
+    CAICLOUD_K8S_CFG_STRING_BASE_DOMAIN_NAME=${BASE_DOMAIN_NAME}
+    check=$((check+1))
+  fi
+  if [[ ! -z "${USER_CERT_DIR-}" ]]; then
+    # Remove the last '/'
+    CAICLOUD_K8S_CFG_STRING_USER_CERT_DIR=${USER_CERT_DIR%/}
+    check=$((check+1))
+  fi
+  if [[ $check -eq 1 ]]; then
+    echo "USER_CERT_DIR and BASE_DOMAIN_NAME must both be set or not set." >&2
+    exit 1
+  fi
+
+  # Now only support single master
+  # Todo: support multi-master
+  CAICLOUD_K8S_CFG_STRING_KUBE_MASTER_IP=${MASTER_SSH_INFO#*@}
 }
 
 calculate-default
+
+# Telling ansible to fetch kubectl from master.
+# Need to run before create-extra-vars-json-file function.
+function fetch-kubectl-binary {
+  CAICLOUD_K8S_CFG_NUMBER_FETCH_KUBECTL_BINARY=1
+}

@@ -13,11 +13,15 @@
 
 - name: Determine which certificates to use
   set_fact:
-    use_caicloudapp_certs: false
+    certs_selector: caicloudprivatetest
 
 - set_fact:
-    use_caicloudapp_certs: true
+    certs_selector: caicloudapp
   when: host_provider == 'anchnet'
+
+- set_fact:
+    certs_selector: user
+  when: user_cert_dir is defined
 
 - name: Build master /etc/hosts file
   lineinfile: dest=/etc/hosts regexp='.*{{ item }}$' line="{{ hostvars[item]['ansible_' +  kubelet_node_ip_interface].ipv4.address }} {{ item }}" state=present
@@ -186,11 +190,15 @@
 
 - name: Copy caicloudapp.com certificates (ca, cert, key)
   copy: src="caicloudapp_certs/" dest="{{ caicloudapp_cert_dir }}/"
-  when: use_caicloudapp_certs
+  when: certs_selector == "caicloudapp"
 
 - name: Copy caicloudprivatetest.com certificates (ca, cert, key)
   copy: src="caicloudprivatetest_certs/" dest="{{ caicloudapp_cert_dir }}/"
-  when: not use_caicloudapp_certs
+  when: certs_selector == "caicloudprivatetest"
+
+- name: Copy user certificates (ca, cert, key)
+  copy: src="{{ user_cert_dir }}/" dest="{{ caicloudapp_cert_dir }}/"
+  when: certs_selector == "user"
 
 - name: Copy master nginx pod config
   template: src=nginx.conf.j2 dest={{ master_nginx_conf_dir }}/nginx.conf
@@ -202,3 +210,8 @@
     mode: 0644
     owner: root
     group: root
+
+#
+# Create kubeconfig
+- name: Create kubeconfig for control machine
+  include: gen_cmkubeconfig.yml

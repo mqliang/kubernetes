@@ -1463,14 +1463,25 @@ function create-extra-vars-json-file {
   echo "{" > ${EXTRA_VARS_FILE}
 
   OLDIFS=$IFS
-  # resolve CAICLOUD_CONFIG_XX_YY environment variables.
-  set | grep "^CAICLOUD_K8S_CFG_*" | \
+
+  # resolve CAICLOUD_CONFIG_STRING_XX_YY environment variables.
+  set | grep "^CAICLOUD_K8S_CFG_STRING_*" | \
   while read line; do
     IFS='=' read -ra var_array <<< "${line}"
     # Get XX_YY and change into lowercase: xx_yy
-    var_name=$(echo ${var_array[0]#CAICLOUD_K8S_CFG_} | tr '[:upper:]' '[:lower:]')
+    var_name=$(echo ${var_array[0]#CAICLOUD_K8S_CFG_STRING_} | tr '[:upper:]' '[:lower:]')
+    echo "  \"${var_name}\": \"${var_array[1]}\"," >> ${EXTRA_VARS_FILE}
+  done
+
+  # resolve CAICLOUD_CONFIG_NUMBER_XX_YY environment variables.
+  set | grep "^CAICLOUD_K8S_CFG_NUMBER_*" | \
+  while read line; do
+    IFS='=' read -ra var_array <<< "${line}"
+    # Get XX_YY and change into lowercase: xx_yy
+    var_name=$(echo ${var_array[0]#CAICLOUD_K8S_CFG_NUMBER_} | tr '[:upper:]' '[:lower:]')
     echo "  \"${var_name}\": ${var_array[1]}," >> ${EXTRA_VARS_FILE}
   done
+
   IFS=$OLDIFS
 
   # Remove the trailing comma
@@ -1483,4 +1494,10 @@ function create-extra-vars-json-file {
 #   KUBE_CURRENT
 function start-kubernetes-by-ansible {
   ansible-playbook -v -i $KUBE_CURRENT/inventory --extra-vars "@$KUBE_CURRENT/extra_vars.json" $KUBE_CURRENT/cluster.yml
+}
+
+# Assumed vars:
+#   KUBE_CURRENT
+function clear-kubernetes-by-ansible {
+  ansible-playbook -v -i $KUBE_CURRENT/inventory --extra-vars "@$KUBE_CURRENT/extra_vars.json" $KUBE_CURRENT/playbooks/adhoc/uninstall.yml
 }

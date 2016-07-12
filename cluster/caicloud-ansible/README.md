@@ -19,21 +19,32 @@ This will create three ubuntu VMs with dedicated IP addresses.
 We must set the following two environment variables:
 ```
 MASTER_SSH_INFO
-    The master node ssh information in the format of "username:password@ip_address". HA master is currently supported.
+    The master node ssh information in the format of "username:password@ip_address".
 
 NODE_SSH_INFO
     The worker node ssh information in the format of "username:password@ip_address".
 ```
 
 ### Optional
-We will map caicloud domain names [`caicloudapp.com` or `caicloudprivatetest.com`] to `CLUSTER_VIP`.
 
 ```
-CLUSTER_VIP
+DNS_HOST_NAME
+    Let you reach the kubernetes cluster by host name. For example, if DNS_HOST_NAME is test and BASE_DOMAIN_NAME is caicloudapp.com, we will access the kubernetes cluster by https://test.caicloudapp.com.
+
+BASE_DOMAIN_NAME
+    For example: caicloudapp.com. Required: USER_CERT_DIR
+USER_CERT_DIR
+    User certificates directory, including ca.crt, master.crt, master.key. Required: BASE_DOMAIN_NAME
 ```
 
-In Kubernetes High Availability scenario, we **must** set the `CLUSTER_VIP` environment variable.  
-But in single master scenario, if not setting this environment variable, we will set it with the ip from `MASTER_SSH_INFO`.
+**Note:**
+
+If deploying a caicloud stack in **private cloud environment**, we must set:
+```
+DNS_HOST_NAME="caicloudstack"
+```
+
+Because in that case, we will add the mapping of master ip and domain into /etc/hosts on the control machine. Then we will access the kubernetes cluster by https://caicloudstack.caicloudprivatetest.com or https://caicloudstack.caicloudapp.com.
 
 ## Change default configurations
 
@@ -41,14 +52,15 @@ We can change the default configurations of the kubernetes cluster by environmen
 
 Naming rules of environment variables:
 ```
-CAICLOUD_K8S_CFG_XX_YY
+CAICLOUD_K8S_CFG_NUMBER_XX_YY
+CAICLOUD_K8S_CFG_STRING_XX_YY
 ```
 
-`CAICLOUD_K8S_CFG_` is the prefix, and `XX_YY` is the variable name in uppercase.
+`CAICLOUD_K8S_CFG_NUMBER/STRING` is the prefix, `NUMBER` means its value is a number, `STRING` means its value is a string, and `XX_YY` is the variable name in uppercase.
 
-For example, default value of `host_provider` variable is `"vagrant"`, if we want to change the default value to `"anchnet"`, we should set the `CAICLOUD_K8S_CFG_HOST_PROVIDER` environment variable:
+For example, default value of `host_provider` variable is `"vagrant"`, if we want to change the default value to `"anchnet"`, we should set the `CAICLOUD_K8S_CFG_STRING_HOST_PROVIDER` environment variable:
 ```
-export CAICLOUD_K8S_CFG_HOST_PROVIDER="anchnet"
+export CAICLOUD_K8S_CFG_STRING_HOST_PROVIDER="anchnet"
 ```
 
 ## Bring up kubernete cluster
@@ -59,4 +71,6 @@ KUBERNETES_PROVIDER=caicloud-ansible ./cluster/kube-up.sh
 ```
 
 ## Bring down kubernetes cluster
-Todo...
+```
+KUBERNETES_PROVIDER=caicloud-ansible ./cluster/kube-down.sh
+```

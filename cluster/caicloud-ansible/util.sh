@@ -64,6 +64,12 @@ function kube-up {
 
   setup-instances
 
+  find-kubectl-binary
+  # If cann't find kubectl binary, we need to fetch it from master node.
+  if [[ -z "${KUBECTL_PATH-}" ]]; then
+    fetch-kubectl-binary
+  fi
+
   create-inventory-file
   create-extra-vars-json-file
 
@@ -72,6 +78,7 @@ function kube-up {
 
 # Delete a kubernetes cluster
 function kube-down {
-  # Todo
-  :
+  create-inventory-file
+  create-extra-vars-json-file
+  clear-kubernetes-by-ansible
 }

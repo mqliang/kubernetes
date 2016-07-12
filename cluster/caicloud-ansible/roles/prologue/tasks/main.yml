@@ -7,13 +7,18 @@
 - name: Create ansible temp directory
   file: path={{ ansible_temp_dir }} state=directory
 
-- name: Set all interfaces to 'eth1' for vagrant and anchnet
+- name: Get interface name of IPv4 address stored in ansible_host
+  shell: ip addr show | grep {{ ansible_host }} | awk '{print $NF}'
+  register: interface_name
+  changed_when: false
+
+- name: Set all interfaces by {{ interface_name.stdout }} according to ansible_host
   set_fact:
-    etcd_interface: "eth1"
-    flannel_interface: "eth1"
-    kube_apiserver_advertise_interface: "eth1"
-    kubelet_node_ip_interface: "eth1"
-  when: host_provider == 'vagrant' or host_provider == 'anchnet'
+    etcd_interface: "{{ interface_name.stdout }}"
+    flannel_interface: "{{ interface_name.stdout }}"
+    kube_apiserver_advertise_interface: "{{ interface_name.stdout }}"
+    kubelet_node_ip_interface: "{{ interface_name.stdout }}"
+  changed_when: false
 
 - name: Determin kubernetes_use_upstart
   set_fact:
