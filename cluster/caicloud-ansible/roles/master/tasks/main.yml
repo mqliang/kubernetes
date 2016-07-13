@@ -6,10 +6,9 @@
 
 # This is necessary since it affects the default 'kubernetes' service; without
 # which, 'kubernetes' service will have endpoint of interface eth0.
-- name: Set apiserver bind address to 'eth1' for vagrant, anchnet
+- name: Set apiserver bind address
   set_fact:
-    kube_apiserver_bind_address: "{{ ansible_eth1.ipv4.address }}"
-  when: host_provider == 'vagrant' or host_provider == 'anchnet'
+    kube_apiserver_bind_address: "{{ ansible_host }}"
 
 - name: Determine which certificates to use
   set_fact:
@@ -24,7 +23,7 @@
   when: user_cert_dir is defined
 
 - name: Build master /etc/hosts file
-  lineinfile: dest=/etc/hosts regexp='.*{{ item }}$' line="{{ hostvars[item]['ansible_' +  kubelet_node_ip_interface].ipv4.address }} {{ item }}" state=present
+  lineinfile: dest=/etc/hosts regexp='.*{{ item }}$' line="{{ hostvars[item]['ansible_host'] }} {{ item }}" state=present
   with_items: "{{ groups['all'] }}"
 
 - name: Create caicloudapp certs directory

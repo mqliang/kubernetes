@@ -14,4 +14,4 @@ KUBELET_HOSTNAME="--hostname-override={{ inventory_hostname }}"
 KUBELET_API_SERVER="--api-servers=http://localhost:{{ kube_master_insecure_port }}"
 
 # Add your own!
-KUBELET_ARGS="--register-schedulable=false --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['ansible_' + kubelet_node_ip_interface].ipv4.address }}"
+KUBELET_ARGS="--register-schedulable=false --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['ansible_host'] }}"

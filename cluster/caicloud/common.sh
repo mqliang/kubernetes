@@ -1407,6 +1407,8 @@ function report-user-message {
 
 # Create inventory file for ansible
 #
+# Make sure ansible_host is host_ip instead of hostname
+#
 # Assumed vars:
 #   MASTER_SSH_INFO
 #   NODE_SSH_INFO
