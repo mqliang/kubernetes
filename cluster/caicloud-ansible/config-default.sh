@@ -42,20 +42,13 @@ function calculate-default {
     CAICLOUD_K8S_CFG_STRING_DNS_HOST_NAME=${DNS_HOST_NAME}
   fi
 
-  # USER_CERT_DIR and BASE_DOMAIN_NAME must both be set or not set.
-  check=0
   if [[ ! -z "${BASE_DOMAIN_NAME-}" ]]; then
     CAICLOUD_K8S_CFG_STRING_BASE_DOMAIN_NAME=${BASE_DOMAIN_NAME}
-    check=$((check+1))
   fi
+  
   if [[ ! -z "${USER_CERT_DIR-}" ]]; then
     # Remove the last '/'
     CAICLOUD_K8S_CFG_STRING_USER_CERT_DIR=${USER_CERT_DIR%/}
-    check=$((check+1))
-  fi
-  if [[ $check -eq 1 ]]; then
-    echo "USER_CERT_DIR and BASE_DOMAIN_NAME must both be set or not set." >&2
-    exit 1
   fi
 
   # Now only support single master

@@ -10,8 +10,6 @@
 
 - name: Generate basic auth for apiserver 
   command: "{{ kube_script_dir }}/kube-gen-basic-auth.sh"
-  args:
-    creates: "{{ kube_token_dir }}/basic-auth.csv"
   environment:
     TOKEN_DIR: "{{ kube_token_dir }}"
     USER_NAME: "{{ kube_user }}"
