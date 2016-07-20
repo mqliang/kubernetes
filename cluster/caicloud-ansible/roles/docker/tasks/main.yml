@@ -33,6 +33,14 @@
     - docker-network
 
 #
+# Remove docker conflicts
+- name: Remove docker conflicts if exists
+  script: "remove-conflicts.sh"
+  environment:
+    DOCKER_VERSION: "{{ docker_version }}"
+    OS_DISTRO: "{{ ansible_distribution }}"
+
+#
 # Install and configure docker on different distribution.
 
 - name: Ubuntu | Install docker on ubuntu

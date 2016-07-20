@@ -1494,12 +1494,43 @@ function create-extra-vars-json-file {
 
 # Assumed vars:
 #   KUBE_CURRENT
+#   KUBE_ROOT
 function start-kubernetes-by-ansible {
-  ansible-playbook -v -i $KUBE_CURRENT/inventory --extra-vars "@$KUBE_CURRENT/extra_vars.json" $KUBE_CURRENT/cluster.yml
+  ansible-playbook -v -i $KUBE_CURRENT/inventory --extra-vars "@$KUBE_CURRENT/extra_vars.json" $KUBE_ROOT/cluster/caicloud-ansible/cluster.yml
 }
 
 # Assumed vars:
 #   KUBE_CURRENT
+#   KUBE_ROOT
 function clear-kubernetes-by-ansible {
-  ansible-playbook -v -i $KUBE_CURRENT/inventory --extra-vars "@$KUBE_CURRENT/extra_vars.json" $KUBE_CURRENT/playbooks/adhoc/uninstall.yml
+  ansible-playbook -v -i $KUBE_CURRENT/inventory --extra-vars "@$KUBE_CURRENT/extra_vars.json" $KUBE_ROOT/cluster/caicloud-ansible/playbooks/adhoc/uninstall.yml
+}
+
+# Install ansible.
+#
+# Assumed vars:
+#   ANSIBLE_VERSION
+function install-ansible {
+  set -e
+
+  os_distro=$(grep '^NAME=' /etc/os-release | sed s'/NAME=//' | sed s'/"//g' | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
+
+  if [[ ${os_distro} == "ubuntu" ]]; then
+    sudo apt-get install -y build-essential python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev libffi-dev libssl-dev expect sshpass
+  elif [[ ${os_distro} == "centos" ]]; then
+    sudo yum install -y epel-release gcc g++ kernel-devel python-simplejson openssl-devel python-devel libffi-devel python-pip expect sshpass
+    sudo yum clean all
+  fi
+
+  sudo pip install --upgrade pip
+  sudo pip install setuptools
+  sudo pip install --upgrade setuptools
+  sudo pip install simplejson
+  sudo pip install --upgrade simplejson
+  sudo pip install netaddr
+  sudo pip install ansible==${ANSIBLE_VERSION}
+  echo ""
+  ansible --version
+
+  set +e
 }

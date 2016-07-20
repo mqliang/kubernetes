@@ -28,6 +28,14 @@ NODE_SSH_INFO=${NODE_SSH_INFO:-"vagrant:vagrant@192.168.205.11,vagrant:vagrant@1
 # You might not want this.
 export ANSIBLE_HOST_KEY_CHECKING=False
 
+# Use posix environment.
+export LC_ALL="C"
+export LANG="C"
+
+# Default: automatically install ansible and dependencies.
+AUTOMATICALLY_INSTALL_ANSIBLE=${AUTOMATICALLY_INSTALL_ANSIBLE-"YES"}
+ANSIBLE_VERSION=${ANSIBLE_VERSION-"2.1.0.0"}
+
 # -----------------------------------------------------------------------------
 # Derived params for kube-up (calculated based on above params: DO NOT CHANGE).
 # If above configs are changed manually, remember to call the function.
@@ -45,7 +53,7 @@ function calculate-default {
   if [[ ! -z "${BASE_DOMAIN_NAME-}" ]]; then
     CAICLOUD_K8S_CFG_STRING_BASE_DOMAIN_NAME=${BASE_DOMAIN_NAME}
   fi
-  
+
   if [[ ! -z "${USER_CERT_DIR-}" ]]; then
     # Remove the last '/'
     CAICLOUD_K8S_CFG_STRING_USER_CERT_DIR=${USER_CERT_DIR%/}
@@ -62,4 +70,12 @@ calculate-default
 # Need to run before create-extra-vars-json-file function.
 function fetch-kubectl-binary {
   CAICLOUD_K8S_CFG_NUMBER_FETCH_KUBECTL_BINARY=1
+
+  if [[ -z "${CAICLOUD_K8S_CFG_STRING_BIN_DIR-}" ]]; then
+    # Needed to match with "{{ bin_dir }} of ansible"
+    export KUBECTL_PATH="/usr/bin/kubectl"
+  else
+    # Ansible will fetch kubectl binary to bin_dir from master
+    export KUBECTL_PATH="${CAICLOUD_K8S_CFG_STRING_BIN_DIR}/kubectl"
+  fi
 }
