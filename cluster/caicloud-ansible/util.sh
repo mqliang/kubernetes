@@ -30,6 +30,10 @@ source "${KUBE_ROOT}/cluster/caicloud/common.sh"
 # -----------------------------------------------------------------------------
 # Verify cluster prerequisites.
 function verify-prereqs {
+  if [[ "${AUTOMATICALLY_INSTALL_ANSIBLE-}" == "YES" ]]; then
+    install-ansible
+  fi
+
   # Check needed binaries
   needed_binaries=("expect" "ansible" "ansible-playbook" "sshpass" "netaddr")
   for binary in ${needed_binaries[@]}; do
@@ -74,6 +78,11 @@ function kube-up {
   create-extra-vars-json-file
 
   start-kubernetes-by-ansible
+  ret=$?
+  if [[ $ret -ne 0 ]]; then
+    echo "Failed to start kubernetes by ansible." >&2
+    exit $ret
+  fi
 }
 
 # Delete a kubernetes cluster

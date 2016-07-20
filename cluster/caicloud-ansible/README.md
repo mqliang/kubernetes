@@ -28,6 +28,9 @@ NODE_SSH_INFO
 ### Optional
 
 ```
+AUTOMATICALLY_INSTALL_ANSIBLE
+    Ansible and it's dependencies will be installed by default, namely: `AUTOMATICALLY_INSTALL_ANSIBLE="YES"`. If you want to manually install ansible and dependencies, you need to set: `AUTOMATICALLY_INSTALL_ANSIBLE="NO"`.
+
 DNS_HOST_NAME
     Let you reach the kubernetes cluster by host name. For example, if DNS_HOST_NAME is test and BASE_DOMAIN_NAME is caicloudapp.com, we will access the kubernetes cluster by https://test.caicloudapp.com.
 
@@ -39,7 +42,7 @@ USER_CERT_DIR
 
 **Note:**
 
-If deploying a caicloud stack in **private cloud environment**, we must set:
+If deploying a caicloud stack in **private cloud environment** and control machine is not master, then we need to set:
 ```
 DNS_HOST_NAME="caicloudstack"
 ```

@@ -27,3 +27,7 @@
 
 - name: Display system information
   debug: msg="{{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+- name: CentOS | Be sure libselinux-python are installed
+  yum: name=libselinux-python
+  when: ansible_distribution == "CentOS"

@@ -112,10 +112,6 @@
       changed_when: False
       when: not kubernetes_use_upstart
 
-    - shell: systemctl daemon-reload
-      changed_when: False
-      when: not kubernetes_use_upstart
-
     - shell: find /var/lib/kubelet/pods -type d -exec umount {} \; 2>/dev/null || true
       changed_when: False
 
@@ -188,7 +184,25 @@
         state: present
       when: kubernetes_use_upstart
 
-    - name: restart docker
+    - name: Update docker.service
+      lineinfile:
+        dest: /etc/systemd/system/docker.service
+        regexp: "EnvironmentFile=-/run/flannel_docker_opts.env"
+        state: absent
+      when: not kubernetes_use_upstart
+
+    - lineinfile:
+        dest: /etc/systemd/system/docker.service
+        regexp: "^ExecStart"
+        line: "ExecStart=/usr/bin/docker daemon -H fd://"
+        state: present
+      when: not kubernetes_use_upstart
+
+    - shell: systemctl daemon-reload
+      changed_when: False
+      when: not kubernetes_use_upstart
+
+    - name: Restart docker
       service:
         name: docker
         state: restarted

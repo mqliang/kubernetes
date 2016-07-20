@@ -1,0 +1,59 @@
+---
+# Tasks for the control machine.
+
+- name: Create kubeconfig file directory
+  file: path={{ ansible_env.HOME }}/.kube state=directory
+
+- name: Set kubeconfig name for control machine according to uid and cid
+  set_fact:
+    kubeconfig_name: "config_{{ cluster_name }}"
+
+- name: Fetch kubeconfig for kubectl from master
+  fetch: src={{ cm_kubectl_kubeconfig }} dest={{ ansible_env.HOME }}/.kube/{{ kubeconfig_name }} flat=yes
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Remove .kube/config in {{ ansible_env.HOME }} directory
+  file: path={{ ansible_env.HOME }}/.kube/config state=absent
+  changed_when: false
+
+- name: Create .kube/config soft link in {{ ansible_env.HOME }} directory
+  file: path={{ ansible_env.HOME }}/.kube/config src={{ ansible_env.HOME }}/.kube/{{ kubeconfig_name }} state=link
+
+- name: Fetch kubectl binary from master
+  fetch: src={{ bin_dir }}/kubectl dest={{ bin_dir }}/kubectl flat=yes
+  delegate_to: "{{ groups['masters'][0] }}"
+  when: fetch_kubectl_binary is defined
+
+- name: Chmod kubectl binary with mode 0755
+  file: path={{ bin_dir }}/kubectl owner=root group=root mode=0755
+  when: fetch_kubectl_binary is defined
+
+- name: Check if mapping domain name to ip
+  set_fact:
+    mapping_domain_to_ip: false
+
+- set_fact:
+    mapping_domain_to_ip: true
+  when: (dns_host_name is defined) and (dns_host_name == "caicloudstack")
+
+- set_fact:
+    mapping_domain_to_ip: false
+  when: host_provider == "anchnet"
+
+- name: Set default base domain name
+  set_fact:
+    domain_name: "{{ caicloud_private_test_domain }}"
+  when: mapping_domain_to_ip
+
+- name: Set user defined domain name
+  set_fact:
+    domain_name: "{{ base_domain_name }}"
+  when: mapping_domain_to_ip and (base_domain_name is defined)
+
+- name: Update /etc/hosts for mapping domain name to ip
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "^{{ kube_master_ip }}"
+    line: "{{ kube_master_ip }} {{ dns_host_name }}.{{ domain_name }}"
+    state: present
+  when: mapping_domain_to_ip

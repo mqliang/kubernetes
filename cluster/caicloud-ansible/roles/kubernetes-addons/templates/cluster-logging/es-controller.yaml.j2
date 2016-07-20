@@ -7,6 +7,7 @@ metadata:
     k8s-app: elasticsearch-logging
     version: v1
     kubernetes.io/cluster-service: "true"
+    kubernetes-admin.caicloud.io/type: application
 spec:
   replicas: {{ elasticsearch_replicas }}
   selector:
@@ -18,16 +19,20 @@ spec:
         k8s-app: elasticsearch-logging
         version: v1
         kubernetes.io/cluster-service: "true"
+        kubernetes-admin.caicloud.io/application: elasticsearch-logging
+        kubernetes-admin.caicloud.io/type: application
     spec:
       containers:
-      - image: index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.8
+      - image: {{ elasticsearch_image_elasticsearch }}
         name: elasticsearch-logging
         resources:
           # keep request = limit to keep this container in guaranteed class
           limits:
             cpu: 300m
+            memory: 1Gi
           requests:
             cpu: 300m
+            memory: 1Gi
         ports:
         - containerPort: 9200
           name: db
@@ -38,7 +43,7 @@ spec:
         volumeMounts:
         - name: es-persistent-storage
           mountPath: /data
-      - image: index.caicloud.io/caicloud/es-cron:v0.1.2
+      - image: {{ elasticsearch_image_escron }}
         name: crontab-curator
         env:
           - name: CURATOR_TIME_UNIT
@@ -49,6 +54,13 @@ spec:
             value: "every().day"
           - name: HOST_ADDR
             value: "localhost"
+        resources:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+          requests:
+            cpu: 5m
+            memory: 5Mi
       volumes:
       - name: es-persistent-storage
         emptyDir: {}

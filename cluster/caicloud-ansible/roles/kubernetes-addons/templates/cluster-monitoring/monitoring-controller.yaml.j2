@@ -7,6 +7,7 @@ metadata:
     k8s-app: monitoring
     version: v1
     kubernetes.io/cluster-service: "true"
+    kubernetes-admin.caicloud.io/type: application
 spec:
   replicas: 1
   selector:
@@ -20,7 +21,7 @@ spec:
         kubernetes.io/cluster-service: "true"
     spec:
       containers:
-        - image: index.caicloud.io/caicloudgcr/google_containers_heapster_influxdb:v0.5
+        - image: {{ monitoring_image_influxdb }}
           name: influxdb
           resources:
             # keep request = limit to keep this container in guaranteed class
@@ -38,7 +39,7 @@ spec:
           volumeMounts:
           - name: influxdb-persistent-storage
             mountPath: /data
-        - image: index.caicloud.io/caicloudgcr/google_containers_heapster_grafana:v2.6.0-2
+        - image: {{ monitoring_image_grafana }}
           name: grafana
           resources:
             # keep request = limit to keep this container in guaranteed class
@@ -69,17 +70,17 @@ spec:
           volumeMounts:
           - name: grafana-persistent-storage
             mountPath: /var
-        - image: index.caicloud.io/caicloud/monitoring:v0.1.10
+        - image: {{ monitoring_image_monitoring }}
           name: monitoring
           imagePullPolicy: Always
           resources:
             # keep request = limit to keep this container in guaranteed class
             limits:
               cpu: 100m
-              memory: 300Mi
+              memory: 150Mi
             requests:
               cpu: 100m
-              memory: 300Mi
+              memory: 150Mi
           env:
             - name: K8S_IP
               value: ""
@@ -103,7 +104,7 @@ spec:
               value: "Y"
             - name: CLUSTER_ID
               value: "{{ cluster_id }}"
-            - name: UID
+            - name: USER_ID
               value: "{{ caicloud_uid }}"
             - name: CLUSTER_TOKEN
               value: "{{ cluster_token }}"

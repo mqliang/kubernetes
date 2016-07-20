@@ -1,18 +1,13 @@
 [Unit]
 Description=Docker Application Container Engine
 Documentation=https://docs.docker.com
-{% if ansible_os_family == "RedHat" %}
-After=network.target
-Wants=docker-storage-setup.service
-{% elif ansible_os_family == "Debian" %}
 After=network.target docker.socket
 Requires=docker.socket
-{% endif %}
 
 [Service]
 Type=notify
 EnvironmentFile=-/run/flannel_docker_opts.env
-ExecStart=/usr/bin/docker daemon $DOCKER_OPT_BIP $DOCKER_OPT_MTU $DOCKER_OPT_IPMASQ
+ExecStart=/usr/bin/docker daemon -H fd:// $DOCKER_OPT_BIP $DOCKER_OPT_MTU $DOCKER_OPT_IPMASQ
 MountFlags=slave
 LimitNOFILE=1048576
 LimitNPROC=1048576
