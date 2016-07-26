@@ -65,17 +65,27 @@ function deploy-addons {
   sed -e "s/{{ pillar\['metrics_memory'\] }}/${METRICS_MEMORY}/g;s/{{ pillar\['eventer_memory'\] }}/${EVENTER_MEMORY}/g;\
           s|{{ pillar\['heapster_image_heapster'\] }}|${HEAPSTER_IMAGE_HEAPSTER}|g" ${heapster_rc_file} > ${KUBE_TEMP}/heapster-controller.yaml
 
-  # Replace placeholder with our configuration for monitoring rc.
-  local -r monitoring_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/monitoring/monitoring-controller.yaml.in"
+  # Replace placeholder with our configuration for heapster rc.
+  local -r grafana_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/monitoring/grafana-controller.yaml.in"
+  sed -e "s|{{ pillar\['monitoring_image_grafana'\] }}|${MONITORING_IMAGE_GRAFANA}|g" ${grafana_rc_file} > ${KUBE_TEMP}/grafana-controller.yaml
+
+  # Replace placeholder with our configuration for influxdb rc.
+  local -r influxdb_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/monitoring/influxdb-controller.yaml.in"
+  sed -e "s|{{ pillar\['monitoring_image_influxdb'\] }}|${MONITORING_IMAGE_INFLUXDB}|g" ${influxdb_rc_file} > ${KUBE_TEMP}/influxdb-controller.yaml
+
+  # Replace placeholder with our configuration for monitoring server daemonset.
+  local -r monitoring_server_daemonset_file="${KUBE_ROOT}/cluster/caicloud/addons/monitoring/server-daemonset.yaml.in"
+  sed -e "s|{{ pillar\['monitoring_image_server'\] }}|${MONITORING_IMAGE_SERVER}|g" ${monitoring_server_daemonset_file} > ${KUBE_TEMP}/monitoring-server-daemonset.yaml
+
+  # Replace placeholder with our configuration for monitoring watcher rc.
+  local -r monitoring_watcher_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/monitoring/watcher-controller.yaml.in"
   sed -e "s/{{ pillar\['cluster_id'\] }}/${CLUSTER_ID}/g;\
           s/{{ pillar\['caicloud_uid'\] }}/${CAICLOUD_UID}/g;\
           s/{{ pillar\['cluster_token'\] }}/${CLUSTER_TOKEN}/g;\
           s/{{ pillar\['cluster_name'\] }}/${CLUSTER_ALIAS}/g;\
           s|{{ pillar\['paging_url'\] }}|${PAGING_EXTERNAL_ADDR}|g;\
           s/{{ pillar\['running_enviroment'\] }}/${RUNNING_ENV}/g;\
-          s|{{ pillar\['monitoring_image_influxdb'\] }}|${MONITORING_IMAGE_INFLUXDB}|g;\
-          s|{{ pillar\['monitoring_image_grafana'\] }}|${MONITORING_IMAGE_GRAFANA}|g;\
-          s|{{ pillar\['monitoring_image_monitoring'\] }}|${MONITORING_IMAGE_MONITORING}|g" ${monitoring_rc_file} > ${KUBE_TEMP}/monitoring-controller.yaml
+          s|{{ pillar\['monitoring_image_watcher'\] }}|${MONITORING_IMAGE_WATCHER}|g" ${monitoring_watcher_rc_file} > ${KUBE_TEMP}/monitoring-watcher-controller.yaml
 
   # Replace placeholder with our configuration for kube-system quota
   local -r quota_file="${KUBE_ROOT}/cluster/caicloud/addons/quota.yaml.in"
@@ -97,11 +107,16 @@ function deploy-addons {
      ${KUBE_TEMP}/addons/logging
   # monitoring rc/svc
   cp ${KUBE_TEMP}/heapster-controller.yaml \
-     ${KUBE_TEMP}/monitoring-controller.yaml \
+     ${KUBE_TEMP}/grafana-controller.yaml \
+     ${KUBE_TEMP}/influxdb-controller.yaml \
+     ${KUBE_TEMP}/monitoring-server-daemonset.yaml \
+     ${KUBE_TEMP}/monitoring-watcher-controller.yaml \
      ${KUBE_ROOT}/cluster/caicloud/addons/monitoring/grafana-service.yaml \
      ${KUBE_ROOT}/cluster/caicloud/addons/monitoring/heapster-service.yaml \
      ${KUBE_ROOT}/cluster/caicloud/addons/monitoring/influxdb-service.yaml \
-     ${KUBE_ROOT}/cluster/caicloud/addons/monitoring/monitoring-service.yaml \
+     ${KUBE_ROOT}/cluster/caicloud/addons/monitoring/server-service.yaml \
+     ${KUBE_ROOT}/cluster/caicloud/addons/monitoring/server-mongo-controller.yaml \
+     ${KUBE_ROOT}/cluster/caicloud/addons/monitoring/server-mongo-service.yaml \
      ${KUBE_TEMP}/addons/monitoring
   # registry rc/svc
   cp ${KUBE_TEMP}/registry-rc.yaml ${KUBE_ROOT}/cluster/caicloud/addons/registry/registry-svc.yaml \
