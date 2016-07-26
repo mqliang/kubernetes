@@ -1,0 +1,40 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    k8s-app: monitoring-server
+    kubernetes-admin.caicloud.io/type: application
+    kubernetes-admin.caicloud.io/application: monitoring-server
+  name: monitoring-server
+  namespace: kube-system
+spec:
+  template:
+    metadata:
+      labels:
+        k8s-app: monitoring-server
+        kubernetes-admin.caicloud.io/type: application
+        kubernetes-admin.caicloud.io/application: monitoring-server
+    spec:
+      containers:
+      - image: {{ pillar['monitoring_image_server'] }}
+        name: monitoring-server
+        imagePullPolicy: Always
+        resources:
+          # keep request = limit to keep this container in guaranteed class
+          limits:
+            cpu: 50m
+            memory: 50Mi
+          requests:
+            cpu: 20m
+            memory: 50Mi
+        env:
+          - name: INFLUXDB_URL
+            value: http://monitoring-influxdb:8086
+          - name: INTERVAL
+            value: "30"
+          - name: SERVICE_PORT
+            value: "6090"
+          - name: AUTH_REQUIRED
+            value: "Y"
+          - name: MONGODB_URL
+            value: monitoring-server-mongo:27017

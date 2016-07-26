@@ -66,11 +66,6 @@ CLUSTER_ID=${CLUSTER_ID:-"32793e34-79d2-432b-ac17-708b61b80e6a"}
 CLUSTER_TOKEN=${CLUSTER_TOKEN:-"eSbsyAr2eDatXBxa"}
 CAICLOUD_UID=${CAICLOUD_UID:-"110ec58a-a0f2-4ac4-8393-c866d813b8d1"}
 
-# Used by monitoring to indicate which environment we are running on
-RUNNING_ENV=${RUNNING_ENV:-"dev"}
-# The default paging url is an invalid one which is only for when running kube-up locally.
-PAGING_EXTERNAL_ADDR=${PAGING_EXTERNAL_ADDR:-"http://paging-dev/api/paging"}
-
 # If we want to register master kubelet as a node. Note, since kubernetes 1.2,
 # it's better to always set this to true. We can disable scheduling user pod
 # to master via REGISTER_MASTER_SCHEDULABLE.
@@ -105,6 +100,11 @@ ENABLE_CLUSTER_DNS=${ENABLE_CLUSTER_DNS:-true}
 DNS_SERVER_IP=${DNS_SERVER_IP:-10.254.0.100} # Must be a IP in SERVICE_CLUSTER_IP_RANGE.
 DNS_DOMAIN=${DNS_DOMAIN:-"cluster.local"}
 DNS_REPLICAS=${DNS_REPLICAS:-1}
+
+# Used by monitoring to indicate which environment we are running on
+RUNNING_ENV=${RUNNING_ENV:-"dev"}
+# The default paging url is an invalid one which is only for when running kube-up locally.
+PAGING_EXTERNAL_ADDR=${PAGING_EXTERNAL_ADDR:-http://paging.default.svc.${DNS_DOMAIN}:7090}
 
 # Optional: Install cluster monitoring. Resource requirement is calculated at last.
 ENABLE_CLUSTER_MONITORING=${ENABLE_CLUSTER_MONITORING:-true}
@@ -179,10 +179,11 @@ DNS_IMAGE_HEALTHZ=${DNS_IMAGE_HEALTHZ:-"index.caicloud.io/caicloudgcr/google_con
 ELASTICSEARCH_IMAGE_ELASTICSEARCH=${ELASTICSEARCH_IMAGE_ELASTICSEARCH:-"index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.8.2"}
 ELASTICSEARCH_IMAGE_ESCRON=${ELASTICSEARCH_IMAGE_ESCRON:-"index.caicloud.io/caicloud/es-cron:v0.1.2"}
 
-HEAPSTER_IMAGE_HEAPSTER=${HEAPSTER_IMAGE_HEAPSTER:-"index.caicloud.io/caicloudgcr/google_containers_heapster:v1.0.2"}
-MONITORING_IMAGE_INFLUXDB=${MONITORING_IMAGE_INFLUXDB:-"index.caicloud.io/caicloudgcr/google_containers_heapster_influxdb:v0.5"}
-MONITORING_IMAGE_GRAFANA=${MONITORING_IMAGE_GRAFANA:-"index.caicloud.io/caicloudgcr/google_containers_heapster_grafana:v2.6.0-2"}
-MONITORING_IMAGE_MONITORING=${MONITORING_IMAGE_MONITORING:-"index.caicloud.io/caicloud/monitoring:v0.2.2-rc3"}
+HEAPSTER_IMAGE_HEAPSTER=${HEAPSTER_IMAGE_HEAPSTER:-"index.caicloud.io/caicloud/heapster:v1.2.0-beta1"}
+MONITORING_IMAGE_INFLUXDB=${MONITORING_IMAGE_INFLUXDB:-"index.caicloud.io/caicloud/influxdb:1.0.0-beta2"}
+MONITORING_IMAGE_GRAFANA=${MONITORING_IMAGE_GRAFANA:-"index.caicloud.io/caicloud/monitoring-grafana:v3.1.0"}
+MONITORING_IMAGE_WATCHER=${MONITORING_IMAGE_WATCHER:-"index.caicloud.io/caicloud/monitoring-watcher:v0.4.0-rc1"}
+MONITORING_IMAGE_SERVER=${MONITORING_IMAGE_SERVER:-"index.caicloud.io/caicloud/monitoring-server:v0.4.0-rc1"}
 
 REGISTRY_IMAGE=${REGISTRY_IMAGE:-"index.caicloud.io/registry:2.2"}
 
@@ -264,10 +265,12 @@ function calculate-default {
   EVENTER_MEMORY="$((100 * 1024 + ${NUM_NODES} * 500))Ki"
 
   # cluster/caicloud/addons/quota.yaml.in
-  # dns 170Mi, es (1024+5Mi)*2, monitoring 750Mi, heapster (200+5*n)Mi, fluentd 200Mi*n, (kibana 50Mi, dashboard 50Mi)
-  QUOTA_MEMORY="$((3178 + (${NUM_NODES}+ ${NUM_MASTERS}) * 205))Mi"
-  # dns 310m, es 305m*2, monitoring 300m, heapster 200m, fluentd 20m*n, (kibana 100m, dashboard 100m)    
-  QUOTA_CPU="$((1420+ (${NUM_NODES} + ${NUM_MASTERS}) * 20))m"
+  # dns 170Mi, es (1024+5Mi)*2, monitoring 750Mi(grafana 100, influxdb 500, mongo 100, watcher 50), heapster (200+5*n)Mi, monitoring-server (50*n)Mi, fluentd 200Mi*n, (kibana 50Mi, dashboard 50Mi)
+  # (1024 + 512) Mi for rolling update
+  QUOTA_MEMORY="$((3178 + (${NUM_NODES}+ ${NUM_MASTERS}) * (205 + 50) + 1024 + 512))Mi"
+  # dns 310m, es 305m*2, monitoring 300m(grafana 100, influxdb 100, mongo 50, watcher 50), heapster 200m, monitoring-server (50*n)m, fluentd 20m*n, (kibana 100m, dashboard 100m)    
+  # 400m for rolling update 
+  QUOTA_CPU="$((1420+ (${NUM_NODES} + ${NUM_MASTERS}) * (20 + 50) + 400))m"
 }
 
 calculate-default
