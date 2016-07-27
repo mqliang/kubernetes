@@ -70,6 +70,12 @@ echo "== Kubernetes addon manager started at $(date -Is) with ADDON_CHECK_INTERV
 # Create the namespace that will be used to host the cluster-level add-ons.
 start_addon /etc/kubernetes/addons/namespace.yaml 100 10 "" &
 
+# Create the resource quota for kube-system.
+start_addon /etc/kubernetes/addons/quota.yaml 100 10 "${SYSTEM_NAMESPACE}" &
+
+# Create the limitrange for kube-system.
+start_addon /etc/kubernetes/addons/limitrange.yaml 100 10 "${SYSTEM_NAMESPACE}" &
+
 # Wait for the default service account to be created in the kube-system namespace.
 token_found=""
 while [ -z "${token_found}" ]; do
