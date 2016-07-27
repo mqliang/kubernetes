@@ -49,15 +49,28 @@ dns_server: "{{ kube_service_addresses|ipaddr('net')|ipaddr(100)|ipaddr('address
 elasticsearch_replicas: 2
 kibana_replicas: 1
 
+# Define number of masters
+num_masters: "{{ groups['masters'] | count }}"
+# Define number of nodes (minions). There will be only one master.
+num_nodes: "{{ groups['nodes'] | count }}"
+
 # Memory requests for heapster metrics.
 metrics_memory_initial: 200
 metrics_memory_per_node: 4
-metrics_memory: "{{ metrics_memory_initial + (metrics_memory_per_node * (groups['nodes'] | count)) }}Mi"
+metrics_memory: "{{ metrics_memory_initial + (metrics_memory_per_node * ((num_nodes | int) + (num_masters | int))) }}Mi"
 
 # Memory requests for heapster eventer.
 eventer_memory_initial: 200
 eventer_memory_per_node: 500
-eventer_memory: "{{ eventer_memory_initial + (eventer_memory_per_node * (groups['nodes'] | count) / 1024) | round | int }}Mi"
+eventer_memory: "{{ eventer_memory_initial + (eventer_memory_per_node * ((num_nodes | int) + (num_masters | int)) / 1024) | round | int }}Mi"
+
+# cluster/caicloud/addons/quota.yaml.in
+# dns 170Mi, es (1024+5Mi)*2, monitoring 750Mi(grafana 100, influxdb 500, mongo 100, watcher 50), heapster (400+5*n)Mi, monitoring-server (50*n)Mi, fluentd 200Mi*n, kibana 50Mi, (dashboard 50Mi)
+# (1024 + 512) Mi for rolling update
+quota_memory: "{{ 3428 + ((num_nodes | int) + (num_masters | int)) * (205 + 50) + 1024 + 512 }}Mi"
+# dns 310m, es 305m*2, monitoring 300m(grafana 100, influxdb 100, mongo 50, watcher 50), heapster 200m, monitoring-server (50*n)m, fluentd 20m*n, kibana 100m, (dashboard 100m)    
+# 400m for rolling update
+quota_cpu: "{{ 1520+ ((num_nodes | int) + (num_masters | int)) * (20 + 50) + 400 }}m"
 
 # Used by monitoring to indicate which environment we are running on.
 running_enviroment: "dev"
@@ -70,7 +83,7 @@ running_enviroment: "dev"
 cluster_id: "32793e34-79d2-432b-ac17-708b61b80e6a"
 cluster_token: "eSbsyAr2eDatXBxa"
 caicloud_uid: "110ec58a-a0f2-4ac4-8393-c866d813b8d1"
-paging_url: "http://paging-dev/api/paging"
+paging_url: "http://paging.default.svc.{{ dns_domain }}:7090"
 
 #
 # DO NOT CHANGE
@@ -115,7 +128,8 @@ elasticsearch_image_elasticsearch: "index.caicloud.io/caicloudgcr/google_contain
 elasticsearch_image_escron: "index.caicloud.io/caicloud/es-cron:v0.1.2"
 fluentd_elasticsearch_image: "index.caicloud.io/caicloudgcr/google_containers_fluentd-elasticsearch:1.15"
 kibana_image: "index.caicloud.io/caicloudgcr/google_containers_kibana:1.3"
-heapster_image_heapster: "index.caicloud.io/caicloudgcr/google_containers_heapster:v1.0.2-beta1"
+heapster_image_heapster: "index.caicloud.io/caicloud/heapster:v1.2.0-beta1"
 monitoring_image_influxdb: "index.caicloud.io/caicloud/influxdb:1.0.0-beta2"
-monitoring_image_grafana: "index.caicloud.io/caicloudgcr/google_containers_heapster_grafana:v2.6.0-2"
-monitoring_image_monitoring: "index.caicloud.io/caicloud/monitoring:v0.3.0-rc1"
+monitoring_image_grafana: "index.caicloud.io/caicloud/monitoring-grafana:v3.1.0"
+monitoring_image_watcher: "index.caicloud.io/caicloud/monitoring-watcher:v0.4.0-rc1"
+monitoring_image_server: "index.caicloud.io/caicloud/monitoring-server:v0.4.0-rc1"

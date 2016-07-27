@@ -7,6 +7,8 @@ metadata:
     k8s-app: kibana-logging
     version: v1
     kubernetes.io/cluster-service: "true"
+    kubernetes-admin.caicloud.io/application: kibana-logging
+    kubernetes-admin.caicloud.io/type: application
 spec:
   replicas: {{ kibana_replicas }}
   selector:
@@ -18,6 +20,8 @@ spec:
         k8s-app: kibana-logging
         version: v1
         kubernetes.io/cluster-service: "true"
+        kubernetes-admin.caicloud.io/application: kibana-logging
+        kubernetes-admin.caicloud.io/type: application
     spec:
       containers:
       - name: kibana-logging

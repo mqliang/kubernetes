@@ -2,8 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    kubernetes.io/cluster-service: 'true'
-    kubernetes.io/name: monitoring
+    kubernetes.io/cluster-service: "true"
   name: monitoring
   namespace: kube-system
 spec:
@@ -11,4 +10,4 @@ spec:
   - port: 80
     targetPort: 6090
   selector:
-    k8s-app: monitoring
+    k8s-app: monitoring-server

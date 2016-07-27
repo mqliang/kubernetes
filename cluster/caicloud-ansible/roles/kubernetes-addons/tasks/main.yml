@@ -21,6 +21,12 @@
 - name: Write kube-system namespace resource
   copy: src="namespace.yaml" dest="{{ kube_config_dir }}/addons/namespace.yaml"
 
+- name: Write kube-system quota resource
+  template: src="quota.yaml.j2" dest="{{ kube_config_dir }}/addons/quota.yaml"
+
+- name: Write kube-system limitrange resource
+  copy: src="limitrange.yaml" dest="{{ kube_config_dir }}/addons/limitrange.yaml"
+
 - include: dns.yml
   when: dns_setup
 
@@ -29,9 +35,6 @@
 
 - include: cluster-logging.yml
   when: cluster_logging
-
-- include: kube-dash.yml
-  when: kube_dash
 
 - name: Install required packages and addon scripts
   include: generic-install.yml
