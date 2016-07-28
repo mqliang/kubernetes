@@ -18,7 +18,7 @@ spec:
         kubernetes-admin.caicloud.io/application: monitoring-server
     spec:
       containers:
-      - image: {{ pillar['monitoring_image_server'] }}
+      - image: {{ monitoring_image_server }}
         name: monitoring-server
         imagePullPolicy: Always
         resources:

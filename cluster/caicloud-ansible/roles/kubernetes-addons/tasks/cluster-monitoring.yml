@@ -12,9 +12,15 @@
     owner: root
     group: root
   with_items:
-    - monitoring-controller.yaml
-    - monitoring-service.yaml
-    - grafana-service.yaml
+    - server-mongo-controller.yaml
+    - server-mongo-service.yaml
+    - influxdb-controller.yaml
+    - influxdb-service.yaml
     - heapster-controller.yaml
     - heapster-service.yaml
-    - influxdb-service.yaml
+    - watcher-controller.yaml
+    - grafana-controller.yaml
+    - grafana-service.yaml
+    - server-daemonset.yaml
+    - server-service.yaml
+

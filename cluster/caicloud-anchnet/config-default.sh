@@ -446,13 +446,13 @@ function calculate-default {
 
   # Calculate heapster memory limit based on number of nodes. Number come from
   # cluster/caicloud/addons/monitoring/heapster-controller.yaml.in
-  METRICS_MEMORY="$((100 + ${NUM_NODES} * 4))Mi"
-  EVENTER_MEMORY="$((100 * 1024 + ${NUM_NODES} * 500))Ki"
+  METRICS_MEMORY="$((200 + (${NUM_NODES}+ ${NUM_MASTERS}) * 4))Mi"
+  EVENTER_MEMORY="$((200 * 1024 + (${NUM_NODES}+ ${NUM_MASTERS}) * 500))Ki"
 
   # cluster/caicloud/addons/quota.yaml.in
   # dns 170Mi, es (1024+5Mi)*2, monitoring 750Mi(grafana 100, influxdb 500, mongo 100, watcher 50), heapster (200+5*n)Mi, monitoring-server (50*n)Mi, fluentd 200Mi*n, (kibana 50Mi, dashboard 50Mi)
   # (1024 + 512) Mi for rolling update
-  QUOTA_MEMORY="$((3178 + (${NUM_NODES}+ ${NUM_MASTERS}) * (205 + 50) + 1024 + 512))Mi"
+  QUOTA_MEMORY="$((3378 + (${NUM_NODES}+ ${NUM_MASTERS}) * (205 + 50) + 1024 + 512))Mi"
   # dns 310m, es 305m*2, monitoring 300m(grafana 100, influxdb 100, mongo 50, watcher 50), heapster 200m, monitoring-server (50*n)m, fluentd 20m*n, (kibana 100m, dashboard 100m)    
   # 400m for rolling update
   QUOTA_CPU="$((1420+ (${NUM_NODES} + ${NUM_MASTERS}) * (20 + 50) + 400))m"
