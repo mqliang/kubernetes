@@ -16,7 +16,7 @@
   copy: src=nsenter dest={{ bin_dir }}/nsenter
 
 - name: Logging | Copy upstart fluentd pod into manifest directory of each kubelet
-  copy:
+  template:
   args:
     src: "fluentd-es-upstart.yaml"
     dest: "{{ kube_manifest_dir }}"
@@ -26,7 +26,7 @@
   when: cluster_logging and kubernetes_use_upstart
 
 - name: Logging | Copy systemd fluentd pod into manifest directory of each kubelet
-  copy:
+  template:
   args:
     src: "fluentd-es-systemd.yaml"
     dest: "{{ kube_manifest_dir }}"
