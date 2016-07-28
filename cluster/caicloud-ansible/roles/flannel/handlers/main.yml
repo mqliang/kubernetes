@@ -25,7 +25,6 @@
   command: "docker version"
   register: has_docker
   changed_when: false
-  failed_when: false
 
 - name: stop docker
   service: name=docker state=stopped
