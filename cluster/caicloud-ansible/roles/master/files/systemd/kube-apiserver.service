@@ -18,6 +18,7 @@ ExecStart=/usr/bin/kube-apiserver \
 	    $KUBE_ALLOW_PRIV \
 	    $KUBE_SERVICE_ADDRESSES \
 	    $KUBE_ADMISSION_CONTROL \
+	    $KUBE_CLOUD_PROVIDER \
 	    $KUBE_API_ARGS
 Restart=on-failure
 Type=notify

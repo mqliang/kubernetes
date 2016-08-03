@@ -1,0 +1,38 @@
+---
+
+# Required to overwrite with the correct values
+access_key_id: "fake"
+access_key_secret: "fake"
+
+# The security group instances to be in
+security_group_name: "kube-default"
+
+# Supported region:
+#-------------------------------------------------------
+#|                   DescribeRegions                   |
+#+-----------+-----------------------------------------+
+#|  RequestId|  0A9050F6-9B62-4CB7-9D09-2A7BCFC72D8B   |
+#+-----------+-----------------------------------------+
+#||                      Regions                      ||
+#|+---------------------------------------------------+|
+#|||                     Region                      |||
+#||+-------------------+-----------------------------+||
+#|||     LocalName     |          RegionId           |||
+#||+-------------------+-----------------------------+||
+#|||  新加坡              |  ap-southeast-1             |||
+#|||  华南 1             |  cn-shenzhen                |||
+#|||  华北 1             |  cn-qingdao                 |||
+#|||  华北 2             |  cn-beijing                 |||
+#|||  华东 2             |  cn-shanghai                |||
+#|||  美东 1             |  us-east-1                  |||
+#|||  香港               |  cn-hongkong                |||
+#|||  华东 1             |  cn-hangzhou                |||
+#|||  美西 1             |  us-west-1                  |||
+#||+-------------------+-----------------------------+||
+region_id: "cn-qingdao"
+
+master_node_num: 1
+minion_node_num: 2
+master_name_prefix: "kube-master-"
+node_name_prefix: "kube-node-"
+instance_password: "Caicloud-k8s"

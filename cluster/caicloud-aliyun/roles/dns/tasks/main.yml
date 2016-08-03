@@ -1,0 +1,5 @@
+---
+
+- name: Do with aliyun dns
+  include: do.yml
+  when: domain_name_in_dns == "YES"

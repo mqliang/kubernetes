@@ -1,0 +1,19 @@
+---
+
+- name: Get instance info
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }}
+  register: search_output
+  until: search_output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Change instance info output to be in json format
+  set_fact:
+    instance_info: "{{ search_output.stdout | from_json }}"
+
+- name: Set kube_master_ip
+  fail: msg="Failed to get instance info of {{ instance_name }}"
+  when: instance_info.TotalCount|int == 0
+- set_fact:
+    kube_master_ip: "{{ instance_info.Instances.Instance[0].PublicIpAddress.IpAddress[0] }}"
+  when: instance_info.TotalCount|int > 0

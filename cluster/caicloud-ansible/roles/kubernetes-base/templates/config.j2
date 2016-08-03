@@ -20,4 +20,12 @@ KUBE_LOG_LEVEL="--v=0"
 KUBE_ALLOW_PRIV="--allow-privileged=true"
 
 # How the replication controller, scheduler, and proxy connect to master
-KUBE_MASTER="--master=https://{{ hostvars[groups['masters'][0]]['ansible_host'] }}:{{ kube_master_api_port }}"
+KUBE_MASTER="--master=https://{{ hostvars[groups['masters'][0]]['internal_ip'] }}:{{ kube_master_api_port }}"
+
+# The following values are used to configure:
+#
+#   kube-apiserver
+#   kube-controller-manager
+#   kubelet
+
+KUBE_CLOUD_PROVIDER="--cloud-provider={{ host_provider }} --cloud-config={{ kube_config_dir }}/cloud-config"

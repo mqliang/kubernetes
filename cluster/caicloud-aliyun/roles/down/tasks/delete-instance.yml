@@ -1,0 +1,15 @@
+---
+# Delete a instance
+#
+# Assumed vars:
+#   instance_id
+#   common_paras
+
+# Only the instance in Stopped status can be deleted
+
+- name: Delete instance
+  command: aliyuncli ecs DeleteInstance {{ common_paras }} --InstanceId {{ instance_id }}
+  register: result
+  until: result.stdout.find("Code") == -1
+  retries: 5
+  delay: 5

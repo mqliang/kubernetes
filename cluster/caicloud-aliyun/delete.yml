@@ -1,0 +1,26 @@
+---
+# This playbook destroy aliyun instances by aliyuncli tool.
+
+- name: Sync time
+  hosts: localhost
+  become: yes
+  roles:
+    - ntpdate
+  tags:
+    - ntpdate
+
+- name: Delete domain name to aliyun dns
+  hosts: localhost
+  become: yes
+  roles:
+    - dns
+  tags:
+    - dns
+
+- name: Stop aliyun instances
+  hosts: localhost
+  become: yes
+  roles:
+    - down
+  tags:
+    - down

@@ -2,25 +2,29 @@
 # Install docker on centos.
 #
 
+- name: CentOS | Check if firewalld service exists
+  set_fact:
+    firewalld_existing: True
+- command: systemctl status firewalld
+  register: output
+  failed_when: False
+- set_fact:
+    firewalld_existing: False
+  when: output.stdout.find("not-found") != -1
+
 - name: CentOS | Stop and mask the firewalld service
   command: "{{ item }}"
   with_items:
     - systemctl daemon-reexec
     - systemctl stop firewalld
     - systemctl mask firewalld
-  ignore_errors: True
-  failed_when: False
+  when: firewalld_existing
 
-- name: CentOS | Install the iptables-services
-  yum: name=iptables-services
+- name: CentOS | Install the iptables
+  yum: name=iptables
 
-- name: CentOS | Enable the iptable service
-  command: "{{ item }}"
-  with_items:
-    - systemctl enable iptables
-    - systemctl daemon-reload
-    - systemctl start iptables
-    - iptables -F
+- name: CentOS | Clear iptables
+  command: iptables -F
 
 - name: CentOS | Install GPG key
   template: src="yum-docker.repo" dest="/etc/yum.repos.d/docker.repo"

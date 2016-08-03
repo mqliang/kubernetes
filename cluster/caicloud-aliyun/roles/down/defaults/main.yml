@@ -1,0 +1,4 @@
+---
+
+# Determine if deleting aliyun instances when kube-down
+delete_instance_flag: "NO"

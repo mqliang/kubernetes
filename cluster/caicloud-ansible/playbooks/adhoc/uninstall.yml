@@ -31,8 +31,9 @@
         is_coreos: false
         etcd_svc_name: etcd
         bin_dir: "/usr/bin"
+        kube_config_dir: "/etc/kubernetes"
 
-    - name: Determin kubernetes_use_upstart
+    - name: Determine kubernetes_use_upstart
       set_fact:
         kubernetes_use_upstart: false
 
@@ -46,6 +47,7 @@
         is_coreos: true
         etcd_svc_name: etcd2
         bin_dir: "/opt/bin"
+        kube_config_dir: "/etc/kubernetes"
 
     - name: Remove br0 interface
       shell: ovs-vsctl del-br br0
@@ -240,11 +242,12 @@
       set_fact:
         bin_dir: "/usr/bin"
 
-    - name: Remove {{ ansible_env.HOME }}/.kube directory
-      file: path={{ ansible_env.HOME }}/.kube state=absent
-
-    - name: Remove {{ bin_dir }}/kubectl
-      file: path={{ bin_dir }}/kubectl state=absent
+    - name: Remove remaining files
+      file: path={{ item }} state=absent
+      with_items:
+        - "{{ bin_dir }}/kubectl"
+        - "{{ ansible_env.HOME }}/.kube/config"
+        - "{{ cloud_config_dir }}/cloud-config"
 
     # kube_master_ip is from extra vars
     - name: Update /etc/hosts if uninstalling caicloudstack

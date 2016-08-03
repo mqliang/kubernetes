@@ -16,6 +16,7 @@ ExecStart=/usr/bin/kubelet \
 	    $KUBELET_PORT \
 	    $KUBELET_HOSTNAME \
 	    $KUBE_ALLOW_PRIV \
+	    $KUBE_CLOUD_PROVIDER \
 	    $KUBELET_ARGS
 Restart=on-failure
 KillMode=process
