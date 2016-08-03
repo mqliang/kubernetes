@@ -25,9 +25,33 @@ NODE_SSH_INFO
     The worker node ssh information in the format of "username:password@ip_address".
 ```
 
+or
+
+```
+MASTER_INTERNAL_SSH_INFO
+    The master node ssh information in the format of "username:password@ip_address" with an internal ip address.
+
+NODE_INTERNAL_SSH_INFO
+    The worker node ssh information in the format of "username:password@ip_address" with an internal ip address.
+```
+
+**Note:**
+
+Actually, if we set `XX_SSH_INFO` (`XX` means `MASTER` or `NODE`) but don't set `XX_INTERNAL_SSH_INFO`, then `XX_INTERNAL_SSH_INFO` will be initialized by `XX_SSH_INFO`.
+
+If we set `XX_INTERNAL_SSH_INFO`, then `XX_SSH_INFO` will be ignored.
+
 ### Optional
 
 ```
+MASTER_EXTERNAL_SSH_INFO
+    If the master node have an external ip address, then we can supply the ssh information with an external ip address in the format of "username:password@ip_address".
+    If we don't set `MASTER_EXTERNAL_SSH_INFO`, then it will be initialized by `MASTER_INTERNAL_SSH_INFO` by default.
+
+NODE_EXTERNAL_SSH_INFO
+    If the minion node have an external ip address, then we can supply the ssh information with an external ip address in the format of "username:password@ip_address".
+    If we don't set `NODE_EXTERNAL_SSH_INFO`, then it will be initialized by `NODE_INTERNAL_SSH_INFO` by default.
+
 AUTOMATICALLY_INSTALL_ANSIBLE
     Ansible and it's dependencies will be installed by default, namely: `AUTOMATICALLY_INSTALL_ANSIBLE="YES"`. If you want to manually install ansible and dependencies, you need to set: `AUTOMATICALLY_INSTALL_ANSIBLE="NO"`.
 
