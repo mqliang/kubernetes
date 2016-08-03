@@ -65,6 +65,8 @@ KUBE_APISERVER_OPTS="--logtostderr=true \
 --admission-control=${ADMISSION_CONTROL} \
 --token-auth-file=/etc/kubernetes/known-tokens.csv \
 --basic-auth-file=/etc/kubernetes/basic-auth.csv \
+--authorization-mode=ABAC \
+--authorization-policy-file=/etc/kubernetes/abac.json \
 --client-ca-file=/etc/kubernetes/ca.crt \
 --tls-cert-file=/etc/kubernetes/master.crt \
 --tls-private-key-file=/etc/kubernetes/master.key

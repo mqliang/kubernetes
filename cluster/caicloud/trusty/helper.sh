@@ -120,7 +120,7 @@ function send-master-files {
     fi
     if [[ "${KUBE_UP}" == "Y" ]]; then
       echo "sudo cp ~/kube/kubelet-kubeconfig ~/kube/kube-proxy-kubeconfig /etc/kubernetes"
-      echo "sudo cp ~/kube/known-tokens.csv ~/kube/basic-auth.csv /etc/kubernetes"
+      echo "sudo cp ~/kube/known-tokens.csv ~/kube/basic-auth.csv ~/kube/abac.json /etc/kubernetes"
       echo "sudo cp ~/kube/certs/ca.crt ~/kube/certs/master.crt ~/kube/certs/master.key /etc/kubernetes"
       if [[ "${USE_SELF_SIGNED_CERT}" == "false" ]]; then
         echo "sudo cp -r ~/kube/certs/caicloudapp_certs /etc/kubernetes"
@@ -179,6 +179,7 @@ function send-master-files {
     cp -r ${KUBE_ROOT}/cluster/caicloud/trusty/master/init_conf \
        ${KUBE_TEMP}/known-tokens.csv \
        ${KUBE_TEMP}/basic-auth.csv \
+       ${KUBE_TEMP}/abac.json \
        ${KUBE_TEMP}/certs \
        ${KUBE_TEMP}/kubelet-kubeconfig \
        ${KUBE_TEMP}/kube-proxy-kubeconfig \

@@ -69,6 +69,10 @@
   file: path={{ kube_token_dir }}/basic-auth.csv state=touch
   changed_when: false
 
+- name: Ensure that a abac policy file exists
+  file: path={{ kube_token_dir }}/abac.json state=touch
+  changed_when: false
+
 #
 # Install init scripts for all components.
 
