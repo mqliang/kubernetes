@@ -1,0 +1,14 @@
+---
+# Wait aliyun instance to be in a specific status, for example: Running|Starting|Stopping|Stopped
+#
+# Assumed vars:
+#   wait_status
+#   instance_id
+
+# Search the instance by InstanceId
+- name: Wait the instance {{ instance_id }} to be in {{ wait_status }} status
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --InstanceIds '["{{ instance_id }}"]'
+  register: search_output
+  until: search_output.stdout.find("Code") == -1 and search_output.stdout.find("{{ wait_status }}") != -1
+  retries: 30
+  delay: 10

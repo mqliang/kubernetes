@@ -52,16 +52,24 @@ NODE_EXTERNAL_SSH_INFO
     If the minion node have an external ip address, then we can supply the ssh information with an external ip address in the format of "username:password@ip_address".
     If we don't set `NODE_EXTERNAL_SSH_INFO`, then it will be initialized by `NODE_INTERNAL_SSH_INFO` by default.
 
-AUTOMATICALLY_INSTALL_ANSIBLE
-    Ansible and it's dependencies will be installed by default, namely: `AUTOMATICALLY_INSTALL_ANSIBLE="YES"`. If you want to manually install ansible and dependencies, you need to set: `AUTOMATICALLY_INSTALL_ANSIBLE="NO"`.
+AUTOMATICALLY_INSTALL_TOOLS
+    Ansible and it's dependencies will be installed by default, namely: `AUTOMATICALLY_INSTALL_TOOLS="YES"`. If you want to manually install ansible and dependencies, you need to set: `AUTOMATICALLY_INSTALL_TOOLS="NO"`.
 
 DNS_HOST_NAME
     Let you reach the kubernetes cluster by host name. For example, if DNS_HOST_NAME is test and BASE_DOMAIN_NAME is caicloudapp.com, we will access the kubernetes cluster by https://test.caicloudapp.com.
+    Default value is "caicloudstack".
 
 BASE_DOMAIN_NAME
     For example: caicloudapp.com. Required: USER_CERT_DIR
-USER_CERT_DIR
-    User certificates directory, including ca.crt, master.crt, master.key. Required: BASE_DOMAIN_NAME
+USER_CERT_DIR.
+    User certificates directory, including ca.crt, master.crt, master.key. Required: BASE_DOMAIN_NAME.
+
+MASTER_NAME_PREFIX
+    For the option of --hostname-override on masters.
+    Default value is "kube-master-".
+NODE_NAME_PREFIX
+    For the option of --hostname-override on nodes.
+    Default value is "kube-node-".
 ```
 
 **Note:**

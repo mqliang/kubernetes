@@ -1,0 +1,65 @@
+---
+# Install aliyuncli tool and related sdk
+
+- name: Ubuntu | Install requires for aliyuncli
+  apt: name={{ item }}
+  with_items:
+    - build-essential
+    - python-dev
+    - libxml2-dev
+    - libxslt1-dev
+    - zlib1g-dev
+    - libffi-dev
+    - libssl-dev
+    - python-pip
+  when: ansible_distribution == "Ubuntu"
+
+- name: CentOS | Install requires for aliyuncli
+  yum: name={{ item }}
+  with_items:
+    - epel-release
+    - gcc 
+    - g++ 
+    - kernel-devel
+    - python-simplejson
+    - openssl-devel
+    - python-devel
+    - libffi-devel
+    - python-pip
+  when: ansible_distribution == "CentOS"
+
+# https://help.aliyun.com/document_detail/30003.html?spm=5176.product29991.4.18.njgOh7
+- name: Install aliyuncli tool and related libs
+  command: "pip install {{ item }}"
+  with_items:
+    - --upgrade pip
+    - pyopenssl
+    - ndg-httpsclient
+    - pyasn1
+    - aliyuncli
+    - aliyun-python-sdk-ecs
+    - aliyun-python-sdk-slb
+    - aliyun-python-sdk-alidns
+    - aliyun-python-sdk-oss
+
+- name: Ubuntu | Get PYTHONPATH
+  command: "python -c 'from distutils.sysconfig import get_python_lib; print(get_python_lib())'"
+  register: python_lib_path
+  when: ansible_distribution == "Ubuntu"
+
+# Frequently asked questions: Question 7
+#   https://help.aliyun.com/document_detail/30017.html?spm=5176.product29991.4.27.uVLL8J
+- name: Ubuntu | Copy aliyun sdk to PYTHONPATH
+  shell: cp -rf {{ ubuntu_pip_python_lib_path }}/aliyun* {{ ubuntu_python_lib_path }}
+  when: ansible_distribution == "Ubuntu" and python_lib_path.stdout != "{{ ubuntu_pip_python_lib_path }}"
+
+- name: Create aliyuncli config directory
+  file: path={{ ansible_env.HOME }}/.aliyuncli state=directory
+
+- name: Copy config files which have fake id and fake key
+  copy: src="{{ item }}" dest="{{ ansible_env.HOME }}/.aliyuncli/{{ item }}"
+  with_items:
+    - configure
+    - credentials
+    - oascredentials
+    - osscredentials

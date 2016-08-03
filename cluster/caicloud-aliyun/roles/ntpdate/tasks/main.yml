@@ -1,0 +1,9 @@
+---
+
+- name: Sync the system time
+  command: ntpdate {{ ntp_sysnc_server }}
+  register: output
+  until: output.rc == 0
+  retries: 20
+  delay: 5
+  when: ntpdate_sync_time is defined and ntpdate_sync_time == "YES"

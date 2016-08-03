@@ -25,10 +25,6 @@ kube_master_insecure_port: 8080
 # The secure address that kube-apiserver component listens on.
 kube_apiserver_bind_address: "0.0.0.0"
 
-# This directory is where all the additional scripts go that Kubernetes normally puts
-# in /srv/kubernetes.  This puts them in a sane location.
-kube_script_dir: "{{ kube_config_dir}}/scripts"
-
 # This is where all the kube certs will be located.
 kube_cert_dir: "{{ kube_config_dir }}/certs"
 
@@ -44,12 +40,6 @@ kube_cert_ip: "{{ hostvars[inventory_hostname]['ansible_all_ipv4_addresses'] | j
 # This is the group that the cert creation scripts chgrp the cert files to.
 kube_cert_group: "kube-cert"
 
-# This is where all of the bearer tokens will be stored
-kube_token_dir: "{{ kube_config_dir }}/tokens"
-
-# The directory to store all addon yaml files.
-kube_addons_dir: "{{ kube_config_dir }}/addons"
-
 # This is where you can drop yaml/json files and the kubelet will run those
 # pods on startup.
 kube_manifest_dir: "{{ kube_config_dir }}/manifests"
@@ -64,3 +54,5 @@ kube_current_release_directory: "/etc/caicloud/{{ kube_version }}"
 # The username/password here is used to login to kubernetes cluster.
 kube_user: "admin"
 kube_password: ""
+
+cloud_config_dir: "/var/run"

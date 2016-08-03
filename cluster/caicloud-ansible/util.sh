@@ -31,7 +31,7 @@ source "${KUBE_ROOT}/cluster/lib/util.sh"
 # -----------------------------------------------------------------------------
 # Verify cluster prerequisites.
 function verify-prereqs {
-  if [[ "${AUTOMATICALLY_INSTALL_ANSIBLE-}" == "YES" ]]; then
+  if [[ "${AUTOMATICALLY_INSTALL_TOOLS-}" == "YES" ]]; then
     install-ansible
   fi
 
