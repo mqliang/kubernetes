@@ -184,6 +184,7 @@ function deploy-addons {
 #   ${KUBE_TEMP}/kubelet-kubeconfig
 #   ${KUBE_TEMP}/kube-proxy-kubeconfig
 #   ${KUBE_TEMP}/known-tokens.csv
+#   ${KUBE_TEMP}/abac.json
 #   ${KUBE_TEMP}/easy-rsa-master/easyrsa3/pki/ca.crt
 #   ${KUBE_TEMP}/easy-rsa-master/easyrsa3/pki/issued/master.crt
 #   ${KUBE_TEMP}/easy-rsa-master/easyrsa3/pki/private/master.key
@@ -318,6 +319,22 @@ EOF
   (
     umask 077
     echo "${KUBE_PASSWORD},${KUBE_USER},admin" > "${KUBE_TEMP}/basic-auth.csv"
+  )
+
+  # Create abac.json used by apiserver to controll access.
+  (
+    umask 077
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"*\",\"nonResourcePath\":\"*\",\"readonly\":true}}" > "${KUBE_TEMP}/abac.json"
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"admin\",\"namespace\":\"*\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> "${KUBE_TEMP}/abac.json"
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"system:controller_manager\",\"namespace\":\"*\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> "${KUBE_TEMP}/abac.json"
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"kubelet\",\"namespace\":\"*\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> "${KUBE_TEMP}/abac.json"
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"kube_proxy\",\"namespace\":\"*\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> "${KUBE_TEMP}/abac.json"
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"system:logging\",\"namespace\": \"*\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> "${KUBE_TEMP}/abac.json"
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"system:monitoring\",\"namespace\": \"*\",\"resource\": \"*\",\"apiGroup\":\"*\"}}" >> "${KUBE_TEMP}/abac.json"
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"system:serviceaccount:kube-system:default\",\"namespace\":\"*\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> "${KUBE_TEMP}/abac.json"
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"system:serviceaccount:default:default\",\"namespace\":\"default\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> "${KUBE_TEMP}/abac.json"
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"group\":\"admin\",\"namespace\":\"*\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> "${KUBE_TEMP}/abac.json"
+    echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"group\":\"viewer\",\"namespace\":\"*\",\"resource\":\"*\",\"apiGroup\":\"*\",\"readonly\":true}}" >> "${KUBE_TEMP}/abac.json"
   )
 
   # Create tokens for service accounts. 'service_accounts' refers to things that
