@@ -1425,38 +1425,54 @@ function report-user-message {
 # Make sure ansible_host is host_ip instead of hostname
 #
 # Assumed vars:
-#   MASTER_SSH_INFO
-#   NODE_SSH_INFO
+#   MASTER_INTERNAL_SSH_INFO
+#   NODE_INTERNAL_SSH_INFO
 #   KUBE_CURRENT
+#
+# Optional vars:
+#   MASTER_EXTERNAR_SSH_INFO
+#   NODE_EXTERNAL_SSH_INFO
 function create-inventory-file {
+  if [[ -z "${MASTER_EXTERNAR_SSH_INFO-}" ]]; then
+    MASTER_EXTERNAR_SSH_INFO=${MASTER_INTERNAL_SSH_INFO}
+  fi
+  if [[ -z "${NODE_EXTERNAL_SSH_INFO-}" ]]; then
+    NODE_EXTERNAL_SSH_INFO=${NODE_INTERNAL_SSH_INFO}
+  fi
   inventory_file=$KUBE_CURRENT/inventory
   # Set master roles
   echo "[masters]" > $inventory_file
-  IFS=',' read -ra master_ssh_info <<< "${MASTER_SSH_INFO}"
-  for (( i = 0; i < ${#master_ssh_info[*]}; i++ )); do
+  IFS=',' read -ra external_ssh_info <<< "${MASTER_EXTERNAL_SSH_INFO}"
+  IFS=',' read -ra internal_ssh_info <<< "${MASTER_INTERNAL_SSH_INFO}"
+  for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
     j=$((i+1))
-    IFS=':@' read -ra ssh_info <<< "${master_ssh_info[$i]}"
-    echo "kubernetes-master-${j} ansible_host=${ssh_info[2]} ansible_user=${ssh_info[0]} ansible_ssh_pass=${ssh_info[1]}" >> $inventory_file
+    IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
+    IFS=':@' read -ra i_ssh_info <<< "${internal_ssh_info[$i]}"
+    # External ip is used by ansible, but internal ip is used by kubernetes components
+    echo "kubernetes-master-${j} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
   done
   echo "" >> $inventory_file
 
   # Set etcd roles
   echo "[etcd]" >> $inventory_file
   # It's the same with masters
-  for (( i = 0; i < ${#master_ssh_info[*]}; i++ )); do
+  for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
     j=$((i+1))
-    IFS=':@' read -ra ssh_info <<< "${master_ssh_info[$i]}"
-    echo "kubernetes-master-${j} ansible_host=${ssh_info[2]} ansible_user=${ssh_info[0]} ansible_ssh_pass=${ssh_info[1]}" >> $inventory_file
+    IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
+    IFS=':@' read -ra i_ssh_info <<< "${internal_ssh_info[$i]}"
+    echo "kubernetes-master-${j} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
   done
   echo "" >> $inventory_file
 
   # Set node roles
   echo "[nodes]" >> $inventory_file
-  IFS=',' read -ra node_ssh_info <<< "${NODE_SSH_INFO}"
-  for (( i = 0; i < ${#node_ssh_info[*]}; i++ )); do
+  IFS=',' read -ra external_ssh_info <<< "${NODE_EXTERNAL_SSH_INFO}"
+  IFS=',' read -ra internal_ssh_info <<< "${NODE_INTERNAL_SSH_INFO}"
+  for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
     j=$((i+1))
-    IFS=':@' read -ra ssh_info <<< "${node_ssh_info[$i]}"
-    echo "kubernetes-node-${j} ansible_host=${ssh_info[2]} ansible_user=${ssh_info[0]} ansible_ssh_pass=${ssh_info[1]}" >> $inventory_file
+    IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
+    IFS=':@' read -ra i_ssh_info <<< "${internal_ssh_info[$i]}"
+    echo "kubernetes-node-${j} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
   done
   echo "" >> $inventory_file
 }
@@ -1467,44 +1483,56 @@ function create-inventory-file {
 # Environment variables passing in a json formatted string to extra-vars.
 # If not seting these environment variables, It will use the default values.
 #
-# We will resolve the following environment variables:
-#   CAICLOUD_CONFIG_XX_YY
+# We will resolve the environment variables according prefix.
 #
 # Assumed vars:
 #   KUBE_CURRENT
+#   STRING_PREFIX
+#   NUMBER_PREFIX
 # -----------------------------------------------------------------------------
 function create-extra-vars-json-file {
-  EXTRA_VARS_FILE="${KUBE_CURRENT}/extra_vars.json"
-  touch ${EXTRA_VARS_FILE}
+  create-extra-vars-json-file-common ${KUBE_CURRENT}/extra_vars.json ${STRING_PREFIX} ${NUMBER_PREFIX}
+}
 
-  echo "{" > ${EXTRA_VARS_FILE}
+# Input:
+#   $1 extra vars file
+#   $2 string prefix
+#   $3 number prefix
+function create-extra-vars-json-file-common {
+  extra_vars_file=${1}
+  string_prefix=${2}
+  number_prefix=${3}
+
+  touch ${extra_vars_file}
+
+  echo "{" > ${extra_vars_file}
 
   OLDIFS=$IFS
 
-  # resolve CAICLOUD_CONFIG_STRING_XX_YY environment variables.
-  set | grep "^CAICLOUD_K8S_CFG_STRING_*" | \
+  # resolve string type environment variables.
+  set | grep "^${string_prefix}*" | \
   while read line; do
     IFS='=' read -ra var_array <<< "${line}"
     # Get XX_YY and change into lowercase: xx_yy
-    var_name=$(echo ${var_array[0]#CAICLOUD_K8S_CFG_STRING_} | tr '[:upper:]' '[:lower:]')
-    echo "  \"${var_name}\": \"${var_array[1]}\"," >> ${EXTRA_VARS_FILE}
+    var_name=`eval echo \$\{var_array[0]\#${string_prefix}\} | tr '[:upper:]' '[:lower:]'`
+    echo "  \"${var_name}\": \"${var_array[1]}\"," >> ${extra_vars_file}
   done
 
-  # resolve CAICLOUD_CONFIG_NUMBER_XX_YY environment variables.
-  set | grep "^CAICLOUD_K8S_CFG_NUMBER_*" | \
+  # resolve number type environment variables.
+  set | grep "^${number_prefix}*" | \
   while read line; do
     IFS='=' read -ra var_array <<< "${line}"
     # Get XX_YY and change into lowercase: xx_yy
-    var_name=$(echo ${var_array[0]#CAICLOUD_K8S_CFG_NUMBER_} | tr '[:upper:]' '[:lower:]')
-    echo "  \"${var_name}\": ${var_array[1]}," >> ${EXTRA_VARS_FILE}
+    var_name=`eval echo \$\{var_array[0]\#${number_prefix}\} | tr '[:upper:]' '[:lower:]'`
+    echo "  \"${var_name}\": ${var_array[1]}," >> ${extra_vars_file}
   done
 
   IFS=$OLDIFS
 
   # Remove the trailing comma
-  sed -i -zr 's/,([^,]*$)/\1/' ${EXTRA_VARS_FILE}
+  sed -i -zr 's/,([^,]*$)/\1/' ${extra_vars_file}
 
-  echo "}" >> ${EXTRA_VARS_FILE}
+  echo "}" >> ${extra_vars_file}
 }
 
 # Assumed vars:

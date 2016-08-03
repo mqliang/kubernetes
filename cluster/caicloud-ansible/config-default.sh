@@ -36,12 +36,29 @@ export LANG="C"
 AUTOMATICALLY_INSTALL_ANSIBLE=${AUTOMATICALLY_INSTALL_ANSIBLE-"YES"}
 ANSIBLE_VERSION=${ANSIBLE_VERSION-"2.1.0.0"}
 
+# Ansible environment variable prefix.
+STRING_PREFIX="CAICLOUD_K8S_CFG_STRING_"
+NUMBER_PREFIX="CAICLOUD_K8S_CFG_NUMBER_"
+
 # -----------------------------------------------------------------------------
 # Derived params for kube-up (calculated based on above params: DO NOT CHANGE).
 # If above configs are changed manually, remember to call the function.
 # -----------------------------------------------------------------------------
 function calculate-default {
-  INSTANCE_SSH_EXTERNAL="${MASTER_SSH_INFO},${NODE_SSH_INFO}"
+  if [[ -z "${MASTER_INTERNAL_SSH_INFO-}" ]]; then
+    MASTER_INTERNAL_SSH_INFO=${MASTER_SSH_INFO}
+  fi
+  if [[ -z "${MASTER_EXTERNAL_SSH_INFO-}" ]]; then
+    MASTER_EXTERNAL_SSH_INFO=${MASTER_INTERNAL_SSH_INFO}
+  fi
+  if [[ -z "${NODE_INTERNAL_SSH_INFO-}" ]]; then
+    NODE_INTERNAL_SSH_INFO=${NODE_SSH_INFO}
+  fi
+  if [[ -z "${NODE_EXTERNAL_SSH_INFO-}" ]]; then
+    NODE_EXTERNAL_SSH_INFO=${NODE_INTERNAL_SSH_INFO}
+  fi
+
+  INSTANCE_SSH_EXTERNAL="${MASTER_EXTERNAL_SSH_INFO},${NODE_EXTERNAL_SSH_INFO}"
 
   IFS=',' read -ra ssh_info <<< "${INSTANCE_SSH_EXTERNAL}"
   export NUM_NODES=${#ssh_info[@]}
