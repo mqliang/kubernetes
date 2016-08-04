@@ -85,6 +85,9 @@ function deploy-addons {
           s/{{ pillar\['cluster_name'\] }}/${CLUSTER_ALIAS}/g;\
           s|{{ pillar\['paging_url'\] }}|${PAGING_EXTERNAL_ADDR}|g;\
           s/{{ pillar\['running_enviroment'\] }}/${RUNNING_ENV}/g;\
+          s|{{ pillar\['network_checker_pods_num'\] }}|${NETWORK_CHECKER_PODS_NUM}|g;\
+          s|{{ pillar\['network_checker_public_host'\] }}|${NETWORK_CHECKER_PUBLIC_HOST}|g;\
+          s|{{ pillar\['enable_public_network'\] }}|${ENABLE_PUBLIC_NETWORK}|g;\
           s|{{ pillar\['monitoring_image_watcher'\] }}|${MONITORING_IMAGE_WATCHER}|g" ${monitoring_watcher_rc_file} > ${KUBE_TEMP}/monitoring-watcher-controller.yaml
 
   # Replace placeholder with our configuration for kube-system quota

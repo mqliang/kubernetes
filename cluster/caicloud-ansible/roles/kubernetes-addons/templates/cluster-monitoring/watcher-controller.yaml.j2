@@ -66,4 +66,9 @@ spec:
               value: {{ cluster_name }}
             - name: MONGODB_URL
               value: monitoring-server-mongo:27017
-
+            - name: NETWORK_CHECKER_PODS_NUM
+              value: "{{ network_checker_pods_num }}"
+            - name: NETWORK_CHECKER_PUBLIC_HOST
+              value: {{ network_checker_public_host }}
+            - name: ENABLE_PUBLIC_NETWORK_CHECK
+              value: "{{ enable_public_network }}"
