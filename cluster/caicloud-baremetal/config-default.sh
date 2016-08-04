@@ -65,6 +65,9 @@ CAICLOUD_PROVIDER=${CAICLOUD_PROVIDER:-""}
 CLUSTER_ID=${CLUSTER_ID:-"32793e34-79d2-432b-ac17-708b61b80e6a"}
 CLUSTER_TOKEN=${CLUSTER_TOKEN:-"eSbsyAr2eDatXBxa"}
 CAICLOUD_UID=${CAICLOUD_UID:-"110ec58a-a0f2-4ac4-8393-c866d813b8d1"}
+NETWORK_CHECKER_PUBLIC_HOST=${NETWORK_CHECKER_PUBLIC_HOST:-"www.baidu.com"}
+NETWORK_CHECKER_PODS_NUM=${NETWORK_CHECKER_PODS_NUM:-"2"}
+ENABLE_PUBLIC_NETWORK=${ENABLE_PUBLIC_NETWORK:-"true"}
 
 # If we want to register master kubelet as a node. Note, since kubernetes 1.2,
 # it's better to always set this to true. We can disable scheduling user pod
@@ -179,11 +182,11 @@ DNS_IMAGE_HEALTHZ=${DNS_IMAGE_HEALTHZ:-"index.caicloud.io/caicloudgcr/google_con
 ELASTICSEARCH_IMAGE_ELASTICSEARCH=${ELASTICSEARCH_IMAGE_ELASTICSEARCH:-"index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.8.2"}
 ELASTICSEARCH_IMAGE_ESCRON=${ELASTICSEARCH_IMAGE_ESCRON:-"index.caicloud.io/caicloud/es-cron:v0.1.2"}
 
-HEAPSTER_IMAGE_HEAPSTER=${HEAPSTER_IMAGE_HEAPSTER:-"index.caicloud.io/caicloud/heapster:v1.2.0-beta1"}
+HEAPSTER_IMAGE_HEAPSTER=${HEAPSTER_IMAGE_HEAPSTER:-"index.caicloud.io/caicloud/heapster:v1.2.0-v0.0.1"}
 MONITORING_IMAGE_INFLUXDB=${MONITORING_IMAGE_INFLUXDB:-"index.caicloud.io/caicloud/influxdb:1.0.0-beta2"}
 MONITORING_IMAGE_GRAFANA=${MONITORING_IMAGE_GRAFANA:-"index.caicloud.io/caicloud/monitoring-grafana:v3.1.0"}
-MONITORING_IMAGE_WATCHER=${MONITORING_IMAGE_WATCHER:-"index.caicloud.io/caicloud/monitoring-watcher:v0.4.0-rc1"}
-MONITORING_IMAGE_SERVER=${MONITORING_IMAGE_SERVER:-"index.caicloud.io/caicloud/monitoring-server:v0.4.0-rc1"}
+MONITORING_IMAGE_WATCHER=${MONITORING_IMAGE_WATCHER:-"index.caicloud.io/caicloud/monitoring-watcher:v1.0.0-rc1"}
+MONITORING_IMAGE_SERVER=${MONITORING_IMAGE_SERVER:-"index.caicloud.io/caicloud/monitoring-server:v1.0.0-rc1"}
 
 REGISTRY_IMAGE=${REGISTRY_IMAGE:-"index.caicloud.io/registry:2.2"}
 

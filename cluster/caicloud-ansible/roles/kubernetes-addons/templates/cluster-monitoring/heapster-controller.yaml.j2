@@ -36,9 +36,10 @@ spec:
               memory: {{ metrics_memory }}
           command:
             - /heapster
-            - --source=kubernetes.summary_api:''
-            - --sink=influxdb:http://monitoring-influxdb:8086
+            - --source=kubernetes.caicloud:''
+            - --sink=influxdb:http://monitoring-influxdb:8086?withfields=true
             - --metric_resolution=60s
+            - --processors=kubernetes.caicloud
         - image: {{ heapster_image_heapster }}
           name: eventer
           imagePullPolicy: Always
