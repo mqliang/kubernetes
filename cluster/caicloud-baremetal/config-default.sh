@@ -184,9 +184,9 @@ ELASTICSEARCH_IMAGE_ESCRON=${ELASTICSEARCH_IMAGE_ESCRON:-"index.caicloud.io/caic
 
 HEAPSTER_IMAGE_HEAPSTER=${HEAPSTER_IMAGE_HEAPSTER:-"index.caicloud.io/caicloud/heapster:v1.2.0-v0.0.1"}
 MONITORING_IMAGE_INFLUXDB=${MONITORING_IMAGE_INFLUXDB:-"index.caicloud.io/caicloud/influxdb:1.0.0-beta2"}
-MONITORING_IMAGE_GRAFANA=${MONITORING_IMAGE_GRAFANA:-"index.caicloud.io/caicloud/monitoring-grafana:v3.1.0"}
-MONITORING_IMAGE_WATCHER=${MONITORING_IMAGE_WATCHER:-"index.caicloud.io/caicloud/monitoring-watcher:v1.0.0-rc1"}
-MONITORING_IMAGE_SERVER=${MONITORING_IMAGE_SERVER:-"index.caicloud.io/caicloud/monitoring-server:v1.0.0-rc1"}
+MONITORING_IMAGE_GRAFANA=${MONITORING_IMAGE_GRAFANA:-"index.caicloud.io/caicloud/monitoring-grafana:v3.1.0-withfields"}
+MONITORING_IMAGE_WATCHER=${MONITORING_IMAGE_WATCHER:-"index.caicloud.io/caicloud/monitoring-watcher:v1.0.0-rc2"}
+MONITORING_IMAGE_SERVER=${MONITORING_IMAGE_SERVER:-"index.caicloud.io/caicloud/monitoring-server:v1.0.0-rc2"}
 
 REGISTRY_IMAGE=${REGISTRY_IMAGE:-"index.caicloud.io/registry:2.2"}
 
