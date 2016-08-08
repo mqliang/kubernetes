@@ -1,0 +1,48 @@
+---
+# Download calicoctl and link it to `bin_dir`
+#
+
+- name: Check if node binary exists
+  stat: path="{{ ansible_temp_dir }}/calicoctl"
+  register: calicoctl_bin
+
+- name: Check if CNI binary exists
+  stat: path="{{ ansible_temp_dir }}/calico"
+  register: calico_bin
+
+- name: Check if IPAM binary exists
+  stat: path="{{ ansible_temp_dir }}/calico-ipam"
+  register: calico_ipam_bin
+
+- name: Copy calico binaries
+  copy:
+    src: "{{ item }}"
+    dest: "{{ ansible_temp_dir }}"
+  with_items:
+    - "calico"
+    - "calicoctl"
+    - "calico-ipam"
+
+- name: Put node binary
+  command: cp -u "{{ ansible_temp_dir }}/calicoctl" "{{ bin_dir }}"
+
+- name: Chmod node binary
+  file: path={{ bin_dir }}/calicoctl state=touch owner=root group=root mode=0755
+
+- name: Create cni binary directory
+  file: path=/opt/cni/bin/ state=directory owner=root group=root mode=0755
+
+- name: Put CNI binary
+  command: cp -u "{{ ansible_temp_dir }}/calico" "/opt/cni/bin"
+
+- name: Chmod CNI binary
+  file: path=/opt/cni/bin/calico state=touch owner=root group=root mode=0755
+
+- name: Put IPAM binary
+  command: cp -u "{{ ansible_temp_dir }}/calico" "/opt/cni/bin"
+
+- name: Chmod IPAM binary
+  file: path=/opt/cni/bin/calico-ipam state=touch owner=root group=root mode=0755
+
+- name: Send nsenter to all instances
+  copy: src=nsenter dest={{ bin_dir }}/nsenter owner=root group=root mode=0755

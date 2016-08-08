@@ -16,6 +16,7 @@
   set_fact:
     flannel_interface: "{{ interface_name.stdout }}"
   changed_when: false
+  when: networking == "flannel"
 
 - name: Determin kubernetes_use_upstart
   set_fact:
