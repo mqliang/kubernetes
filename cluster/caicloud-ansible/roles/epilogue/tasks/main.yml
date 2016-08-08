@@ -13,7 +13,7 @@
     - git
 
 - name: Send nsenter to all instances
-  copy: src=nsenter dest={{ bin_dir }}/nsenter
+  copy: src=nsenter dest={{ bin_dir }}/nsenter owner=root group=root mode=0755 force=no
 
 - name: Logging | Copy upstart fluentd pod into manifest directory of each kubelet
   template:

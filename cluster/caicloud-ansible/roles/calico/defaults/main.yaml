@@ -1,0 +1,39 @@
+---
+
+# The calico binaries to download
+# These variables are not used in the deployment but the downloaded binaries
+# are stored under caicloud-ansible/roles/calico/files and will be used in deployment
+# PLEASE update the versions and urls here when update binaries!
+calicoctl_version: "v0.20.0"
+calicoctl_download_url: "https://github.com/projectcalico/calico-containers/releases/download/{{ calicoctl_version }}/calicoctl"
+
+calico_version: "v1.3.1"
+calico_download_url: "https://github.com/projectcalico/calico-cni/releases/download/{{ calico_version }}/calico"
+calico_ipam_download_url: "https://github.com/projectcalico/calico-cni/releases/download/{{ calico_version }}/calico-ipam"
+
+# Calico internal network (optional). When calico is used, it will assign IP
+# addresses from this range to individual pods.
+# This network must be unused in your network infrastructure!
+calico_subnet: 192.168.64.0
+
+calico_prefix: 20
+
+# Additional options for calicoctl node daemon
+calicoctl_opts: "--detach=false"
+
+#
+# DO NOT CHANGE section
+#
+# The following settings are meant to be configurable, but using non-default
+# values are not tested so it might cause system to misbehave. Aslo, it's
+# rarely needed to change the values.
+#
+
+# TCP port used by etcd clients. Also resides in "roles/etcd/defaults/main.yaml"
+etcd_client_port: 2379
+
+etcd_endpoints: "{% for hostname in groups['etcd'] %}http://{{ hostvars[hostname]['ansible_host'] }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
+
+# Default flannel configuration directory. For upstart, this will be overriden
+# to "/etc/default".
+calicoctl_config_dir: "/etc/sysconfig"

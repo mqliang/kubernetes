@@ -8,7 +8,7 @@ host_provider: vagrant
 # Name of the cluster.
 cluster_name: "kube-default"
 
-# Network implementation, valid options: flannel
+# Network implementation, valid options: flannel, calico
 networking: flannel
 
 # The infra container image name.

@@ -1,0 +1,33 @@
+---
+# Main task for installing calico.
+#
+
+#
+# Prepare installation.
+
+- name: Override calicoctl config file directory for upstart
+  set_fact:
+    calicoctl_config_dir: "/etc/default"
+  when: kubernetes_use_upstart
+
+#
+# Write etcd configuration, then install and config calico
+
+- name: Install and configure calico
+  include: install.yml
+  when: inventory_hostname in groups['masters'] + groups['nodes']
+
+# NOTE: No ACL support currently
+# - name: Install and configure calico policy-controller
+#   include: install-policy-controller.yml
+#   when: inventory_hostname in groups['masters']
+
+#
+# Enable and start calicoctl.
+
+- name: Enable calicoctl
+  service: name=calicoctl enabled=yes
+
+- name: Start calicoctl
+  service: name=calicoctl state=started
+  ignore_errors: yes
