@@ -25,7 +25,6 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	anchnet_cloud "k8s.io/kubernetes/pkg/cloudprovider/providers/anchnet"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/mount"
@@ -236,17 +235,7 @@ func (pd *anchnetPersistentDisk) GetPath() string {
 	return pd.plugin.host.GetPodVolumeDir(pd.podUID, utilstrings.EscapeQualifiedNameForDisk(name), pd.volName)
 }
 
-// getVolumeProvider returns anchnet volumes interface.
-func (pd *anchnetPersistentDisk) getVolumeProvider() (anchnet_cloud.Volumes, error) {
-	cloud := pd.plugin.host.GetCloudProvider()
-	volumes, ok := cloud.(anchnet_cloud.Volumes)
-	if !ok {
-		return nil, fmt.Errorf("cloudprovider anchnet doesn't support volumes interface")
-	}
-	return volumes, nil
-}
-
-// anchnetPersistentDiskMounter setup and mounts persistent disk.
+// anchnetPersistentDiskBuilder setup and mounts persistent disk.
 type anchnetPersistentDiskMounter struct {
 	*anchnetPersistentDisk
 	// Filesystem type, optional.
@@ -447,7 +436,7 @@ func (c *anchnetPersistentDiskProvisioner) Provision() (*api.PersistentVolume, e
 				api.ResourceName(api.ResourceStorage): resource.MustParse(fmt.Sprintf("%dGi", sizeGB)),
 			},
 			PersistentVolumeSource: api.PersistentVolumeSource{
-				AWSElasticBlockStore: &api.AWSElasticBlockStoreVolumeSource{
+				AnchnetPersistentDisk: &api.AnchnetPersistentDiskVolumeSource{
 					VolumeID:  volumeID,
 					FSType:    "ext4",
 					Partition: 0,

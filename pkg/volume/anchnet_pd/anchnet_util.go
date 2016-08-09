@@ -18,21 +18,24 @@ package anchnet_pd
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/anchnet"
+	"k8s.io/kubernetes/pkg/volume"
 )
 
 // AnchnetDiskUtil implements pdManager which abstracts interface to PD operations.
 type AnchnetDiskUtil struct{}
 
 func (util *AnchnetDiskUtil) AttachAndMountDisk(b *anchnetPersistentDiskMounter, globalPDPath string) error {
-	volumes, err := b.getVolumeProvider()
+	cloud, err := getCloudProvider(b.anchnetPersistentDisk.plugin)
 	if err != nil {
 		return err
 	}
-	devicePath, err := volumes.AttachDisk("", b.volumeID, b.readOnly)
+	devicePath, err := cloud.AttachDisk("", b.volumeID, b.readOnly)
 	if err != nil {
 		return err
 	}
@@ -93,22 +96,75 @@ func (util *AnchnetDiskUtil) DetachDisk(c *anchnetPersistentDiskUnmounter) error
 		return err
 	}
 	// Detach the disk.
-	volumes, err := c.getVolumeProvider()
+	cloud, err := getCloudProvider(c.anchnetPersistentDisk.plugin)
 	if err != nil {
-		glog.Info("Error getting volume provider for volumeID ", c.volumeID, ": ", err)
 		return err
 	}
-	if err := volumes.DetachDisk("", c.volumeID); err != nil {
+	if err := cloud.DetachDisk("", c.volumeID); err != nil {
 		glog.Info("Error detaching disk ", c.volumeID, ": ", err)
 		return err
 	}
 	return nil
 }
 
-func (util *AnchnetDiskUtil) CreateDisk(provisioner *anchnetPersistentDiskProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error) {
-	return "", 0, nil, nil
+func (util *AnchnetDiskUtil) CreateDisk(p *anchnetPersistentDiskProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error) {
+	cloud, err := getCloudProvider(p.anchnetPersistentDisk.plugin)
+	if err != nil {
+		return "", 0, nil, err
+	}
+
+	// No limit about an Anchnet PD' name length, by now, set it at most 255 characters
+	name := volume.GenerateVolumeName(p.options.ClusterName, p.options.PVName, 255)
+	requestBytes := p.options.Capacity.Value()
+	requestGB := volume.RoundUpSize(requestBytes, 1024*1024*1024)
+
+	volumeID, err = cloud.CreateVolume(&anchnet_cloud.VolumeOptions{
+		Name:       name,
+		CapacityGB: int(requestGB),
+	})
+	if err != nil {
+		glog.V(2).Infof("Error creating Anchnet PD volume: %v", err)
+		return "", 0, nil, err
+	}
+	glog.V(2).Infof("Successfully created Anchnet PD volume %s", name)
+
+	labels, err = cloud.GetAutoLabelsForPD(name)
+	if err != nil {
+		// We don't really want to leak the volume here...
+		glog.Errorf("error getting labels for volume %q: %v", name, err)
+	}
+
+	return volumeID, int(requestGB), labels, nil
 }
 
 func (util *AnchnetDiskUtil) DeleteDisk(deleter *anchnetPersistentDiskDeleter) error {
+	cloud, err := getCloudProvider(deleter.anchnetPersistentDisk.plugin)
+	if err != nil {
+		return err
+	}
+
+	if err = cloud.DeleteVolume(deleter.volumeID); err != nil {
+		glog.V(2).Infof("Error deleting Anchnet PD volume %s: %v", deleter.volName, err)
+		return err
+	}
+	glog.V(2).Infof("Successfully deleted Anchnet PD volume %s", deleter.volName)
 	return nil
+}
+
+// Return cloud provider
+func getCloudProvider(plugin *anchnetPersistentDiskPlugin) (*anchnet_cloud.Anchnet, error) {
+	if plugin == nil {
+		return nil, fmt.Errorf("Failed to get Anchnet Cloud Provider. plugin object is nil.")
+	}
+	if plugin.host == nil {
+		return nil, fmt.Errorf("Failed to get Anchnet Cloud Provider. plugin.host object is nil.")
+	}
+
+	cloudProvider := plugin.host.GetCloudProvider()
+	anchnetCloudProvider, ok := cloudProvider.(*anchnet_cloud.Anchnet)
+	if !ok || anchnetCloudProvider == nil {
+		return nil, fmt.Errorf("Failed to get Anchnet Cloud Provider. plugin.host.GetCloudProvider returned %v instead", cloudProvider)
+	}
+
+	return anchnetCloudProvider, nil
 }

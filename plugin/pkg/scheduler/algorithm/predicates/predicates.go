@@ -325,6 +325,23 @@ var GCEPDVolumeFilter VolumeFilter = VolumeFilter{
 	},
 }
 
+// AnchnetPDVolumeFilter is a VolumeFilter for filtering Anchnet PersistentDisk Volumes
+var AnchnetPDVolumeFilter VolumeFilter = VolumeFilter{
+	FilterVolume: func(vol *api.Volume) (string, bool) {
+		if vol.AnchnetPersistentDisk != nil {
+			return vol.AnchnetPersistentDisk.VolumeID, true
+		}
+		return "", false
+	},
+
+	FilterPersistentVolume: func(pv *api.PersistentVolume) (string, bool) {
+		if pv.Spec.AnchnetPersistentDisk != nil {
+			return pv.Spec.AnchnetPersistentDisk.VolumeID, true
+		}
+		return "", false
+	},
+}
+
 type VolumeZoneChecker struct {
 	pvInfo  PersistentVolumeInfo
 	pvcInfo PersistentVolumeClaimInfo
