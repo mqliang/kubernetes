@@ -27,6 +27,7 @@ import (
 	"github.com/golang/glog"
 
 	anchnet_client "github.com/caicloud/anchnet-go"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 const (
@@ -70,9 +71,12 @@ func (an *Anchnet) AttachDisk(instanceID string, volumeID string, readOnly bool)
 	if err != nil {
 		return "", err
 	}
-	err = an.WaitJobStatus(attach_response.JobID, anchnet_client.JobStatusSuccessful)
+	jobSucceeded, err := an.WaitJobSucceededOrFailed(attach_response.JobID)
 	if err != nil {
 		return "", err
+	}
+	if !jobSucceeded {
+		return "", fmt.Errorf("Failed to attach volume %v to instance %v", volumeID, instanceID)
 	}
 
 	devicePath := ""
@@ -126,20 +130,52 @@ func (an *Anchnet) DetachDisk(instanceID string, volumeID string) error {
 	if err != nil {
 		return err
 	}
-	err = an.WaitJobStatus(detach_response.JobID, anchnet_client.JobStatusSuccessful)
+	jobSucceeded, err := an.WaitJobSucceededOrFailed(detach_response.JobID)
 	if err != nil {
 		return err
+	}
+	if !jobSucceeded {
+		return fmt.Errorf("Failed to detach volume %v from instance %v", volumeID, instanceID)
 	}
 	return nil
 }
 
 // Create a volume with the specified options.
 func (an *Anchnet) CreateVolume(volumeOptions *VolumeOptions) (volumeID string, err error) {
-	return "", nil
+	glog.Infof("CreateDisk(%v, %v)", volumeOptions.Name, volumeOptions.CapacityGB)
+
+	if volumeOptions.CapacityGB < 10 || volumeOptions.CapacityGB > 1000 || volumeOptions.CapacityGB%10 != 0 {
+		return "", fmt.Errorf("Invalid capacity, must in [10, 1000] and be multiples of 10")
+	}
+
+	create_response, err := an.createVolume(volumeOptions)
+	if err != nil {
+		return
+	}
+	jobSucceeded, err := an.WaitJobSucceededOrFailed(create_response.JobID)
+	if err != nil {
+		return
+	}
+	if !jobSucceeded {
+		return "", fmt.Errorf("Failed to create volume")
+	}
+	return create_response.VolumeIDs[0], nil
 }
 
 // Delete a volume.
 func (an *Anchnet) DeleteVolume(volumeID string) error {
+	glog.Infof("DeleteDisk: %v", volumeID)
+	delete_response, err := an.deleteVolume(volumeID)
+	if err != nil {
+		return err
+	}
+	jobSucceeded, err := an.WaitJobSucceededOrFailed(delete_response.JobID)
+	if err != nil {
+		return err
+	}
+	if !jobSucceeded {
+		fmt.Errorf("Failed to delete volume %v", volumeID)
+	}
 	return nil
 }
 
@@ -182,6 +218,47 @@ func (an *Anchnet) detachVolume(volumeID string) (*anchnet_client.DetachVolumesR
 	return nil, fmt.Errorf("Unable to detach volume %v", volumeID)
 }
 
+// createVolume create a volume.
+func (an *Anchnet) createVolume(options *VolumeOptions) (*anchnet_client.CreateVolumesResponse, error) {
+	for i := 0; i < RetryCountOnError; i++ {
+		request := anchnet_client.CreateVolumesRequest{
+			VolumeName: options.Name,
+			VolumeType: anchnet_client.VolumeTypeCapacity, //TODO(mqliang): expose this in API
+			Size:       options.CapacityGB,
+			Count:      1,
+		}
+		var response anchnet_client.CreateVolumesResponse
+		err := an.client.SendRequest(request, &response)
+		if err == nil {
+			glog.Infof("Create volume name: %v", options.Name)
+			return &response, nil
+		} else {
+			glog.Infof("Attempt %d: failed to create volume: %v\n", i, err)
+		}
+		time.Sleep(time.Duration(i+1) * RetryIntervalOnError)
+	}
+	return nil, fmt.Errorf("Unable to create volume %v", options.Name)
+}
+
+// deleteVolume delete a volume.
+func (an *Anchnet) deleteVolume(volumeID string) (*anchnet_client.DeleteVolumesResponse, error) {
+	for i := 0; i < RetryCountOnError; i++ {
+		request := anchnet_client.DeleteVolumesRequest{
+			VolumeIDs: []string{volumeID},
+		}
+		var response anchnet_client.DeleteVolumesResponse
+		err := an.client.SendRequest(request, &response)
+		if err == nil {
+			glog.Infof("Delete volume ID: %v", volumeID)
+			return &response, nil
+		} else {
+			glog.Infof("Attempt %d: failed to delete volume: %v\n", i, err)
+		}
+		time.Sleep(time.Duration(i+1) * RetryIntervalOnError)
+	}
+	return nil, fmt.Errorf("Unable to delete volume %v", volumeID)
+}
+
 // describeVolume describe a volume.
 func (an *Anchnet) describeVolume(volumeID string) (*anchnet_client.DescribeVolumesResponse, error) {
 	for i := 0; i < RetryCountOnError; i++ {
@@ -199,6 +276,22 @@ func (an *Anchnet) describeVolume(volumeID string) (*anchnet_client.DescribeVolu
 		time.Sleep(time.Duration(i+1) * RetryIntervalOnError)
 	}
 	return nil, fmt.Errorf("Unable to describe volume %v", volumeID)
+}
+
+// Builds the labels that should be automatically added to a PersistentVolume backed by a Anchnet PD
+// Specifically, this builds FailureDomain (zone) and Region labels.
+// The PersistentVolumeLabel admission controller calls this and adds the labels when a PV is created.
+func (an *Anchnet) GetAutoLabelsForPD(name string) (map[string]string, error) {
+	zone, err := an.GetZone()
+	if err != nil {
+		return nil, err
+	}
+
+	labels := make(map[string]string)
+	labels[unversioned.LabelZoneFailureDomain] = zone.FailureDomain
+	labels[unversioned.LabelZoneRegion] = zone.Region
+
+	return labels, nil
 }
 
 // readSysBlock reads /sys/block and returns a list of devices start with `prefix`.

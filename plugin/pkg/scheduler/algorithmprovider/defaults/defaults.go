@@ -21,6 +21,7 @@ import (
 	"os"
 	"strconv"
 
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/anchnet"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/plugin/pkg/scheduler"
@@ -137,6 +138,15 @@ func defaultPredicates() sets.String {
 				// TODO: allow for generically parameterized scheduler predicates, because this is a bit ugly
 				maxVols := getMaxVols(DefaultMaxGCEPDVolumes)
 				return predicates.NewMaxPDVolumeCountPredicate(predicates.GCEPDVolumeFilter, maxVols, args.PVInfo, args.PVCInfo)
+			},
+		),
+		// Fit is determined by whether or not there would be too many Anchnet PD volumes attached to the node
+		factory.RegisterFitPredicateFactory(
+			"MaxAnchnetPDVolumeCount",
+			func(args factory.PluginFactoryArgs) algorithm.FitPredicate {
+				// TODO: allow for generically parameterized scheduler predicates, because this is a bit ugly
+				maxVols := getMaxVols(anchnet_cloud.DefaultMaxAnchnetPDVolumes)
+				return predicates.NewMaxPDVolumeCountPredicate(predicates.AnchnetPDVolumeFilter, maxVols, args.PVInfo, args.PVCInfo)
 			},
 		),
 		// GeneralPredicates are the predicates that are enforced by all Kubernetes components
