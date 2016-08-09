@@ -8,6 +8,7 @@ metadata:
     version: v1
     kubernetes.io/cluster-service: "true"
     kubernetes-admin.caicloud.io/type: application
+    kubernetes-admin.caicloud.io/application: elasticsearch-logging-v1
 spec:
   replicas: {{ elasticsearch_replicas }}
   selector:
@@ -19,7 +20,7 @@ spec:
         k8s-app: elasticsearch-logging
         version: v1
         kubernetes.io/cluster-service: "true"
-        kubernetes-admin.caicloud.io/application: elasticsearch-logging
+        kubernetes-admin.caicloud.io/application: elasticsearch-logging-v1
         kubernetes-admin.caicloud.io/type: application
     spec:
       containers:
