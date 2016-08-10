@@ -28,6 +28,17 @@
     - network-service
     - flannel
 
+- name: Install calico
+  hosts:
+    - masters
+    - nodes
+  become: yes
+  roles:
+    - { role: calico, when: networking == 'calico' }
+  tags:
+    - network-service
+    - calico
+
 - name: Install kubernetes masters
   hosts: masters
   become: yes

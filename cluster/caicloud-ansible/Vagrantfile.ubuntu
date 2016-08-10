@@ -31,6 +31,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.synced_folder ".", "/vagrant", id: "vagrant-root", disabled: true
 
   boxes.each do |opts|
+    config.vm.box_check_update = false
     config.vm.define opts[:name] do |config|
       config.vm.hostname = opts[:name]
       config.vm.provider "virtualbox" do |v|

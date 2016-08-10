@@ -1,0 +1,13 @@
+[Unit]
+After=network-online.target
+Wants=network-online.target
+Description=calico is a pure Layer 3 approach to virtual networking
+
+[Service]
+Type=notify
+EnvironmentFile={{ calicoctl_config_dir }}/calicoctl
+ExecStart={{ bin_dir }}/calicoctl $CALICOCTL_OPTS
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
