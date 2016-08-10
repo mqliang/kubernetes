@@ -1,0 +1,9 @@
+---
+# Configure calico ip pool
+#
+
+- name: Delete calico default ip pool
+  shell: "ETCD_ENDPOINTS={{ etcd_advertise_client_urls }} {{ bin_dir }}/calicoctl pool remove 192.168.0.0/16"
+
+- name: Create calico ip pool
+  shell: "ETCD_AUTHORITY={{ etcd_advertise_client_urls }} {{ bin_dir }}/calicoctl pool add {{ calico_subnet }}/{{ calico_prefix }}"

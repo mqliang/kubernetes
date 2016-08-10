@@ -1,0 +1,16 @@
+description "Calico service"
+
+start on (net-device-up and local-filesystems and runlevel [2345])
+stop on runlevel [016]
+
+respawn
+respawn limit 600 30
+
+script
+    CALICOCTL={{ bin_dir }}/calicoctl
+    CALICOCTL_OPTS=""
+    if [ -f {{ calicoctl_config_dir }}/calicoctl ]; then
+        . {{ calicoctl_config_dir }}/calicoctl
+    fi
+    exec env ETCD_ENDPOINTS=$ETCD_ENDPOINTS "$CALICOCTL" $CALICOCTL_OPTS
+end script

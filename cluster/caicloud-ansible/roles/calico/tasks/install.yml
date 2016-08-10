@@ -1,0 +1,40 @@
+---
+# Install flannel and configure it.
+#
+
+- name: Install calico binaries from github
+  include: upload.yml
+
+- name: Add calico systemd unit file
+  template: src=calicoctl.service dest=/etc/systemd/system/calicoctl.service
+  register: calicoctl_service
+  notify:
+    - reload systemd
+    - restart calicoctl
+  when: not kubernetes_use_upstart
+
+- name: Create upstart script
+  template: src=calicoctl.upstart dest=/etc/init/calicoctl.conf
+  notify:
+    - restart calicoctl
+  when: kubernetes_use_upstart
+
+- name: Create config file directory
+  file: path={{ calicoctl_config_dir }} state=directory owner=root group=root mode=0755
+
+- name: Install calicoctl config file
+  template: src=calicoctl.j2 dest={{ calicoctl_config_dir }}/calicoctl
+  notify:
+    - restart calicoctl
+
+- name: Create cni config directory
+  file: path=/etc/cni/net.d state=directory owner=root group=root mode=0755
+
+- name: Put CNI configuration
+  template: src=10-calico.conf.j2 dest=/etc/cni/net.d/10-calico.conf
+
+- name: Configure calico pool
+  environment:
+    ETCD_ENDPOINTS: "{{ etcd_endpoints }}"
+  command: "{{ bin_dir }}/calicoctl pool add {{ calico_subnet}}/{{calico_prefix}}"
+  run_once: true

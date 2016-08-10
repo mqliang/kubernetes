@@ -70,6 +70,7 @@
         - kube-scheduler
         - kube-addons
         - flanneld
+        - calicoctl
         - "{{ etcd_svc_name }}"
       failed_when: false
 
@@ -78,6 +79,7 @@
       when: not is_coreos and not is_atomic | bool
       with_items:
         - flannel
+        - calicoctl
         - kubernetes-node
         - kubernetes-master
         - kubernetes-client
@@ -127,10 +129,13 @@
         - "{{ bin_dir }}/kube-proxy"
         - "{{ bin_dir }}/kube-scheduler"
         - "{{ bin_dir }}/flanneld"
+        - "{{ bin_dir }}/calicoctl"
         - /run/flannel_docker_opts.env
         - /run/flannel
         - /tmp/flannel-conf.json
         - /opt/flannel-0.5.5 #flannel version can change
+        - /opt/cni
+        - /etc/cni
         - /etc/kubernetes
         - /etc/systemd/system/kube-addons.service
         - /etc/systemd/system/kube-controller-manager.service
@@ -142,10 +147,12 @@
         - /etc/systemd/system/kube-scheduler.service
         - /etc/systemd/system/flanneld.service
         - /etc/systemd/system/flanneld.service.wants
+        - /etc/systemd/system/calicoctl.service
         - /etc/systemd/system/multi-user.target.wants
         - /etc/systemd/system/delay-master-services.target
         - /etc/systemd/system/delay-node-services.target
         - /etc/sysconfig/flanneld
+        - /etc/sysconfig/calicoctl
         - "/etc/systemd/system/{{ etcd_svc_name }}.service"
         - /etc/init/kubelet.conf
         - /etc/init/kube-proxy.conf
@@ -155,6 +162,7 @@
         - /etc/init/kube-addons.conf
         - /etc/init/etcd.conf
         - /etc/init/flanneld.conf
+        - /etc/init/calicoctl.conf
         - /etc/default/kubelet
         - /etc/default/kube-proxy
         - /etc/default/kube-scheduler
@@ -162,6 +170,7 @@
         - /etc/default/kube-apiserver
         - /etc/default/etcd.conf
         - /etc/default/flanneld
+        - /etc/default/calicoctl
         - /usr/libexec/kubernetes
         - /etc/etcd
         - /etc/tmpfiles.d
@@ -189,14 +198,14 @@
         dest: /etc/systemd/system/docker.service
         regexp: "EnvironmentFile=-/run/flannel_docker_opts.env"
         state: absent
-      when: not kubernetes_use_upstart
+      when: not kubernetes_use_upstart and networking == "flannel"
 
     - lineinfile:
         dest: /etc/systemd/system/docker.service
         regexp: "^ExecStart"
         line: "ExecStart=/usr/bin/docker daemon -H fd://"
         state: present
-      when: not kubernetes_use_upstart
+      when: not kubernetes_use_upstart and networking == "flannel"
 
     - shell: systemctl daemon-reload
       changed_when: False
