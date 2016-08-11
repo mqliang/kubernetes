@@ -131,7 +131,7 @@ elasticsearch_image_elasticsearch: "index.caicloud.io/caicloudgcr/google_contain
 elasticsearch_image_escron: "index.caicloud.io/caicloud/es-cron:v0.1.2"
 fluentd_elasticsearch_image: "index.caicloud.io/caicloudgcr/google_containers_fluentd-elasticsearch:1.15"
 kibana_image: "index.caicloud.io/caicloudgcr/google_containers_kibana:1.3"
-heapster_image_heapster: "index.caicloud.io/caicloud/heapster:v1.2.0-v0.0.1"
+heapster_image_heapster: "index.caicloud.io/caicloud/heapster:v1.2.0-v0.0.2"
 monitoring_image_influxdb: "index.caicloud.io/caicloud/influxdb:1.0.0-beta2"
 monitoring_image_grafana: "index.caicloud.io/caicloud/monitoring-grafana:v3.1.0-withfields"
 monitoring_image_watcher: "index.caicloud.io/caicloud/monitoring-watcher:v1.0.0-rc2"
