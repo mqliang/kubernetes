@@ -182,7 +182,7 @@ DNS_IMAGE_HEALTHZ=${DNS_IMAGE_HEALTHZ:-"index.caicloud.io/caicloudgcr/google_con
 ELASTICSEARCH_IMAGE_ELASTICSEARCH=${ELASTICSEARCH_IMAGE_ELASTICSEARCH:-"index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.8.2"}
 ELASTICSEARCH_IMAGE_ESCRON=${ELASTICSEARCH_IMAGE_ESCRON:-"index.caicloud.io/caicloud/es-cron:v0.1.2"}
 
-HEAPSTER_IMAGE_HEAPSTER=${HEAPSTER_IMAGE_HEAPSTER:-"index.caicloud.io/caicloud/heapster:v1.2.0-v0.0.1"}
+HEAPSTER_IMAGE_HEAPSTER=${HEAPSTER_IMAGE_HEAPSTER:-"index.caicloud.io/caicloud/heapster:v1.2.0-v0.0.2"}
 MONITORING_IMAGE_INFLUXDB=${MONITORING_IMAGE_INFLUXDB:-"index.caicloud.io/caicloud/influxdb:1.0.0-beta2"}
 MONITORING_IMAGE_GRAFANA=${MONITORING_IMAGE_GRAFANA:-"index.caicloud.io/caicloud/monitoring-grafana:v3.1.0-withfields"}
 MONITORING_IMAGE_WATCHER=${MONITORING_IMAGE_WATCHER:-"index.caicloud.io/caicloud/monitoring-watcher:v1.0.0-rc2"}
