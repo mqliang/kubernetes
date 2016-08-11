@@ -474,9 +474,9 @@ function reconcile-objects() {
 function update-addons() {
     local -r addon_path=$1
     # be careful, reconcile-objects uses global variables
-    reconcile-objects ${addon_path} ReplicationController "-" &
-    reconcile-objects ${addon_path} Deployment "-" &
-    reconcile-objects ${addon_path} DaemonSet "-" &
+    reconcile-objects ${addon_path} ReplicationController "" &
+    reconcile-objects ${addon_path} Deployment "" &
+    reconcile-objects ${addon_path} DaemonSet "" &
 
     # We don't expect names to be versioned for the following kinds, so
     # we match the entire name, ignoring version suffix.
