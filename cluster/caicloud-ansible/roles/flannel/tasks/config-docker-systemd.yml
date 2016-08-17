@@ -20,6 +20,7 @@
 - name: Create docker systemd dropin directory
   file: path=/etc/systemd/system/docker.service.d state=directory
 
+# Use 'changed_when: true' to force docker restart.
 - name: Add docker drop-in with dependency on flannel
   copy:
     src: 40-docker-depends-on-flannel.conf
@@ -27,3 +28,4 @@
   notify:
     - reload systemd
     - restart docker
+  changed_when: true

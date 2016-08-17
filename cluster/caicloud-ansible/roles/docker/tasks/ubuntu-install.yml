@@ -4,18 +4,20 @@
 
 - name: Ubuntu | Install GPG key
   apt_key: keyserver=keyserver.ubuntu.com id=F76221572C52609D
+  # Register and retry to work around transient http issues
+  register: gpg_key_install
+  until: gpg_key_install|success
+  retries: 5
+  delay: 3
 
 - name: Ubuntu | Configure apt mirror
   template: src="apt-mirror.list.j2" dest="/etc/apt/sources.list"
-  register: change_apt_mirror
 
 - name: Ubuntu | Configure docker apt repository
   template: src="apt-docker.list.j2" dest="/etc/apt/sources.list.d/docker.list"
-  register: add_apt_source_docker
 
 - name: Ubuntu | Update repository cache
   apt: update_cache=yes
-  when: add_apt_source_docker.changed and change_apt_mirror.changed
   # Register and retry to work around transient http issues
   register: apt_cache_update
   until: apt_cache_update|success

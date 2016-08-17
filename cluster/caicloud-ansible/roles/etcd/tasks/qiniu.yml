@@ -16,6 +16,10 @@
     https_proxy: "{{ https_proxy|default('') }}"
     no_proxy: "{{ no_proxy|default('') }}"
   when: etcd_tarball.stat.exists == False
+  register: etcd_tarball_download
+  until: etcd_tarball_download|success
+  retries: 5
+  delay: 3
 
 - name: Extract tar file
   unarchive:
