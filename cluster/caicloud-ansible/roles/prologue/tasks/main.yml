@@ -18,7 +18,7 @@
   changed_when: false
   when: networking == "flannel"
 
-- name: Determin kubernetes_use_upstart
+- name: Determine kubernetes_use_upstart
   set_fact:
     kubernetes_use_upstart: false
 

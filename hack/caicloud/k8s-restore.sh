@@ -18,43 +18,45 @@
 # don't want to change upstream code.
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${KUBE_ROOT}/hack/caicloud/common.sh"
 
-# Restore all 'gcr.io' images.
-grep -rl "index.caicloud.io/caicloudgcr/google_containers_[^\", ]*" \
-     --include \*.go \
-     --include \*.json \
-     --include \*.yaml \
-     --include \*.yaml.in \
-     --include \*.yml \
-     --include Dockerfile \
-     --include \*.manifest \
-     ${KUBE_ROOT}/test \
-     ${KUBE_ROOT}/examples \
-     ${KUBE_ROOT}/cluster/addons \
-     ${KUBE_ROOT}/cluster/saltbase \
-     ${KUBE_ROOT}/contrib \
-     ${KUBE_ROOT}/docs \
-     ${KUBE_ROOT}/build \
-     ${KUBE_ROOT}/test/e2e/testing-manifests |
-  xargs perl -X -i -pe 's|index.caicloud.io/caicloudgcr/google_containers_|gcr.io/google_containers/|g'
+# Restore all 'gcr.io' images from index.caicloud.io.
+PATTERNS=(
+  "index.caicloud.io/caicloudgcr/google_containers_[^\", ]*"
+  "index.caicloud.io/caicloudgcr/google-containers_[^\", ]*"
+  "index.caicloud.io/caicloudgcr/google_samples_[^\", ]*"
+  "index.caicloud.io/caicloudgcr/google-samples_[^\", ]*"
+)
+SUBSTITUTIONS=(
+  "s|index.caicloud.io/caicloudgcr/google_containers_|gcr.io/google_containers/|g"
+  "s|index.caicloud.io/caicloudgcr/google-containers_|gcr.io/google-containers/|g"
+  "s|index.caicloud.io/caicloudgcr/google_samples_|gcr.io/google_samples/|g"
+  "s|index.caicloud.io/caicloudgcr/google-samples_|gcr.io/google-samples/|g"
+)
 
-grep -rl "index.caicloud.io/caicloudgcr/google_samples_[^\", ]*" \
-     --include \*.go \
-     --include \*.json \
-     --include \*.yaml \
-     --include \*.yaml.in \
-     --include \*.yml \
-     --include Dockerfile \
-     --include \*.manifest \
-     ${KUBE_ROOT}/test \
-     ${KUBE_ROOT}/examples \
-     ${KUBE_ROOT}/cluster/addons \
-     ${KUBE_ROOT}/cluster/saltbase \
-     ${KUBE_ROOT}/contrib \
-     ${KUBE_ROOT}/docs \
-     ${KUBE_ROOT}/build \
-     ${KUBE_ROOT}/test/e2e/testing-manifests |
-  xargs perl -X -i -pe 's|index.caicloud.io/caicloudgcr/google_samples_|gcr.io/google_samples/|g'
+for i in `seq "${#PATTERNS[@]}"`; do
+  index=$(($i-1))
+  grep -rl "${PATTERNS[$index]}" \
+       --include \*.go \
+       --include \*.json \
+       --include \*.yaml \
+       --include \*.yaml.in \
+       --include \*.yml \
+       --include Dockerfile \
+       --include \*.manifest \
+       ${KUBE_ROOT}/test \
+       ${KUBE_ROOT}/test/images \
+       ${KUBE_ROOT}/docs/user-guide \
+       ${KUBE_ROOT}/examples \
+       ${KUBE_ROOT}/cluster/addons \
+       ${KUBE_ROOT}/cluster/saltbase \
+       ${KUBE_ROOT}/contrib \
+       ${KUBE_ROOT}/docs \
+       ${KUBE_ROOT}/build \
+       ${KUBE_ROOT}/test/e2e/testing-manifests |
+    xargs perl -X -i -pe "${SUBSTITUTIONS[$index]}"
+done
 
-perl -i -pe "s|baidu.com|google.com|g" ${KUBE_ROOT}/test/e2e/networking.go ${KUBE_ROOT}/test/e2e/dns.go
+# Restore google.com.
+perl -i -pe "s|baidu.com|google.com|g" \
+     ${KUBE_ROOT}/test/e2e/networking.go \
+     ${KUBE_ROOT}/test/e2e/dns.go

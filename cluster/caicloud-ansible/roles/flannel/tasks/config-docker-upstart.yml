@@ -11,6 +11,7 @@
     line: "start on started flanneld"
     state: present
 
+# Use 'changed_when: true' to force docker restart.
 - lineinfile:
     dest: /etc/init/docker.conf
     regexp: "^stop on"
@@ -18,3 +19,4 @@
     state: present
   notify:
     - restart flannel
+  changed_when: true
