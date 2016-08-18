@@ -564,7 +564,7 @@ func (gce *GCECloud) EnsureLoadBalancer(clusterName string, apiService *api.Serv
 		return nil, err
 	}
 
-	loadBalancerName := cloudprovider.GetLoadBalancerName(apiService)
+	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, apiService)
 	loadBalancerIP := apiService.Spec.LoadBalancerIP
 	ports := apiService.Spec.Ports
 	portStr := []string{}
@@ -1337,7 +1337,7 @@ func (gce *GCECloud) UpdateLoadBalancer(clusterName string, service *api.Service
 		return err
 	}
 
-	loadBalancerName := cloudprovider.GetLoadBalancerName(service)
+	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
 	pool, err := gce.service.TargetPools.Get(gce.projectID, gce.region, loadBalancerName).Do()
 	if err != nil {
 		return err

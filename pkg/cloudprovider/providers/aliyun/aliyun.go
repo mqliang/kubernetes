@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"os"
 
 	"github.com/denverdino/aliyungo/common"
@@ -30,7 +29,6 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -240,18 +238,15 @@ func (i *Instances) CurrentNodeName(hostname string) (string, error) {
 
 // GetLoadBalancer returns whether the specified load balancer exists, and
 // if so, what its status is.
-func (lb *LoadBalancer) GetLoadBalancer(name, region string) (status *api.LoadBalancerStatus, exists bool, err error) {
-	if region != lb.aly.regionID {
-		return nil, false, fmt.Errorf("Requested load balancer region '%s' does not match cluster region '%s'", region, lb.aly.regionID)
-	}
-
-	loadbalancer, exists, err := lb.aly.getLoadBalancerByName(name)
+func (lb *LoadBalancer) GetLoadBalancer(clusterName string, service *api.Service) (status *api.LoadBalancerStatus, exists bool, err error) {
+	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	loadbalancer, exists, err := lb.aly.getLoadBalancerByName(loadBalancerName)
 	if err != nil {
-		return nil, false, fmt.Errorf("Couldn't get load balancer by name '%s' in region '%s': %v", name, lb.aly.regionID, err)
+		return nil, false, fmt.Errorf("Couldn't get load balancer by name '%s' in region '%s': %v", loadBalancerName, lb.aly.regionID, err)
 	}
 
 	if !exists {
-		glog.Infof("Couldn't find the loadbalancer with the name '%v' in the region '%v'", name, region)
+		glog.Infof("Couldn't find the loadbalancer with the name '%v' in the region '%v'", loadBalancerName, lb.aly.regionID)
 		return nil, false, nil
 	}
 
@@ -266,30 +261,27 @@ func (lb *LoadBalancer) GetLoadBalancer(name, region string) (status *api.LoadBa
 // 1. create a aliyun SLB loadbalancer;
 // 2. create listeners for the new loadbalancer, number of listeners = number of service ports;
 // 3. add backends to the new loadbalancer.
-func (lb *LoadBalancer) EnsureLoadBalancer(name, region string, loadBalancerIP net.IP, ports []*api.ServicePort, hosts []string, serviceName types.NamespacedName, affinityType api.ServiceAffinity, annotations map[string]string) (*api.LoadBalancerStatus, error) {
-	if region != lb.aly.regionID {
-		return nil, fmt.Errorf("Requested load balancer region '%s' does not match cluster region '%s'", region, lb.aly.regionID)
-	}
+func (lb *LoadBalancer) EnsureLoadBalancer(clusterName string, service *api.Service, hosts []string) (*api.LoadBalancerStatus, error) {
+	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	glog.V(4).Infof("EnsureLoadBalancer(%v, %#+v, %v, %v, %v, %v, %v)", clusterName, service, hosts)
 
-	glog.V(4).Infof("EnsureLoadBalancer(%v, %v, %v, %v, %v, %v, %v)", name, region, loadBalancerIP, ports, hosts, serviceName, annotations)
-
-	if affinityType != api.ServiceAffinityNone {
+	if service.Spec.SessionAffinity != api.ServiceAffinityNone {
 		// Aliyun supports sticky sessions, but only when configured for HTTP/HTTPS (cookies based).
 		// But Kubernetes Services support TCP and UDP for protocols.
 		// Although session affinity is calculated in kube-proxy, where it determines which pod to
 		// response a request, we still need to hit the same kube-proxy (the node). Other kube-proxy
 		// do not have the knowledge.
-		return nil, fmt.Errorf("Unsupported load balancer affinity: %v", affinityType)
+		return nil, fmt.Errorf("Unsupported load balancer affinity: %v", service.Spec.SessionAffinity)
 	}
 
 	// Aliyun does not support user-specified ip addr for LB. We just
 	// print some log and ignore the public ip.
-	if loadBalancerIP != nil {
+	if service.Spec.LoadBalancerIP != "" {
 		glog.Warning("Public IP cannot be specified for aliyun SLB")
 	}
 
-	glog.V(2).Infof("Checking if aliyun load balancer already exists: %s", name)
-	_, exists, err := lb.GetLoadBalancer(name, region)
+	glog.V(2).Infof("Checking if aliyun load balancer already exists: %s", loadBalancerName)
+	_, exists, err := lb.GetLoadBalancer(clusterName, service)
 	if err != nil {
 		return nil, fmt.Errorf("Error checking if aliyun load balancer already exists: %v", err)
 	}
@@ -297,15 +289,15 @@ func (lb *LoadBalancer) EnsureLoadBalancer(name, region string, loadBalancerIP n
 	// TODO: Implement a more efficient update strategy for common changes than delete & create
 	// In particular, if we implement hosts update, we can get rid of UpdateHosts
 	if exists {
-		err := lb.EnsureLoadBalancerDeleted(name, region)
+		err := lb.EnsureLoadBalancerDeleted(clusterName, service)
 		if err != nil {
 			return nil, fmt.Errorf("Error deleting existing aliyun load balancer: %v", err)
 		}
 	}
 
-	lb_response, err := lb.aly.createLoadBalancer(name)
+	lb_response, err := lb.aly.createLoadBalancer(loadBalancerName)
 	if err != nil {
-		glog.Errorf("Error creating loadbalancer '%s': %v", name, err)
+		glog.Errorf("Error creating loadbalancer '%s': %v", loadBalancerName, err)
 		return nil, err
 	}
 
@@ -319,21 +311,21 @@ func (lb *LoadBalancer) EnsureLoadBalancer(name, region string, loadBalancerIP n
 	// the Bandwidth on Listener can be set to -1, indicating the
 	// bandwidth peak is unlimited.
 	bandwidth := -1
-	if len(ports) > 0 && common.InternetChargeType(lb.aly.lbOpts.InternetChargeType) == common.PayByBandwidth {
-		bandwidth = lb.aly.lbOpts.Bandwidth / len(ports)
+	if len(service.Spec.Ports) > 0 && common.InternetChargeType(lb.aly.lbOpts.InternetChargeType) == common.PayByBandwidth {
+		bandwidth = lb.aly.lbOpts.Bandwidth / len(service.Spec.Ports)
 	}
 
 	// For every port, we need a listener.
-	for _, port := range ports {
+	for _, port := range service.Spec.Ports {
 		if port.Protocol == api.ProtocolTCP {
-			err := lb.aly.createLoadBalancerTCPListener(lb_response.LoadBalancerId, port, bandwidth)
+			err := lb.aly.createLoadBalancerTCPListener(lb_response.LoadBalancerId, &port, bandwidth)
 			if err != nil {
 				glog.Errorf("Error create loadbalancer TCP listener (LoadBalancerId:'%s', Port: '%v', Bandwidth: '%d'): %v", lb_response.LoadBalancerId, port, bandwidth, err)
 				return nil, err
 			}
 			glog.Infof("Created LoadBalancerTCPListener (LoadBalancerId:'%s', Port: '%v', Bandwidth: '%d')", lb_response.LoadBalancerId, port, bandwidth)
 		} else if port.Protocol == api.ProtocolUDP {
-			err := lb.aly.createLoadBalancerUDPListener(lb_response.LoadBalancerId, port, bandwidth)
+			err := lb.aly.createLoadBalancerUDPListener(lb_response.LoadBalancerId, &port, bandwidth)
 			if err != nil {
 				glog.Errorf("Error create loadbalancer UDP listener (LoadBalancerId:'%s', Port: '%v', Bandwidth: '%d'): %v", lb_response.LoadBalancerId, port, bandwidth, err)
 				return nil, err
@@ -353,31 +345,28 @@ func (lb *LoadBalancer) EnsureLoadBalancer(name, region string, loadBalancerIP n
 
 	err = lb.aly.addBackendServers(lb_response.LoadBalancerId, instanceIDs)
 	if err != nil {
-		glog.Errorf("Couldn't add backend servers '%v' to loadbalancer '%v': %v", instanceIDs, name, err)
+		glog.Errorf("Couldn't add backend servers '%v' to loadbalancer '%v': %v", instanceIDs, loadBalancerName, err)
 		return nil, err
 	}
 
 	status := &api.LoadBalancerStatus{}
 	status.Ingress = []api.LoadBalancerIngress{{IP: lb_response.Address}}
 
-	glog.Infof("Created loadbalancer '%v', ingress ip '%v'", name, lb_response.Address)
+	glog.Infof("Created loadbalancer '%v', ingress ip '%v'", loadBalancerName, lb_response.Address)
 
 	return status, nil
 }
 
 // UpdateLoadBalancer updates hosts under the specified load balancer.
-func (lb *LoadBalancer) UpdateLoadBalancer(name, region string, hosts []string) error {
-	if region != lb.aly.regionID {
-		return fmt.Errorf("Requested load balancer region '%s' does not match cluster region '%s'", region, lb.aly.regionID)
-	}
-
-	loadbalancer, exists, err := lb.aly.getLoadBalancerByName(name)
+func (lb *LoadBalancer) UpdateLoadBalancer(clusterName string, service *api.Service, hosts []string) error {
+	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	loadbalancer, exists, err := lb.aly.getLoadBalancerByName(loadBalancerName)
 	if err != nil {
-		return fmt.Errorf("Couldn't get load balancer by name '%s' in region '%s': %v", name, lb.aly.regionID, err)
+		return fmt.Errorf("Couldn't get load balancer by name '%s' in region '%s': %v", loadBalancerName, lb.aly.regionID, err)
 	}
 
 	if !exists {
-		return fmt.Errorf("Couldn't find load balancer by name '%s' in region '%s'", name, lb.aly.regionID)
+		return fmt.Errorf("Couldn't find load balancer by name '%s' in region '%s'", loadBalancerName, lb.aly.regionID)
 	}
 
 	// Expected instances for the load balancer.
@@ -385,7 +374,7 @@ func (lb *LoadBalancer) UpdateLoadBalancer(name, region string, hosts []string) 
 	for _, hostname := range hosts {
 		id, err := lb.aly.getInstanceIdByName(hostname)
 		if err != nil {
-			glog.Errorf("Couldn't get InstanceID by name '%v' in region '%v': %v", hostname, region, err)
+			glog.Errorf("Couldn't get InstanceID by name '%v' in region '%v': %v", hostname, lb.aly.regionID, err)
 			return err
 		}
 		expected.Insert(id)
@@ -395,7 +384,7 @@ func (lb *LoadBalancer) UpdateLoadBalancer(name, region string, hosts []string) 
 	actual := sets.NewString()
 	lb_attribute, err := lb.aly.getLoadBalancerAttribute(loadbalancer.LoadBalancerId)
 	if err != nil {
-		glog.Errorf("Couldn't get loadbalancer '%v' attribute: %v", name, err)
+		glog.Errorf("Couldn't get loadbalancer '%v' attribute: %v", loadBalancerName, err)
 		return err
 	}
 	for _, backendserver := range lb_attribute.BackendServers.BackendServer {
@@ -409,20 +398,20 @@ func (lb *LoadBalancer) UpdateLoadBalancer(name, region string, hosts []string) 
 		instanceIDs := addInstances.List()
 		err := lb.aly.addBackendServers(loadbalancer.LoadBalancerId, instanceIDs)
 		if err != nil {
-			glog.Errorf("Couldn't add backend servers '%v' to loadbalancer '%v': %v", instanceIDs, name)
+			glog.Errorf("Couldn't add backend servers '%v' to loadbalancer '%v': %v", instanceIDs, loadBalancerName)
 			return err
 		}
-		glog.V(1).Infof("Instances '%v' added to load-balancer %s", instanceIDs, name)
+		glog.V(1).Infof("Instances '%v' added to load-balancer %s", instanceIDs, loadBalancerName)
 	}
 
 	if len(removeInstances) > 0 {
 		instanceIDs := removeInstances.List()
 		err := lb.aly.removeBackendServers(loadbalancer.LoadBalancerId, instanceIDs)
 		if err != nil {
-			glog.Errorf("Couldn't remove backend servers '%v' from loadbalancer '%v': %v", instanceIDs, name)
+			glog.Errorf("Couldn't remove backend servers '%v' from loadbalancer '%v': %v", instanceIDs, loadBalancerName)
 			return err
 		}
-		glog.V(1).Infof("Instances '%v' removed from load-balancer %s", instanceIDs, name)
+		glog.V(1).Infof("Instances '%v' removed from load-balancer %s", instanceIDs, loadBalancerName)
 	}
 
 	return nil
@@ -434,24 +423,21 @@ func (lb *LoadBalancer) UpdateLoadBalancer(name, region string, hosts []string) 
 // This construction is useful because many cloud providers' load balancers
 // have multiple underlying components, meaning a Get could say that the LB
 // doesn't exist even if some part of it is still laying around.
-func (lb *LoadBalancer) EnsureLoadBalancerDeleted(name, region string) error {
-	if region != lb.aly.regionID {
-		return fmt.Errorf("Requested load balancer region '%s' does not match cluster region '%s'", region, lb.aly.regionID)
-	}
-
-	loadbalancer, exists, err := lb.aly.getLoadBalancerByName(name)
+func (lb *LoadBalancer) EnsureLoadBalancerDeleted(clusterName string, service *api.Service) error {
+	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	loadbalancer, exists, err := lb.aly.getLoadBalancerByName(loadBalancerName)
 	if err != nil {
-		return fmt.Errorf("Couldn't get load balancer by name '%s' in region '%s': %v", name, lb.aly.regionID, err)
+		return fmt.Errorf("Couldn't get load balancer by name '%s' in region '%s': %v", loadBalancerName, lb.aly.regionID, err)
 	}
 
 	if !exists {
-		glog.Infof(" Loadbalancer '%s', already deleted in region '%s'.", name, lb.aly.regionID)
+		glog.Infof(" Loadbalancer '%s', already deleted in region '%s'.", loadBalancerName, lb.aly.regionID)
 		return nil
 	}
 
 	err = lb.aly.deleteLoadBalancer(loadbalancer.LoadBalancerId)
 	if err != nil {
-		return fmt.Errorf("Error deleting load balancer by name '%s' in region '%s': %v", name, lb.aly.regionID, err)
+		return fmt.Errorf("Error deleting load balancer by name '%s' in region '%s': %v", loadBalancerName, lb.aly.regionID, err)
 	}
 
 	return nil
@@ -612,9 +598,9 @@ func (aly *Aliyun) removeBackendServers(loadBalancerID string, instanceIDs []str
 
 func (aly *Aliyun) createLoadBalancerTCPListener(loadBalancerID string, port *api.ServicePort, bandwidth int) error {
 	args := slb.CreateLoadBalancerTCPListenerArgs{
-		LoadBalancerId:    loadBalancerID, // needed
-		ListenerPort:      port.Port,      // needed
-		BackendServerPort: port.NodePort,  // needed
+		LoadBalancerId:    loadBalancerID,     // needed
+		ListenerPort:      int(port.Port),     // needed
+		BackendServerPort: int(port.NodePort), // needed
 		// Bandwidth peak of Listener Value: -1 | 1 - 1000 Mbps, default is -1.
 		Bandwidth: bandwidth, // needed
 	}
@@ -624,8 +610,8 @@ func (aly *Aliyun) createLoadBalancerTCPListener(loadBalancerID string, port *ap
 func (aly *Aliyun) createLoadBalancerUDPListener(loadBalancerID string, port *api.ServicePort, bandwidth int) error {
 	args := slb.CreateLoadBalancerUDPListenerArgs{
 		LoadBalancerId:    loadBalancerID,
-		ListenerPort:      port.Port,
-		BackendServerPort: port.NodePort,
+		ListenerPort:      int(port.Port),
+		BackendServerPort: int(port.NodePort),
 		Bandwidth:         bandwidth,
 	}
 	return aly.slbClient.CreateLoadBalancerUDPListener(&args)

@@ -23,6 +23,12 @@ boxes = [
     :mem => "2048",
     :cpu => "1"
   },
+  {
+    :name => "node-3",
+    :eth1 => "192.168.205.13",
+    :mem => "2048",
+    :cpu => "1"
+  },
 ]
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|

@@ -1130,6 +1130,8 @@ function caicloud-build-tarball {
 #   $1 Binary target to build, e.g. "cmd/kubectl" to only build kubectl
 function caicloud-build-local {
   cd ${KUBE_ROOT}
+  hack/caicloud/k8s-replace.sh
+  trap-add '${KUBE_ROOT}/hack/caicloud/k8s-restore.sh' EXIT
   hack/build-go.sh "$@"
   cd -
 }

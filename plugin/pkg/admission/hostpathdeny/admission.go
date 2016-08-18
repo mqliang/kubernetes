@@ -47,7 +47,7 @@ func NewHostPathDeny(client clientset.Interface) admission.Interface {
 }
 
 func (p *plugin) Admit(a admission.Attributes) (err error) {
-	if a.GetResource() != api.Resource("pods") {
+	if a.GetResource().GroupResource() != api.Resource("pods") {
 		return nil
 	}
 
@@ -58,7 +58,7 @@ func (p *plugin) Admit(a admission.Attributes) (err error) {
 
 	for _, v := range pod.Spec.Volumes {
 		if v.VolumeSource.HostPath != nil {
-			return apierrors.NewForbidden(a.GetResource(), pod.Name, fmt.Errorf("Unable to mount host path directory"))
+			return apierrors.NewForbidden(a.GetResource().GroupResource(), pod.Name, fmt.Errorf("Unable to mount host path directory"))
 		}
 	}
 

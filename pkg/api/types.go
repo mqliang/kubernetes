@@ -299,9 +299,6 @@ type VolumeSource struct {
 // Similar to VolumeSource but meant for the administrator who creates PVs.
 // Exactly one of its members must be set.
 type PersistentVolumeSource struct {
-	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
-	// kubelet's host machine and then exposed to the pod.
-	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty"`
 	// GCEPersistentDisk represents a GCE Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
 	// +optional
@@ -359,6 +356,9 @@ type PersistentVolumeSource struct {
 	AzureDisk *AzureDiskVolumeSource `json:"azureDisk,omitempty"`
 	// PhotonPersistentDisk represents a Photon Controller persistent disk attached and mounted on kubelets host machine
 	PhotonPersistentDisk *PhotonPersistentDiskVolumeSource `json:"photonPersistentDisk,omitempty"`
+	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty"`
 }
 
 type PersistentVolumeClaimVolumeSource struct {

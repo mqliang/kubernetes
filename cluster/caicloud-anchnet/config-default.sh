@@ -318,7 +318,7 @@ BASE_DOMAIN_NAME=${BASE_DOMAIN_NAME:-"caicloudapp.com"}
 # Misc static configurations.
 # -----------------------------------------------------------------------------
 # Admission Controllers to invoke prior to persisting objects in cluster.
-ADMISSION_CONTROL=NamespaceLifecycle,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota,HostPathDeny
+ADMISSION_CONTROL=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,HostPathDeny
 
 # The infra container used for every Pod.
 POD_INFRA_CONTAINER="index.caicloud.io/caicloudgcr/google_containers_pause:1.0"
