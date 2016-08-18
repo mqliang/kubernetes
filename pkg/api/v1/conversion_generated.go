@@ -432,7 +432,7 @@ func Convert_api_Affinity_To_v1_Affinity(in *api.Affinity, out *Affinity, s conv
 func autoConvert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource(in *AnchnetPersistentDiskVolumeSource, out *api.AnchnetPersistentDiskVolumeSource, s conversion.Scope) error {
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -444,7 +444,7 @@ func Convert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVo
 func autoConvert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource(in *api.AnchnetPersistentDiskVolumeSource, out *AnchnetPersistentDiskVolumeSource, s conversion.Scope) error {
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
-	out.Partition = in.Partition
+	out.Partition = int32(in.Partition)
 	out.ReadOnly = in.ReadOnly
 	return nil
 }
@@ -4037,15 +4037,6 @@ func Convert_api_PersistentVolumeList_To_v1_PersistentVolumeList(in *api.Persist
 }
 
 func autoConvert_v1_PersistentVolumeSource_To_api_PersistentVolumeSource(in *PersistentVolumeSource, out *api.PersistentVolumeSource, s conversion.Scope) error {
-	if in.AnchnetPersistentDisk != nil {
-		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
-		*out = new(api.AnchnetPersistentDiskVolumeSource)
-		if err := Convert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.AnchnetPersistentDisk = nil
-	}
 	if in.GCEPersistentDisk != nil {
 		in, out := &in.GCEPersistentDisk, &out.GCEPersistentDisk
 		*out = new(api.GCEPersistentDiskVolumeSource)
@@ -4172,6 +4163,15 @@ func autoConvert_v1_PersistentVolumeSource_To_api_PersistentVolumeSource(in *Per
 	} else {
 		out.VsphereVolume = nil
 	}
+	if in.AnchnetPersistentDisk != nil {
+		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(api.AnchnetPersistentDiskVolumeSource)
+		if err := Convert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
+	}
 	return nil
 }
 
@@ -4180,15 +4180,6 @@ func Convert_v1_PersistentVolumeSource_To_api_PersistentVolumeSource(in *Persist
 }
 
 func autoConvert_api_PersistentVolumeSource_To_v1_PersistentVolumeSource(in *api.PersistentVolumeSource, out *PersistentVolumeSource, s conversion.Scope) error {
-	if in.AnchnetPersistentDisk != nil {
-		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
-		*out = new(AnchnetPersistentDiskVolumeSource)
-		if err := Convert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.AnchnetPersistentDisk = nil
-	}
 	if in.GCEPersistentDisk != nil {
 		in, out := &in.GCEPersistentDisk, &out.GCEPersistentDisk
 		*out = new(GCEPersistentDiskVolumeSource)
@@ -4314,6 +4305,15 @@ func autoConvert_api_PersistentVolumeSource_To_v1_PersistentVolumeSource(in *api
 		}
 	} else {
 		out.VsphereVolume = nil
+	}
+	if in.AnchnetPersistentDisk != nil {
+		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(AnchnetPersistentDiskVolumeSource)
+		if err := Convert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
 	}
 	return nil
 }
@@ -6363,15 +6363,6 @@ func Convert_api_VolumeMount_To_v1_VolumeMount(in *api.VolumeMount, out *VolumeM
 }
 
 func autoConvert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
-	if in.AnchnetPersistentDisk != nil {
-		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
-		*out = new(api.AnchnetPersistentDiskVolumeSource)
-		if err := Convert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.AnchnetPersistentDisk = nil
-	}
 	if in.HostPath != nil {
 		in, out := &in.HostPath, &out.HostPath
 		*out = new(api.HostPathVolumeSource)
@@ -6551,6 +6542,15 @@ func autoConvert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.
 		}
 	} else {
 		out.VsphereVolume = nil
+	}
+	if in.AnchnetPersistentDisk != nil {
+		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(api.AnchnetPersistentDiskVolumeSource)
+		if err := Convert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
 	}
 	return nil
 }
