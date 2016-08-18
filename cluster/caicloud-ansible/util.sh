@@ -97,10 +97,8 @@ function kube-down {
 
 # Find master to work with.
 function detect-master {
-  IFS=',' read -ra ssh_info <<< "${MASTER_SSH_INFO}"
-  IFS=':@' read -ra info <<< "${ssh_info[0]}"
-  export KUBE_MASTER_IP="cluster.caicloudprivatetest.com"
-  export KUBE_MASTER="cluster.caicloudprivatetest.com"
+  export KUBE_MASTER_IP=${KUBE_MASTER_IP:-"cluster.caicloudprivatetest.com"}
+  export KUBE_MASTER=${KUBE_MASTER:-"cluster.caicloudprivatetest.com"}
 }
 
 # Execute prior to running tests to build a release if required for env.

@@ -25,6 +25,11 @@
   retries: 5
   delay: 3
 
+- name: Remove existing caicloud-kube
+  file:
+    path: /usr/local/caicloud-kube
+    state: absent
+
 - name: Extract tar file
   unarchive:
     src: "{{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz"
