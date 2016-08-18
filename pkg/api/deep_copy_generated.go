@@ -1886,15 +1886,6 @@ func DeepCopy_api_PersistentVolumeList(in PersistentVolumeList, out *PersistentV
 }
 
 func DeepCopy_api_PersistentVolumeSource(in PersistentVolumeSource, out *PersistentVolumeSource, c *conversion.Cloner) error {
-	if in.AnchnetPersistentDisk != nil {
-		in, out := in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
-		*out = new(AnchnetPersistentDiskVolumeSource)
-		if err := DeepCopy_api_AnchnetPersistentDiskVolumeSource(*in, *out, c); err != nil {
-			return err
-		}
-	} else {
-		out.AnchnetPersistentDisk = nil
-	}
 	if in.GCEPersistentDisk != nil {
 		in, out := in.GCEPersistentDisk, &out.GCEPersistentDisk
 		*out = new(GCEPersistentDiskVolumeSource)
@@ -2020,6 +2011,15 @@ func DeepCopy_api_PersistentVolumeSource(in PersistentVolumeSource, out *Persist
 		}
 	} else {
 		out.VsphereVolume = nil
+	}
+	if in.AnchnetPersistentDisk != nil {
+		in, out := in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(AnchnetPersistentDiskVolumeSource)
+		if err := DeepCopy_api_AnchnetPersistentDiskVolumeSource(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
 	}
 	return nil
 }

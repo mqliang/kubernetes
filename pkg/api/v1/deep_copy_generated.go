@@ -1833,15 +1833,6 @@ func DeepCopy_v1_PersistentVolumeList(in PersistentVolumeList, out *PersistentVo
 }
 
 func DeepCopy_v1_PersistentVolumeSource(in PersistentVolumeSource, out *PersistentVolumeSource, c *conversion.Cloner) error {
-	if in.AnchnetPersistentDisk != nil {
-		in, out := in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
-		*out = new(AnchnetPersistentDiskVolumeSource)
-		if err := DeepCopy_v1_AnchnetPersistentDiskVolumeSource(*in, *out, c); err != nil {
-			return err
-		}
-	} else {
-		out.AnchnetPersistentDisk = nil
-	}
 	if in.GCEPersistentDisk != nil {
 		in, out := in.GCEPersistentDisk, &out.GCEPersistentDisk
 		*out = new(GCEPersistentDiskVolumeSource)
@@ -1967,6 +1958,15 @@ func DeepCopy_v1_PersistentVolumeSource(in PersistentVolumeSource, out *Persiste
 		}
 	} else {
 		out.VsphereVolume = nil
+	}
+	if in.AnchnetPersistentDisk != nil {
+		in, out := in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(AnchnetPersistentDiskVolumeSource)
+		if err := DeepCopy_v1_AnchnetPersistentDiskVolumeSource(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
 	}
 	return nil
 }
@@ -3081,15 +3081,6 @@ func DeepCopy_v1_VolumeMount(in VolumeMount, out *VolumeMount, c *conversion.Clo
 }
 
 func DeepCopy_v1_VolumeSource(in VolumeSource, out *VolumeSource, c *conversion.Cloner) error {
-	if in.AnchnetPersistentDisk != nil {
-		in, out := in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
-		*out = new(AnchnetPersistentDiskVolumeSource)
-		if err := DeepCopy_v1_AnchnetPersistentDiskVolumeSource(*in, *out, c); err != nil {
-			return err
-		}
-	} else {
-		out.AnchnetPersistentDisk = nil
-	}
 	if in.HostPath != nil {
 		in, out := in.HostPath, &out.HostPath
 		*out = new(HostPathVolumeSource)
@@ -3269,6 +3260,15 @@ func DeepCopy_v1_VolumeSource(in VolumeSource, out *VolumeSource, c *conversion.
 		}
 	} else {
 		out.VsphereVolume = nil
+	}
+	if in.AnchnetPersistentDisk != nil {
+		in, out := in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(AnchnetPersistentDiskVolumeSource)
+		if err := DeepCopy_v1_AnchnetPersistentDiskVolumeSource(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
 	}
 	return nil
 }
