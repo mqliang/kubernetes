@@ -27,7 +27,7 @@ import (
 // AnchnetDiskUtil implements pdManager which abstracts interface to PD operations.
 type AnchnetDiskUtil struct{}
 
-func (util *AnchnetDiskUtil) AttachAndMountDisk(b *anchnetPersistentDiskBuilder, globalPDPath string) error {
+func (util *AnchnetDiskUtil) AttachAndMountDisk(b *anchnetPersistentDiskMounter, globalPDPath string) error {
 	volumes, err := b.getVolumeProvider()
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func (util *AnchnetDiskUtil) AttachAndMountDisk(b *anchnetPersistentDiskBuilder,
 	return nil
 }
 
-func (util *AnchnetDiskUtil) DetachDisk(c *anchnetPersistentDiskCleaner) error {
+func (util *AnchnetDiskUtil) DetachDisk(c *anchnetPersistentDiskUnmounter) error {
 	// Unmount the global PD mount, which should be the only one.
 	globalPDPath := makeGlobalPDPath(c.plugin.host, c.volumeID)
 	if err := c.mounter.Unmount(globalPDPath); err != nil {

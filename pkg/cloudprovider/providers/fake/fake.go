@@ -136,7 +136,7 @@ func (f *FakeCloud) EnsureLoadBalancer(clusterName string, service *api.Service,
 		f.Balancers = make(map[string]FakeBalancer)
 	}
 
-	name := cloudprovider.GetLoadBalancerName(service)
+	name := cloudprovider.GetLoadBalancerName(clusterName, service)
 	spec := service.Spec
 
 	zone, err := f.GetZone()

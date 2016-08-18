@@ -1,7 +1,7 @@
 ---
 
 # The docker version to install (instead of latest).
-docker_version: "1.9.1"
+docker_version: "1.11.2"
 
 #
 # DO NOT CHANGE section

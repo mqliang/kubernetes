@@ -19,13 +19,11 @@ package anchnet_cloud
 import (
 	"fmt"
 	"math/rand"
-	"net"
 	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/types"
 
 	anchnet_client "github.com/caicloud/anchnet-go"
 )
@@ -36,94 +34,99 @@ import (
 var _ cloudprovider.LoadBalancer = (*Anchnet)(nil)
 
 // GetLoadBalancer returns whether the specified load balancer exists,
-// and if so, what its status is.
-func (an *Anchnet) GetLoadBalancer(name, region string) (status *api.LoadBalancerStatus, exists bool, err error) {
-	matching_lb, exists, err := an.searchLoadBalancer(name)
+// and if so, what its status is. 'service' is read-only.
+func (an *Anchnet) GetLoadBalancer(clusterName string, service *api.Service) (status *api.LoadBalancerStatus, exists bool, err error) {
+	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	matchingLB, exists, err := an.searchLoadBalancer(loadBalancerName)
 	if err != nil {
 		return nil, false, err
 	}
 	if exists == false {
-		glog.Infof("GetLoadBalancer no loadbalancer %v found", name)
+		glog.Infof("[GetLoadBalancer] no loadbalancer %v found", loadBalancerName)
 		return nil, false, nil
 	}
 	// No external IP for the loadbalancer, shouldn't happen.
-	if len(matching_lb.Eips) == 0 {
-		return nil, false, fmt.Errorf("external loadbalancer has no public IP")
+	if len(matchingLB.Eips) == 0 {
+		return nil, false, fmt.Errorf("[GetLoadBalancer] external loadbalancer %v has no public IP", loadBalancerName)
 	}
-	err = an.waitForLoadBalancer(matching_lb.LoadbalancerID, anchnet_client.LoadBalancerStatusActive)
+	err = an.waitForLoadBalancer(matchingLB.LoadbalancerID, anchnet_client.LoadBalancerStatusActive)
 	if err != nil {
 		return nil, false, err
 	}
-	ip_response, err := an.describeEip(matching_lb.Eips[0].EipID)
+	ip_response, err := an.describeEip(matchingLB.Eips[0].EipID)
 	if err != nil {
 		return nil, false, err
 	}
 
 	status = &api.LoadBalancerStatus{}
 	status.Ingress = []api.LoadBalancerIngress{{IP: ip_response.ItemSet[0].EipAddr}}
-	glog.Infof("got loadbalancer %v, ingress ip %v\n", name, ip_response.ItemSet[0].EipAddr)
+	glog.Infof("[GetLoadBalancer] got loadbalancer %v, ingress ip %v\n", loadBalancerName, ip_response.ItemSet[0].EipAddr)
 	return status, true, nil
 }
 
 // EnsureLoadBalancer creates a new load balancer, or updates an existing one. Returns the
-// status of the balancer.
-// 'region' is returned from Zone interface and is not used here, since anchnet only supports
-// one zone. If it starts supporting multiple zones, we just need to update the request.
-// 'externalIP' is not used, we use external IP given by anchnent.
-// To create a LoadBalancer for kubernetes, we do the following:
-// 1. create external ip;
-// 2. create a loadbalancer with that ip;
-// 3. add listeners for the loadbalancer, number of listeners = number of service ports;
-// 4. add backends for each listener;
-// 5. create a security group for loadbalancer, number of rules = number of service ports;
-// 6. apply above changes.
-func (an *Anchnet) EnsureLoadBalancer(
-	name, region string, loadBalancerIP net.IP, ports []*api.ServicePort, hosts []string,
-	serviceName types.NamespacedName, affinityType api.ServiceAffinity, annotations map[string]string) (*api.LoadBalancerStatus, error) {
-	glog.Infof("EnsureLoadBalancer(%v, %v, %v, %v, %v)", name, region, loadBalancerIP, ports, hosts)
+// status of the balancer. To create an anchnet LoadBalancer in kubernetes, we do the following:
+// 1. create external ip
+// 2. create a loadbalancer with that ip
+// 3. add listeners for the loadbalancer, number of listeners = number of service ports
+// 4. add backends for each listener
+// 5. create a security group for loadbalancer, number of rules = number of service ports
+// 6. apply above changes
+func (an *Anchnet) EnsureLoadBalancer(clusterName string, service *api.Service, hosts []string) (*api.LoadBalancerStatus, error) {
+	// func (an *Anchnet) EnsureLoadBalancer(
+	// 	name, region string, loadBalancerIP net.IP, ports []*api.ServicePort, hosts []string,
+	// 	serviceName types.NamespacedName, affinityType api.ServiceAffinity, annotations map[string]string) (*api.LoadBalancerStatus, error) {
+	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	glog.Infof("EnsureLoadBalancer(%v, %#+v, hosts)", clusterName, service, hosts)
 
-	// Anchnet doesn't support UDP.
-	for i := range ports {
-		port := ports[i]
-		if port.Protocol != api.ProtocolTCP {
-			return nil, fmt.Errorf("external load balancers for non TCP services are not currently supported.")
-		}
-	}
-
-	if affinityType != api.ServiceAffinityNone {
+	if service.Spec.SessionAffinity != api.ServiceAffinityNone {
 		// Anchnet supports sticky sessions, but only when configured for HTTP/HTTPS (cookies based).
 		// Although session affinity is calculated in kube-proxy, where it determines which pod to
 		// response a request, we still need to hit the same kube-proxy (the node). Other kube-proxy
 		// do not have the knowledge.
-		return nil, fmt.Errorf("unsupported load balancer affinity: %v", affinityType)
+		return nil, fmt.Errorf("EnsureLoadBalancer(): unsupported load balancer affinity: %v", service.Spec.SessionAffinity)
 	}
 
-	// anchnet does not support user-specified ip addr for LB. We just
-	// print some log and ignore the public ip.
-	if loadBalancerIP != nil {
-		glog.Warning("public IP cannot be specified for Anchnet ELB")
+	if len(hosts) == 0 {
+		return nil, fmt.Errorf("EnsureLoadBalancer(): requested load balancer with no hosts")
+	}
+
+	if len(service.Spec.Ports) == 0 {
+		return nil, fmt.Errorf("EnsureLoadBalancer(): requested load balancer with no ports")
+	}
+
+	if service.Spec.LoadBalancerIP != "" {
+		glog.Warning("EnsureLoadBalancer(): LoadBalancerIP cannot be specified for Anchnet ELB")
+	}
+
+	for _, port := range service.Spec.Ports {
+		if port.Protocol != api.ProtocolTCP {
+			return nil, fmt.Errorf("EnsureLoadBalancer(): load balancers for non TCP services are not supported for anchnet.")
+		}
 	}
 
 	// Delete existing loadbalancer if it exists. Note we are preserving the eip when recreating the
 	// load balancer so that the eip of a service stays the same. The justification of recreating lb
 	// rather than sync security group, listeners and backends would be that it will probably take
 	// longer to sync all of the above.
-	// TODO: Switch to fine-grainer syncing as deleting loadbalancer will introduce downtime for applications running on k8s.
-	var eip_ids []string
-	matching_lb, exists, err := an.searchLoadBalancer(name)
+	// TODO: Switch to fine-grainer syncing as deleting loadbalancer will introduce downtime for
+	// applications running on k8s. AWS and GCE have sync logic to do this.
+	var eipIDs []string
+	matchingLB, exists, err := an.searchLoadBalancer(loadBalancerName)
 	if err != nil {
-		return nil, fmt.Errorf("error checking if anchnet load balancer %v already exists: %v", name, err)
+		return nil, fmt.Errorf("EnsureLoadBalancer(): error checking if load balancer %v already exists: %v", loadBalancerName, err)
 	}
+
 	if exists {
-		glog.Infof("EnsureLoadBalancer found existing loadbalancer %v; deleting now", name)
-		eip_ids = append(eip_ids, matching_lb.Eips[0].EipID)
-		err := an.EnsureLoadBalancerDeletedHelper(name, region, true)
+		glog.Infof("EnsureLoadBalancer(): found existing loadbalancer %v; deleting now", loadBalancerName)
+		eipIDs = append(eipIDs, matchingLB.Eips[0].EipID)
+		err := an.EnsureLoadBalancerDeletedHelper(loadBalancerName, service, true)
 		if err != nil {
 			return nil, fmt.Errorf("error deleting existing anchnet load balancer: %v", err)
 		}
 	} else {
-		glog.Infof("EnsureLoadBalancer no loadbalancer %v found", name)
-		// Create a public IP address resource. The externalIP field is thus ignored.
+		glog.Infof("EnsureLoadBalancer(): no loadbalancer %v found", loadBalancerName)
+		// Allocate public IP; the externalIP field is ignored.
 		ip_response, err := an.allocateEIP()
 		if err != nil {
 			return nil, err
@@ -132,44 +135,49 @@ func (an *Anchnet) EnsureLoadBalancer(
 		if err != nil {
 			return nil, err
 		}
-		eip_ids = append(eip_ids, ip_response.EipIDs[0])
+		eipIDs = append(eipIDs, ip_response.EipIDs[0])
 	}
 
-	// Create a loadbalancer using the above external IP.
-	lb_response, err := an.createLoadBalancer(name, eip_ids[0])
+	// Create a loadbalancer using the above external IP, and wait for it
+	// to become ready.
+	lb_response, err := an.createLoadBalancer(loadBalancerName, eipIDs[0])
 	if err != nil {
-		an.releaseEIP(eip_ids[0])
+		an.releaseEIP(eipIDs[0])
 		return nil, err
 	}
 	err = an.WaitJobStatus(lb_response.JobID, anchnet_client.JobStatusSuccessful)
 	if err != nil {
-		an.releaseEIP(eip_ids[0])
+		an.releaseEIP(eipIDs[0])
 		return nil, err
 	}
-
-	// Adding listeners and backends do not need loadbalancer to be ready, but updating
-	// loadbalancer to apply the changes do require.
 	err = an.waitForLoadBalancer(lb_response.LoadbalancerID, anchnet_client.LoadBalancerStatusActive)
 	if err != nil {
-		an.deleteLoadBalancer(lb_response.LoadbalancerID, eip_ids)
+		an.deleteLoadBalancer(lb_response.LoadbalancerID, eipIDs)
 		return nil, err
 	}
 
 	// Create listeners for the loadbalancer. Listener specifies which protocol and
-	// which port the loadbalancer will listen to. A loadbalander can have multiple
-	// listeners.
+	// which port the loadbalancer will listen to. Once listener is created, we can
+	// access loadbalancer publicly via ${protocol}://${lb_ip}:${lb_port}. For each
+	// port (listener), we create backends for it, which actually serves user requests.
+	// A loadbalander can have multiple listeners; and a listen can have multiple
+	// backends.
 
 	// For every port, we need a listener. Note because we do not know the order of
 	// listener IDs returned from anchnet, we create listener one by one.
-	for _, port := range ports {
-		listener_response, err := an.addLoadBalancerListeners(lb_response.LoadbalancerID, port.Port)
+	for _, port := range service.Spec.Ports {
+		if port.NodePort == 0 {
+			glog.Errorf("EnsureLoadBalancer(): ignoring port without NodePort defined: %v", port)
+			continue
+		}
+		listener_response, err := an.addLoadBalancerListeners(lb_response.LoadbalancerID, int(port.Port))
 		if err != nil {
-			an.deleteLoadBalancer(lb_response.LoadbalancerID, eip_ids)
+			an.deleteLoadBalancer(lb_response.LoadbalancerID, eipIDs)
 			return nil, err
 		}
 		err = an.WaitJobStatus(listener_response.JobID, anchnet_client.JobStatusSuccessful)
 		if err != nil {
-			an.deleteLoadBalancer(lb_response.LoadbalancerID, eip_ids)
+			an.deleteLoadBalancer(lb_response.LoadbalancerID, eipIDs)
 			return nil, err
 		}
 
@@ -177,61 +185,67 @@ func (an *Anchnet) EnsureLoadBalancer(
 		for _, host := range hosts {
 			backend := anchnet_client.AddLoadBalancerBackendsBackend{
 				ResourceID: convertToInstanceID(host),
-				Port:       port.NodePort,
+				Port:       int(port.NodePort),
 				Weight:     1, // Evenly spread
 			}
 			backends = append(backends, backend)
 		}
 		add_response, err := an.addLoadBalancerBackends(listener_response.ListenerIDs[0], backends)
 		if err != nil {
-			an.deleteLoadBalancer(lb_response.LoadbalancerID, eip_ids)
+			an.deleteLoadBalancer(lb_response.LoadbalancerID, eipIDs)
 			return nil, err
 		}
 		err = an.WaitJobStatus(add_response.JobID, anchnet_client.JobStatusSuccessful)
 		if err != nil {
-			an.deleteLoadBalancer(lb_response.LoadbalancerID, eip_ids)
+			an.deleteLoadBalancer(lb_response.LoadbalancerID, eipIDs)
 			return nil, err
 		}
 	}
 
 	// Create a security group and apply it to loadbalancer.
-	sg_response, err := an.createLBSecurityGroup(name, ports, lb_response.LoadbalancerID)
+	sg_response, err := an.createLBSecurityGroup(loadBalancerName, service.Spec.Ports, lb_response.LoadbalancerID)
 	if err != nil {
-		an.deleteLoadBalancer(lb_response.LoadbalancerID, eip_ids)
+		an.deleteLoadBalancer(lb_response.LoadbalancerID, eipIDs)
 		return nil, err
 	}
 	err = an.WaitJobStatus(sg_response.JobID, anchnet_client.JobStatusSuccessful)
 	if err != nil {
-		an.deleteLoadBalancer(lb_response.LoadbalancerID, eip_ids)
+		an.deleteLoadBalancer(lb_response.LoadbalancerID, eipIDs)
 		return nil, err
 	}
 
 	// Calling update loadbalancer will apply the above changes.
 	update_response, err := an.updateLoadBalancer(lb_response.LoadbalancerID)
 	if err != nil {
-		an.deleteLoadBalancer(lb_response.LoadbalancerID, eip_ids)
+		an.deleteLoadBalancer(lb_response.LoadbalancerID, eipIDs)
 		return nil, err
 	}
 	err = an.WaitJobStatus(update_response.JobID, anchnet_client.JobStatusSuccessful)
 	if err != nil {
-		an.deleteLoadBalancer(lb_response.LoadbalancerID, eip_ids)
+		an.deleteLoadBalancer(lb_response.LoadbalancerID, eipIDs)
 		return nil, err
 	}
 
 	// Get loadbalancer ip address and return it to k8s.
-	response, err := an.describeEip(eip_ids[0])
+	response, err := an.describeEip(eipIDs[0])
 	if err != nil {
-		an.deleteLoadBalancer(lb_response.LoadbalancerID, eip_ids)
+		an.deleteLoadBalancer(lb_response.LoadbalancerID, eipIDs)
 		return nil, err
 	}
 	status := &api.LoadBalancerStatus{}
 	status.Ingress = []api.LoadBalancerIngress{{IP: response.ItemSet[0].EipAddr}}
-	glog.Infof("created loadbalancer %v, ingress ip %v\n", name, response.ItemSet[0].EipAddr)
+	glog.Infof("EnsureLoadBalancer(): created loadbalancer %v, ingress ip %v\n", loadBalancerName, response.ItemSet[0].EipAddr)
+
+	// As usual, before returning, we apply loadbalancer again, in case anchnet
+	// fails to apply any of the above changes.
+	update_response, _ = an.updateLoadBalancer(lb_response.LoadbalancerID)
+	an.WaitJobStatus(update_response.JobID, anchnet_client.JobStatusSuccessful)
+
 	return status, nil
 }
 
 // UpdateLoadBalancer updates hosts under the specified load balancer.
-func (an *Anchnet) UpdateLoadBalancer(name, region string, hosts []string) error {
+func (an *Anchnet) UpdateLoadBalancer(clusterName string, service *api.Service, hosts []string) error {
 	return nil
 }
 
@@ -245,29 +259,30 @@ func (an *Anchnet) UpdateLoadBalancer(name, region string, hosts []string) error
 // 1. external ip allocated to loadbalancer;
 // 2. loadbalancer itself (including listeners);
 // 3. security group for loadbalancer;
-func (an *Anchnet) EnsureLoadBalancerDeleted(name, region string) error {
-	return an.EnsureLoadBalancerDeletedHelper(name, region, false)
+func (an *Anchnet) EnsureLoadBalancerDeleted(clusterName string, service *api.Service) error {
+	return an.EnsureLoadBalancerDeletedHelper(clusterName, service, false)
 }
 
-func (an *Anchnet) EnsureLoadBalancerDeletedHelper(name, region string, preserve_ip bool) error {
+func (an *Anchnet) EnsureLoadBalancerDeletedHelper(clusterName string, service *api.Service, preserveIP bool) error {
+	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
 	// Delete external ip and load balancer.
-	matching_lb, exists, err := an.searchLoadBalancer(name)
+	matchingLB, exists, err := an.searchLoadBalancer(loadBalancerName)
 	if err != nil {
 		return err
 	}
 	if exists == false {
-		glog.Infof("Load balancer %v already deleted", name)
+		glog.Infof("Load balancer %v already deleted", loadBalancerName)
 		return nil
 	}
 
 	// empty array will be passed to deleteLoadBalancer if we want to preserve eip.
-	var eip_ids []string
-	if !preserve_ip {
-		for _, eip := range matching_lb.Eips {
-			eip_ids = append(eip_ids, eip.EipID)
+	var eipIDs []string
+	if !preserveIP {
+		for _, eip := range matchingLB.Eips {
+			eipIDs = append(eipIDs, eip.EipID)
 		}
 	}
-	lb_delete_response, err := an.deleteLoadBalancer(matching_lb.LoadbalancerID, eip_ids)
+	lb_delete_response, err := an.deleteLoadBalancer(matchingLB.LoadbalancerID, eipIDs)
 
 	if err != nil {
 		return err
@@ -278,18 +293,18 @@ func (an *Anchnet) EnsureLoadBalancerDeletedHelper(name, region string, preserve
 	}
 
 	// Wait for load balancer to become 'deleted' status.
-	err = an.waitForLoadBalancer(matching_lb.LoadbalancerID, anchnet_client.LoadBalancerStatusDeleted)
+	err = an.waitForLoadBalancer(matchingLB.LoadbalancerID, anchnet_client.LoadBalancerStatusDeleted)
 	if err != nil {
 		return err
 	}
 
 	// Now delete security group.
-	sg_response, exists, err := an.searchSecurityGroup(name)
+	sg_response, exists, err := an.searchSecurityGroup(loadBalancerName)
 	if err != nil {
 		return err
 	}
 	if exists == false {
-		glog.Infof("Security group %v already deleted", name)
+		glog.Infof("Security group %v already deleted", loadBalancerName)
 		return nil
 	}
 
@@ -590,7 +605,7 @@ func (an *Anchnet) searchSecurityGroup(search_word string) (*anchnet_client.Desc
 }
 
 // createLBSecurityGroup creates a security group, and then apply the rules to loadbalancer.
-func (an *Anchnet) createLBSecurityGroup(name string, ports []*api.ServicePort, lbID string) (*anchnet_client.CreateSecurityGroupResponse, error) {
+func (an *Anchnet) createLBSecurityGroup(name string, ports []api.ServicePort, lbID string) (*anchnet_client.CreateSecurityGroupResponse, error) {
 	// For every service port, we create a security group rule to allow lb traffic.
 	var rules []anchnet_client.CreateSecurityGroupRule
 	for _, port := range ports {

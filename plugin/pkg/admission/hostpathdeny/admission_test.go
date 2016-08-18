@@ -66,7 +66,7 @@ func TestAdmission(t *testing.T) {
 		pod := pod()
 		pod.Spec.Volumes = tc.volumes
 
-		err := handler.Admit(admission.NewAttributesRecord(pod, api.Kind("Pod"), "foo", "name", api.Resource("pods"), "", "ignored", nil))
+		err := handler.Admit(admission.NewAttributesRecord(pod, nil, api.Kind("Pod").WithVersion("version"), "foo", "name", api.Resource("pods").WithVersion("version"), "", admission.Create, nil))
 		if err != nil && !tc.expectError {
 			t.Errorf("%v: unexpected error: %v", tc.name, err)
 		} else if err == nil && tc.expectError {
