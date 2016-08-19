@@ -11,7 +11,7 @@ or
 VAGRANT_VAGRANTFILE=Vagrantfile.centos vagrant up
 ```
 
-This will create three ubuntu VMs with dedicated IP addresses. 
+This will create three ubuntu VMs with dedicated IP addresses.
 
 ## Set environment variables
 
@@ -101,3 +101,62 @@ KUBERNETES_PROVIDER=caicloud-ansible ./cluster/kube-up.sh
 ```
 KUBERNETES_PROVIDER=caicloud-ansible ./cluster/kube-down.sh
 ```
+
+## Test
+
+### Unit Test
+
+Running unit test is the same as upstream, i.e.
+```
+./hack/test-go.sh
+```
+
+### Integration Test
+
+Running integration test is the same as upstream, i.e.
+```
+./hack/test-integration.sh
+```
+
+### e2e test
+
+Typical workflow for running ansible e2e tests:
+
+- Step1:
+  Create a new test release:
+  ```
+  BUILD_CLOUD_IMAGE=N ./hack/caicloud/build-release.sh v0.10.0-e2e
+  ```
+
+- Step2:
+  Create a new cluster:
+  ```
+  $ AUTOMATICALLY_INSTALL_ANSIBLE=NO CAICLOUD_K8S_CFG_STRING_KUBE_VERSION=v1.3.3+v0.10.0-e2e KUBERNETES_PROVIDER=caicloud-ansible ./cluster/kube-up.sh
+  ```
+  Note "v1.3.3" is the upstream kubernetes version defined in `./hack/caicloud/common.sh`.
+
+- Step3:
+  Run e2e tests:
+  ```
+  $ TEST_BUILD=Y TEST_UP=N KUBERNETES_PROVIDER=caicloud-ansible ./hack/caicloud/caicloud-e2e-test.sh
+  ```
+  Note for e2e tests, we need to tell e2e framework where to find kubernetes master (apart from ~/.kube/config
+  file). This is achieved via KUBE_MASTER_IP and KUBE_MASTER environment. Default value is set at
+  `./cluster/caicloud-ansible/util.sh#detect-master`.
+
+  Following command runs conformance test:
+  ```
+  $ TEST_BUILD=N TEST_UP=N CAICLOUD_TEST_FOCUS_REGEX="\[Conformance]" KUBERNETES_PROVIDER=caicloud-ansible ./hack/caicloud/caicloud-e2e-test.sh
+  ```
+
+- Step4:
+  Test features enabled in caicloud, on the same cluster e.g.
+  ```
+  $ TEST_BUILD=N TEST_UP=N CAICLOUD_TEST_FOCUS_REGEX="\[Feature:Elasticsearch\]" KUBERNETES_PROVIDER=caicloud-ansible ./hack/caicloud/caicloud-e2e-test.sh
+  ```
+
+- Step5:
+  Re-run failed tests. You may want to create a new cluster (or update binaries) if you touches core kubernetes codebase:
+  ```
+  $ TEST_BUILD=Y TEST_UP=N CAICLOUD_TEST_FOCUS_REGEX="\[ReplicationController.*light\]" KUBERNETES_PROVIDER=caicloud-ansible ./hack/caicloud/caicloud-e2e-test.sh
+  ```

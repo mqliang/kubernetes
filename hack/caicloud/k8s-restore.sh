@@ -56,6 +56,10 @@ for i in `seq "${#PATTERNS[@]}"`; do
     xargs perl -X -i -pe "${SUBSTITUTIONS[$index]}"
 done
 
+# Restore bindata.go
+mv ${KUBE_ROOT}/test/e2e/generated/bindata.go.bk \
+   ${KUBE_ROOT}/test/e2e/generated/bindata.go
+
 # Restore google.com.
 perl -i -pe "s|baidu.com|google.com|g" \
      ${KUBE_ROOT}/test/e2e/networking.go \

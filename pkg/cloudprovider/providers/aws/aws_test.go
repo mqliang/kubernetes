@@ -1189,7 +1189,7 @@ func (self *FakeELB) expectDescribeLoadBalancers(loadBalancerName string) {
 func TestDescribeLoadBalancerOnDelete(t *testing.T) {
 	awsServices := NewFakeAWSServices()
 	c, _ := newAWSCloud(strings.NewReader("[global]"), awsServices)
-	awsServices.elb.expectDescribeLoadBalancers("aid")
+	awsServices.elb.expectDescribeLoadBalancers("testCluster-myservice--aid")
 
 	c.EnsureLoadBalancerDeleted(TestClusterName, &api.Service{ObjectMeta: api.ObjectMeta{Name: "myservice", UID: "id"}})
 }
@@ -1197,7 +1197,7 @@ func TestDescribeLoadBalancerOnDelete(t *testing.T) {
 func TestDescribeLoadBalancerOnUpdate(t *testing.T) {
 	awsServices := NewFakeAWSServices()
 	c, _ := newAWSCloud(strings.NewReader("[global]"), awsServices)
-	awsServices.elb.expectDescribeLoadBalancers("aid")
+	awsServices.elb.expectDescribeLoadBalancers("testCluster-myservice--aid")
 
 	c.UpdateLoadBalancer(TestClusterName, &api.Service{ObjectMeta: api.ObjectMeta{Name: "myservice", UID: "id"}}, []string{})
 }
@@ -1205,7 +1205,7 @@ func TestDescribeLoadBalancerOnUpdate(t *testing.T) {
 func TestDescribeLoadBalancerOnGet(t *testing.T) {
 	awsServices := NewFakeAWSServices()
 	c, _ := newAWSCloud(strings.NewReader("[global]"), awsServices)
-	awsServices.elb.expectDescribeLoadBalancers("aid")
+	awsServices.elb.expectDescribeLoadBalancers("testCluster-myservice--aid")
 
 	c.GetLoadBalancer(TestClusterName, &api.Service{ObjectMeta: api.ObjectMeta{Name: "myservice", UID: "id"}})
 }
@@ -1213,7 +1213,7 @@ func TestDescribeLoadBalancerOnGet(t *testing.T) {
 func TestDescribeLoadBalancerOnEnsure(t *testing.T) {
 	awsServices := NewFakeAWSServices()
 	c, _ := newAWSCloud(strings.NewReader("[global]"), awsServices)
-	awsServices.elb.expectDescribeLoadBalancers("aid")
+	awsServices.elb.expectDescribeLoadBalancers("testCluster-myservice--aid")
 
 	c.EnsureLoadBalancer(TestClusterName, &api.Service{ObjectMeta: api.ObjectMeta{Name: "myservice", UID: "id"}}, []string{})
 }

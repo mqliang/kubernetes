@@ -132,7 +132,7 @@ func TestCreateExternalLoadBalancer(t *testing.T) {
 			}
 			actionFound := false
 			for _, action := range actions {
-				if action.GetVerb() == "update" && action.GetResource() == "services" {
+				if action.GetVerb() == "update" && action.GetResource().Resource == "services" {
 					actionFound = true
 				}
 			}
@@ -169,7 +169,7 @@ func TestUpdateNodesInExternalLoadBalancer(t *testing.T) {
 				newService("s0", "333", api.ServiceTypeLoadBalancer),
 			},
 			expectedUpdateCalls: []fakecloud.FakeUpdateBalancerCall{
-				{Name: "test-cluster2-s0-namespace-a333", Region: region, Hosts: []string{"node0", "node1", "node73"}},
+				{newService("s0", "333", api.ServiceTypeLoadBalancer), hosts},
 			},
 		},
 		{
@@ -180,9 +180,9 @@ func TestUpdateNodesInExternalLoadBalancer(t *testing.T) {
 				newService("s2", "666", api.ServiceTypeLoadBalancer),
 			},
 			expectedUpdateCalls: []fakecloud.FakeUpdateBalancerCall{
-				{Name: "test-cluster2-s0-namespace-a444", Region: region, Hosts: []string{"node0", "node1", "node73"}},
-				{Name: "test-cluster2-s1-namespace-a555", Region: region, Hosts: []string{"node0", "node1", "node73"}},
-				{Name: "test-cluster2-s2-namespace-a666", Region: region, Hosts: []string{"node0", "node1", "node73"}},
+				{newService("s0", "444", api.ServiceTypeLoadBalancer), hosts},
+				{newService("s1", "555", api.ServiceTypeLoadBalancer), hosts},
+				{newService("s2", "666", api.ServiceTypeLoadBalancer), hosts},
 			},
 		},
 		{
@@ -194,8 +194,8 @@ func TestUpdateNodesInExternalLoadBalancer(t *testing.T) {
 				newService("s4", "123", api.ServiceTypeClusterIP),
 			},
 			expectedUpdateCalls: []fakecloud.FakeUpdateBalancerCall{
-				{Name: "test-cluster2-s1-namespace-a888", Region: region, Hosts: []string{"node0", "node1", "node73"}},
-				{Name: "test-cluster2-s3-namespace-a999", Region: region, Hosts: []string{"node0", "node1", "node73"}},
+				{newService("s1", "888", api.ServiceTypeLoadBalancer), hosts},
+				{newService("s3", "999", api.ServiceTypeLoadBalancer), hosts},
 			},
 		},
 		{
@@ -205,7 +205,7 @@ func TestUpdateNodesInExternalLoadBalancer(t *testing.T) {
 				nil,
 			},
 			expectedUpdateCalls: []fakecloud.FakeUpdateBalancerCall{
-				{Name: "test-cluster2-s0-namespace-a234", Region: region, Hosts: []string{"node0", "node1", "node73"}},
+				{newService("s0", "234", api.ServiceTypeLoadBalancer), hosts},
 			},
 		},
 	}

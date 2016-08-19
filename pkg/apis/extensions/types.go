@@ -704,6 +704,7 @@ type HostPortRange struct {
 type FSType string
 
 var (
+	AnchnetPersistentDisk FSType = "anchnetPersistentDisk"
 	AzureFile             FSType = "azureFile"
 	Flocker               FSType = "flocker"
 	FlexVolume            FSType = "flexVolume"
