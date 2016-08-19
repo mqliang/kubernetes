@@ -2680,7 +2680,7 @@ func (c *Cloud) EnsureLoadBalancer(clusterName string, apiService *api.Service, 
 		return nil, fmt.Errorf("could not find any suitable subnets for creating the ELB")
 	}
 
-	loadBalancerName := cloudprovider.GetLoadBalancerName(apiService)
+	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, apiService)
 	serviceName := types.NamespacedName{Namespace: apiService.Namespace, Name: apiService.Name}
 
 	// Create a security group for the load balancer

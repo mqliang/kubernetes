@@ -43,7 +43,7 @@ const (
 	// static pods to pull the list of seeded images. If they don't pull
 	// images within this time we simply log their output and carry on
 	// with the tests.
-	imagePrePullingTimeout = 5 * time.Minute
+	imagePrePullingTimeout = 20 * time.Minute
 )
 
 var (

@@ -21,6 +21,8 @@
 #
 # For how to use the script on caicloud cloudproviders, see README of respective repo.
 
+KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
+
 # Add focused test regex here. If this is not empty, we'll only run focused tests.
 # Note:
 #   - CAICLOUD_TEST_FOCUS_REGEX take precedence over CAICLOUD_TEST_SKIP_REGEX
@@ -55,6 +57,7 @@ export ENABLE_CLUSTER_REGISTRY=false
 # Do not check version skew since server & client version may slightly differ in caicloud.
 OPTS="-v -test --check_version_skew=false"
 if [[ "${TEST_BUILD}" = "Y" ]]; then
+  rm -rf "$(dirname $0)/../../_output"
   OPTS="${OPTS} -build"
 fi
 if [[ "${TEST_UP}" = "Y" ]]; then

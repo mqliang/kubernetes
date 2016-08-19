@@ -24,6 +24,7 @@ KUBE_ROOT="$KUBE_CURRENT/../.."
 # Get cluster configuration parameters from config-default.
 source "${KUBE_ROOT}/cluster/caicloud-ansible/config-default.sh"
 source "${KUBE_ROOT}/cluster/caicloud/common.sh"
+source "${KUBE_ROOT}/cluster/lib/util.sh"
 
 # -----------------------------------------------------------------------------
 # Cluster specific library utility functions.
@@ -35,13 +36,15 @@ function verify-prereqs {
   fi
 
   # Check needed binaries
-  needed_binaries=("expect" "ansible" "ansible-playbook" "sshpass" "netaddr")
-  for binary in ${needed_binaries[@]}; do
-    if [[ `eval which ${binary}` == "" ]]; then
-      log "Can't find ${binary} binary in PATH, please fix and retry."
-      exit 1
-    fi
-  done
+  if [[ `uname` != "Darwin" ]]; then
+    needed_binaries=("expect" "ansible" "ansible-playbook" "sshpass" "netaddr")
+    for binary in ${needed_binaries[@]}; do
+      if [[ `eval which ${binary}` == "" ]]; then
+        log "Can't find ${binary} binary in PATH, please fix and retry."
+        exit 1
+      fi
+    done
+  fi
 
   # Make sure we have set MASTER_SSH_INFO and NODE_SSH_INFO
   if [[ "$MASTER_SSH_INFO" == "" ]]; then
@@ -90,4 +93,20 @@ function kube-down {
   create-inventory-file
   create-extra-vars-json-file
   clear-kubernetes-by-ansible
+}
+
+# Find master to work with.
+function detect-master {
+  export KUBE_MASTER_IP=${KUBE_MASTER_IP:-"cluster.caicloudprivatetest.com"}
+  export KUBE_MASTER=${KUBE_MASTER:-"cluster.caicloudprivatetest.com"}
+}
+
+# Execute prior to running tests to build a release if required for env.
+function test-build-release {
+  log "Running test-build-release for ansible"
+  # Make sure we have a sensible version.
+  source ${KUBE_ROOT}/hack/caicloud/common.sh
+  export KUBE_GIT_VERSION="${K8S_VERSION}+caicloud-ansible-e2e"
+  export KUBE_GIT_TREE_STATE="clean"
+  caicloud-build-local
 }

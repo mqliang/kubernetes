@@ -233,9 +233,6 @@ type Volume struct {
 // Represents the source of a volume to mount.
 // Only one of its members may be specified.
 type VolumeSource struct {
-	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
-	// kubelet's host machine and then exposed to the pod.
-	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty"`
 	// HostPath represents a pre-existing file or directory on the host
 	// machine that is directly exposed to the container. This is generally
 	// used for system agents or other privileged things that are allowed
@@ -327,6 +324,9 @@ type VolumeSource struct {
 	AzureDisk *AzureDiskVolumeSource `json:"azureDisk,omitempty" protobuf:"bytes,22,opt,name=azureDisk"`
 	// PhotonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine
 	PhotonPersistentDisk *PhotonPersistentDiskVolumeSource `json:"photonPersistentDisk,omitempty" protobuf:"bytes,23,opt,name=photonPersistentDisk"`
+	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty" protobuf:"bytes,24,opt,name=anchnetPersistentDisk"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
@@ -346,9 +346,6 @@ type PersistentVolumeClaimVolumeSource struct {
 // PersistentVolumeSource is similar to VolumeSource but meant for the
 // administrator who creates PVs. Exactly one of its members must be set.
 type PersistentVolumeSource struct {
-	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
-	// kubelet's host machine and then exposed to the pod.
-	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty"`
 	// GCEPersistentDisk represents a GCE Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod. Provisioned by an admin.
 	// More info: http://kubernetes.io/docs/user-guide/volumes#gcepersistentdisk
@@ -415,6 +412,9 @@ type PersistentVolumeSource struct {
 	AzureDisk *AzureDiskVolumeSource `json:"azureDisk,omitempty" protobuf:"bytes,16,opt,name=azureDisk"`
 	// PhotonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine
 	PhotonPersistentDisk *PhotonPersistentDiskVolumeSource `json:"photonPersistentDisk,omitempty" protobuf:"bytes,17,opt,name=photonPersistentDisk"`
+	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty" protobuf:"bytes,18,opt,name=anchnetPersistentDisk"`
 }
 
 // +genclient=true
@@ -788,19 +788,19 @@ const (
 // An anchnet PD can only be mounted as read/write once.
 type AnchnetPersistentDiskVolumeSource struct {
 	// Unique name of the PD resource. Used to identify the disk in Anchnet
-	VolumeID string `json:"volumeID"`
+	VolumeID string `json:"volumeID" protobuf:"bytes,1,opt,name=volumeID"`
 	// Required: Filesystem type to mount.
 	// Must be a filesystem type supported by the host operating system.
 	// Ex. "ext4", "xfs", "ntfs"
 	// TODO: how do we prevent errors in the filesystem from compromising the machine
-	FSType string `json:"fsType,omitempty"`
+	FSType string `json:"fsType,omitempty" protobuf:"bytes,2,opt,name=fsType"`
 	// Optional: Partition on the disk to mount.
 	// If omitted, kubelet will attempt to mount the device name.
 	// Ex. For /dev/sda1, this field is "1", for /dev/sda, this field is 0 or empty.
-	Partition int `json:"partition,omitempty"`
+	Partition int32 `json:"partition,omitempty" protobuf:"varint,3,opt,name=partition"`
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
-	ReadOnly bool `json:"readOnly,omitempty"`
+	ReadOnly bool `json:"readOnly,omitempty" protobuf:"varint,4,opt,name=readOnly"`
 }
 
 // Represents a Persistent Disk resource in Google Compute Engine.

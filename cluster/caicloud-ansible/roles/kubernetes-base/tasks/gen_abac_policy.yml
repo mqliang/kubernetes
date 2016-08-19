@@ -48,4 +48,3 @@
     group={{ kube_cert_group }}
     owner=kube
     mode=0640
-  

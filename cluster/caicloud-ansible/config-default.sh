@@ -21,10 +21,10 @@ MASTER_SSH_INFO=${MASTER_SSH_INFO:-"vagrant:vagrant@192.168.205.10"}
 NODE_SSH_INFO=${NODE_SSH_INFO:-"vagrant:vagrant@192.168.205.11,vagrant:vagrant@192.168.205.12"}
 
 # Ansible 1.2.1 and later have host key checking enabled by default.
-# If a host is reinstalled and has a different key in ‘known_hosts’, this will 
-# result in an error message until corrected. If a host is not initially in 
-# ‘known_hosts’ this will result in prompting for confirmation of the key, 
-# which results in an interactive experience if using Ansible, from say, cron. 
+# If a host is reinstalled and has a different key in ‘known_hosts’, this will
+# result in an error message until corrected. If a host is not initially in
+# ‘known_hosts’ this will result in prompting for confirmation of the key,
+# which results in an interactive experience if using Ansible, from say, cron.
 # You might not want this.
 export ANSIBLE_HOST_KEY_CHECKING=False
 

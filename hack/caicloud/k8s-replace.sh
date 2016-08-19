@@ -59,6 +59,26 @@ for i in `seq "${#PATTERNS[@]}"`; do
     xargs perl -X -i -pe "${SUBSTITUTIONS[$index]}"
 done
 
+# For e2e tests in newer release, yaml files are compiled into "test/e2e/generated/bindata.go".
+# Previously, the yaml files are read from various directories. This is documented
+# in test/e2e/framework/gobindata_util.go. Therefore, before building binaries, run
+# this script and we'll have correct images compiled into the binaries.
+if [[ `which go-bindata` == "" ]]; then
+  go get -u github.com/jteeuwen/go-bindata/...
+fi
+if [[ ! -f test/e2e/generated/bindata.go.bk ]]; then
+  # Compile only if bindata.go.bk doesn't exist (replace.sh can be called
+  # multiple times).
+  cd ${KUBE_ROOT}
+  mv test/e2e/generated/bindata.go test/e2e/generated/bindata.go.bk
+  go-bindata \
+    -pkg generated -ignore .jpg -ignore .png -ignore .md \
+    ./examples/* ./docs/user-guide/* test/e2e/testing-manifests/kubectl/* test/images/*
+  mv bindata.go test/e2e/generated
+  gofmt -s -w test/e2e/generated/bindata.go
+  cd - > /dev/null
+fi
+
 # Change google.com to baidu.com, which is used to check network connectivity.
 perl -i -pe "s|google.com|baidu.com|g" \
      ${KUBE_ROOT}/test/e2e/networking.go \
