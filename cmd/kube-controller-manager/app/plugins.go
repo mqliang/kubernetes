@@ -30,6 +30,7 @@ import (
 	// Volume plugins
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/anchnet"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/azure"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
@@ -39,6 +40,7 @@ import (
 	utilconfig "k8s.io/kubernetes/pkg/util/config"
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/kubernetes/pkg/volume/anchnet_pd"
 	"k8s.io/kubernetes/pkg/volume/aws_ebs"
 	"k8s.io/kubernetes/pkg/volume/azure_dd"
 	"k8s.io/kubernetes/pkg/volume/cinder"
@@ -129,6 +131,8 @@ func ProbeControllerVolumePlugins(cloud cloudprovider.Interface, config componen
 			allPlugins = append(allPlugins, azure_dd.ProbeVolumePlugins()...)
 		case photon.ProviderName == cloud.ProviderName():
 			allPlugins = append(allPlugins, photon_pd.ProbeVolumePlugins()...)
+		case anchnet_pd.ProviderName == cloud.ProviderName():
+			allPlugins = append(allPlugins, anchnet_pd.ProbeVolumePlugins()...)
 		}
 	}
 
@@ -161,6 +165,8 @@ func NewAlphaVolumeProvisioner(cloud cloudprovider.Interface, config componentco
 		return getProvisionablePluginFromVolumePlugins(azure_dd.ProbeVolumePlugins())
 	case cloud != nil && photon.ProviderName == cloud.ProviderName():
 		return getProvisionablePluginFromVolumePlugins(photon_pd.ProbeVolumePlugins())
+	case cloud != nil && anchnet_cloud.ProviderName == cloud.ProviderName():
+		return getProvisionablePluginFromVolumePlugins(anchnet_pd.ProbeVolumePlugins())
 	}
 	return nil, nil
 }

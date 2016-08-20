@@ -53,6 +53,33 @@ func (an *Anchnet) WaitJobStatus(jobID string, status anchnet_client.JobStatus) 
 	return fmt.Errorf("Time out waiting for job %v", jobID)
 }
 
+// WaitJobStatus waits until a job succeeded of failed
+func (an *Anchnet) WaitJobSucceededOrFailed(jobID string) (bool, error) {
+	glog.Infof("Wait Job %v to become succeeded or failed", jobID)
+	for i := 0; i < RetryCountOnWait; i++ {
+		request := anchnet_client.DescribeJobsRequest{
+			JobIDs: []string{jobID},
+		}
+		var response anchnet_client.DescribeJobsResponse
+		err := an.client.SendRequest(request, &response)
+		if err == nil {
+			if len(response.ItemSet) == 0 {
+				glog.Infof("Attempt %d: received nil error but empty response while waiting for job %v\n", i, jobID)
+			} else if response.ItemSet[0].Status == anchnet_client.JobStatusSuccessful {
+				glog.Infof("Job %v becomes succeeded", jobID)
+				return true, nil
+			} else if response.ItemSet[0].Status == anchnet_client.JobStatusFailed {
+				glog.Infof("Job %v becomes failed", jobID)
+				return false, nil
+			}
+		} else {
+			glog.Infof("Attempt %d: failed to wait job status: %v\n", i, err)
+		}
+		time.Sleep(time.Duration(i+1) * RetryIntervalOnWait)
+	}
+	return false, fmt.Errorf("Time out waiting for job %v", jobID)
+}
+
 // makeResources converts bare resources to api spec'd resource, cpu is in cores, memory is in GiB.
 func makeResources(cpu, memory int) *api.NodeResources {
 	return &api.NodeResources{

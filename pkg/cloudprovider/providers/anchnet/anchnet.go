@@ -29,6 +29,8 @@ import (
 	anchnet_client "github.com/caicloud/anchnet-go"
 )
 
+const DefaultMaxAnchnetPDVolumes = 10
+
 const (
 	ProviderName = "anchnet"
 
@@ -155,7 +157,8 @@ func (an *Anchnet) ProviderName() string {
 }
 
 type VolumeOptions struct {
-	CapacityMB int
+	CapacityGB int
+	Name       string
 }
 
 // Volumes is an interface for managing cloud-provisioned volumes.
