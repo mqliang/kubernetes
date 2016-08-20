@@ -1,12 +1,13 @@
 [Unit]
-After=network-online.target
-Wants=network-online.target
+After=docker.service
+Requires=docker.service
 Description=calico is a pure Layer 3 approach to virtual networking
 
 [Service]
-Type=notify
 EnvironmentFile={{ calicoctl_config_dir }}/calicoctl
+ExecStartPre=-/usr/bin/docker rm -f calico-node
 ExecStart={{ bin_dir }}/calicoctl $CALICOCTL_OPTS
+ExecStop=-/usr/bin/docker stop calico-node
 Restart=always
 
 [Install]
