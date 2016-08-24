@@ -28,4 +28,4 @@ KUBE_MASTER="--master=https://{{ hostvars[groups['masters'][0]]['internal_ip'] }
 #   kube-controller-manager
 #   kubelet
 
-KUBE_CLOUD_PROVIDER="--cloud-provider={{ host_provider }} --cloud-config={{ kube_config_dir }}/cloud-config"
+KUBE_CLOUD_PROVIDER="{% if host_provider == "aliyun" or host_provider == "anchnet" %}--cloud-provider={{ host_provider }} --cloud-config={{ kube_config_dir }}/cloud-config{% endif %}"
