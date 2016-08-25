@@ -1,7 +1,7 @@
 # This value determines how kubernetes binaries, config files, and service
 # files are loaded onto the target machines.
 
-# The provider of these machines, valid options: vagrant|anchnet|other. For
+# The provider of these machines, valid options: vagrant|anchnet|aliyun|other. For
 # private cloud, set this to 'other'.
 host_provider: vagrant
 
@@ -114,9 +114,6 @@ etcd_interface: "{{ ansible_default_ipv4.interface }}"
 # but ansible will change it for certain type of provider, e.g. vagrant.
 flannel_interface: "{{ ansible_default_ipv4.interface }}"
 
-# Kubeconfig for kubectl on the control machine.
-cm_kubectl_kubeconfig: "/etc/kubernetes/kubectl.cmkubeconfig"
-
 # Caicloud domain name
 caicloud_app_domain: "caicloudapp.com"
 caicloud_private_test_domain: "caicloudprivatetest.com"
@@ -127,7 +124,24 @@ caicloud_private_test_domain: "caicloudprivatetest.com"
 # Things like the systemd scripts are hard coded to look in here.
 kube_config_dir: "/etc/kubernetes"
 
-# Addon images.
+# Kubeconfig for kubectl on the control machine.
+cm_kubectl_kubeconfig: "{{ kube_config_dir }}/kubectl.cmkubeconfig"
+
+# The directory to store all addon yaml files.
+kube_addons_dir: "{{ kube_config_dir }}/addons"
+
+# This directory is where all the additional scripts go that Kubernetes normally puts
+# in /srv/kubernetes.  This puts them in a sane location.
+kube_script_dir: "{{ kube_config_dir}}/scripts"
+
+# This is where all of the bearer tokens will be stored
+kube_token_dir: "{{ kube_config_dir }}/tokens"
+
+# The directory where binaries are stored on Ansible managed systems.
+# Editting this value will almost surely break something. Things like
+# the systemd scripts are hard coded to look in here.
+bin_dir: /usr/bin
+
 elasticsearch_image_elasticsearch: "index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.8.2"
 elasticsearch_image_escron: "index.caicloud.io/caicloud/es-cron:v0.1.2"
 fluentd_elasticsearch_image: "index.caicloud.io/caicloudgcr/google_containers_fluentd-elasticsearch:1.17"

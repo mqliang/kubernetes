@@ -1,0 +1,34 @@
+---
+# This playbook run aliyun instances by aliyuncli tool.
+
+- name: Sync time
+  hosts: localhost
+  become: yes
+  roles:
+    - ntpdate
+  tags:
+    - ntpdate
+
+- name: Run aliyun instances
+  hosts: localhost
+  become: yes
+  roles:
+    - up
+  tags:
+    - up
+
+- name: Add domain name to aliyun dns
+  hosts: localhost
+  become: yes
+  roles:
+    - dns
+  tags:
+    - dns
+
+- name: Get instances ssh info
+  hosts: localhost
+  become: yes
+  roles:
+    - getter
+  tags:
+    - getter

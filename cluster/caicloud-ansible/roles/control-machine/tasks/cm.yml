@@ -38,7 +38,7 @@
 
 - set_fact:
     mapping_domain_to_ip: false
-  when: host_provider == "anchnet"
+  when: host_provider == "anchnet" or host_provider == "aliyun"
 
 - name: Set default base domain name
   set_fact:
@@ -53,7 +53,7 @@
 - name: Update /etc/hosts for mapping domain name to ip
   lineinfile:
     dest: /etc/hosts
-    regexp: "^{{ kube_master_ip }}"
+    regexp: "{{ dns_host_name }}.{{ domain_name }}"
     line: "{{ kube_master_ip }} {{ dns_host_name }}.{{ domain_name }}"
     state: present
   when: mapping_domain_to_ip

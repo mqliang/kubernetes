@@ -1,0 +1,119 @@
+---
+
+- name: Check if access key is set
+  fail: msg="Required access_key_id and access_key_secret"
+  when: access_key_id == "fake" or access_key_secret == "fake"
+
+- name: Set common parametes
+  set_fact:
+    common_paras: "--AccessKeyId {{ access_key_id }} --AccessKeySecret {{ access_key_secret }} --RegionId {{ region_id }} --output json"
+
+- name: Search a security group by name
+  command: aliyuncli ecs DescribeSecurityGroups {{ common_paras }} --SecurityGroupName {{ security_group_name }}
+  register: sg_info
+  until: sg_info.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Check if a security group exists by name
+  set_fact:
+    json_sg_info: "{{ sg_info.stdout | from_json }}"
+    sg_flag: true
+- set_fact:
+    sg_flag: false
+    aliyun_sgid: "fake"
+  when: json_sg_info.TotalCount|int == 0
+
+- name: Get security group id from an existing cluster
+  set_fact:
+    aliyun_sgid: "{{ json_sg_info.SecurityGroups.SecurityGroup[0].SecurityGroupId }}"
+  when: sg_flag
+
+# Init with empty list
+- set_fact:
+    master_instances_list: "{{ [] }}"
+    node_instances_list: "{{ [] }}"
+
+- name: Get master instances with name prefix '{{ master_name_prefix }}' in the security group
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ master_name_prefix }}* --filter Instances.Instance[*].InstanceId
+  register: master_instances_output
+  until: master_instances_output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+  when: sg_flag
+- set_fact:
+    master_instances_list: "{{ master_instances_output.stdout | from_json }}"
+  when: sg_flag and master_instances_output.stdout != ""
+
+- name: Get node instances with name prefix '{{ node_name_prefix }}' in the security group
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ node_name_prefix }}* --filter Instances.Instance[*].InstanceId
+  register: node_instances_output
+  until: node_instances_output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+  when: sg_flag
+- set_fact:
+    node_instances_list: "{{ node_instances_output.stdout | from_json }}"
+  when: sg_flag and node_instances_output.stdout != ""
+
+- set_fact:
+    instances_list: "{{ master_instances_list + node_instances_list }}"
+
+- name: Stop instances
+  include: stop-instance.yml
+  vars:
+    instance_id: "{{ item }}"
+  with_items: "{{ instances_list }}"
+  when: sg_flag
+  async: 1800
+  poll: 0
+
+- name: Wait instances to be in Stopped status
+  include: wait-instance.yml
+  vars:
+    instance_id: "{{ item }}"
+    wait_status: "Stopped"
+  with_items: "{{ instances_list }}"
+  when: sg_flag
+
+- name: Delete instances
+  include: delete-instance.yml
+  vars:
+    instance_id: "{{ item }}"
+  with_items: "{{ instances_list }}"
+  when: sg_flag
+  async: 1800
+  poll: 0
+
+- name: Wait instances to be deleted
+  include: wait-instance-deleted.yml
+  vars:
+    instance_id: "{{ item }}"
+  with_items: "{{ instances_list }}"
+  when: sg_flag
+
+- set_fact:
+    delete_sg_flag: false
+  when: sg_flag
+
+- name: Check if security group is empty
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }}
+  register: result
+  until: result.stdout.find("Code") == -1
+  retries: 10
+  delay: 10
+  when: sg_flag
+- set_fact:
+    delete_sg_flag: false
+    json_sg_info: "{{ result.stdout | from_json }}"
+- set_fact:
+    delete_sg_flag: true
+  when: json_sg_info.TotalCount|int == 0
+
+- name: Delete security group
+  command: aliyuncli ecs DeleteSecurityGroup {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }}
+  register: result
+  until: result.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+  when: sg_flag and delete_sg_flag

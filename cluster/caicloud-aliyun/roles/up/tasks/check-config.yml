@@ -1,0 +1,34 @@
+---
+# Check if relative parametes is validated.
+
+- name: Check if access key is set
+  fail: msg="Required access_key_id and access_key_secret"
+  when: access_key_id == "fake" or access_key_secret == "fake"
+
+# aliyuncli output filter: https://help.aliyun.com/knowledge_detail/41584.html
+- name: Check if the ImageId is available
+  command: aliyuncli ecs DescribeImages --AccessKeyId {{ access_key_id }} --AccessKeySecret {{ access_key_secret }} --RegionId {{ region_id }} --output json --Status Available --ImageId {{ image_id }}
+  register: check_output
+- set_fact:
+    json_check_output: "{{ check_output.stdout | from_json }}"
+- fail: msg="Cannot find {{ image_id }} in {{ region_id }} region"
+  when: json_check_output.TotalCount|int == 0
+
+- name: Check system disk size for master
+  fail: msg="system disk size must be grater than or equal to max{ 40, {{ json_check_output.Images.Image[0].Size }} }"
+  when: (master_system_disk_size < 40) or (json_check_output.Images.Image[0].Size|int > master_system_disk_size)
+
+- name: Check system disk size for node
+  fail: msg="system disk size must be grater than or equal to max{ 40, {{ json_check_output.Images.Image[0].Size }} }"
+  when: (node_system_disk_size < 40) or (json_check_output.Images.Image[0].Size|int > node_system_disk_size)
+
+- name: Check if internet_max_bandwidth_out is valid by PayByBandwidth
+  fail: msg="[PostPaid, PayByBandwidth] internet_max_bandwidth_out should be in [0, 100]"
+  when: (instance_charge_type == "PostPaid" and internet_charge_type == "PayByBandwidth") and (internet_max_bandwidth_out|int < 0 or internet_max_bandwidth_out|int > 100)
+
+- fail: msg="[PrePaid, PayByBandwidth] internet_max_bandwidth_out should be in [0, 200]"
+  when: (instance_charge_type == "PrePaid" and internet_charge_type == "PayByBandwidth") and (internet_max_bandwidth_out|int < 0 or internet_max_bandwidth_out|int > 200)
+
+- name: Check if internet_max_bandwidth_out is valid by PayByTraffic
+  fail: msg="[PayByTraffic] internet_max_bandwidth_out should be in [1, 100]"
+  when: internet_charge_type == "PayByTraffic" and (internet_max_bandwidth_out|int < 0 or internet_max_bandwidth_out|int > 100)

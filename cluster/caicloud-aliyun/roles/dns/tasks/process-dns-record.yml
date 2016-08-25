@@ -1,0 +1,43 @@
+---
+
+- name: Find domain record with name {{ dns_host_name }}
+  command: aliyuncli alidns DescribeDomainRecords --AccessKeyId {{ caicloud_access_key_id }} --AccessKeySecret {{ caicloud_access_key_secret }} --DomainName {{ base_domain_name }} --RRKeyWord {{ dns_host_name }} --output json
+  register: output
+  until: output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Check whether to find domain record
+  set_fact:
+    domain_record: "{{ output.stdout | from_json }}"
+    find_domain_record: False
+- include: find-domain-record.yml
+  vars:
+    record_rr: "{{ item.RR }}"
+    record_domain_name: "{{ item.DomainName }}"
+    record_value: "{{ item.Value }}"
+    record_record_id: "{{ item.RecordId }}"
+  until: find_domain_record
+  with_items: "{{ domain_record.DomainRecords.Record }}"
+  when: domain_record.TotalCount|int > 0
+  failed_when: False
+
+- name: Found domain record in aliyun dns
+  debug: msg="Found '{{ dns_host_name }}.{{ base_domain_name }}, {{ kube_master_ip }}' in aliyun dns"
+  when: find_domain_record
+
+- name: Add domain record into aliyun dns
+  command: aliyuncli alidns AddDomainRecord --AccessKeyId {{ caicloud_access_key_id }} --AccessKeySecret {{ caicloud_access_key_secret }} --DomainName caicloudapp.com --RR {{ dns_host_name }} --Type A --Value {{ kube_master_ip }}
+  register: output
+  until: output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+  when: dns_process_opt == "ADD" and not find_domain_record
+
+- name: Delete domain record from aliyun dns
+  command: aliyuncli alidns DeleteDomainRecord --AccessKeyId {{ caicloud_access_key_id }} --AccessKeySecret {{ caicloud_access_key_secret }} --RecordId {{ domain_record_id }}
+  register: output
+  until: output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+  when: dns_process_opt == "DELETE" and find_domain_record

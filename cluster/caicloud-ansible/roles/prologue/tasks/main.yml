@@ -8,7 +8,7 @@
   file: path={{ ansible_temp_dir }} state=directory
 
 - name: Get flannel interface name of IPv4 address
-  shell: ip addr show | grep {{ ansible_host }} | awk '{print $NF}'
+  shell: ip addr show | grep {{ internal_ip }} | awk '{print $NF}'
   register: interface_name
   changed_when: false
 

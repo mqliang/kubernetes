@@ -1,0 +1,14 @@
+---
+# Stop a instance
+#
+# Assumed vars:
+#   instance_id
+#   common_paras
+
+# Send StopInstance signal, When succeeded, no 'Code' find in stdout
+- name: Stop instance
+  command: aliyuncli ecs StopInstance {{ common_paras }} --InstanceId {{ instance_id }}
+  register: result
+  until: result.stdout.find("Code") == -1
+  retries: 5
+  delay: 5

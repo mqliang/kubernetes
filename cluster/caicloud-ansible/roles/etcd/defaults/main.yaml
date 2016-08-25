@@ -38,7 +38,7 @@ etcd_peer_key_file: "{{ etcd_config_dir }}/peer.key"
 etcd_initial_cluster_state: new
 etcd_initial_cluster_token: etcd-k8-cluster
 
-etcd_machine_address: "{{ hostvars[inventory_hostname]['ansible_host'] }}"
+etcd_machine_address: "{{ hostvars[inventory_hostname]['internal_ip'] }}"
 etcd_initial_advertise_peer_urls: "{{ etcd_peer_url_scheme }}://{{ etcd_machine_address }}:{{ etcd_peer_port }}"
 etcd_listen_peer_urls: "{{ etcd_peer_url_scheme }}://0.0.0.0:{{ etcd_peer_port }}"
 etcd_advertise_client_urls: "{{ etcd_url_scheme }}://{{ etcd_machine_address }}:{{ etcd_client_port }}"

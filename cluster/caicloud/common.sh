@@ -738,7 +738,10 @@ expect {
   timeout { exit 1 }
   eof {}
 }
+EOF
 
+    expect <<EOF
+set timeout $((($attempt+1)*3))
 spawn ssh -t -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oLogLevel=quiet \
   ${2}@${1} "\
 umask 077 && mkdir -p ~/.ssh && cat ~/host_rsa.pub >> ~/.ssh/authorized_keys && rm -rf ~/host_rsa.pub && \
@@ -1336,6 +1339,46 @@ function report-ips {
   fi
 }
 
+# Assumed vars:
+#   REPORT_KUBE_STATUS
+#   MASTER_INTERNAL_SSH_INFO
+#   NODE_INTERNAL_SSH_INFO
+#
+# Optional vars:
+#   MASTER_EXTERNAR_SSH_INFO
+#   NODE_EXTERNAL_SSH_INFO
+function report-ips-to-executor {
+  if [[ ${REPORT_KUBE_STATUS-} == "N" ]]; then
+    return
+  fi
+
+  if [[ -z "${MASTER_EXTERNAL_SSH_INFO-}" ]]; then
+    MASTER_EXTERNAL_SSH_INFO=${MASTER_INTERNAL_SSH_INFO}
+  fi
+  if [[ -z "${NODE_EXTERNAL_SSH_INFO-}" ]]; then
+    NODE_EXTERNAL_SSH_INFO=${NODE_INTERNAL_SSH_INFO}
+  fi
+
+  MASTER_EIPS=""
+  IFS=',' read -ra external_ssh_info <<< "${MASTER_EXTERNAL_SSH_INFO}"
+  for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
+    IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
+    MASTER_EIPS="${MASTER_EIPS},${e_ssh_info[2]}"
+  done
+  MASTER_EIPS=${MASTER_EIPS#,}
+  report-ips ${MASTER_EIPS} M
+
+  NODE_EIPS=""
+  IFS=',' read -ra external_ssh_info <<< "${NODE_EXTERNAL_SSH_INFO}"
+  for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
+    IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
+    NODE_EIPS="${NODE_EIPS},${e_ssh_info[2]}"
+  done
+  NODE_EIPS=${NODE_EIPS#,}
+  report-ips ${NODE_EIPS} N
+}
+
+
 # Report a list of instance ids back to the executor for recording.
 #
 # Input:
@@ -1444,34 +1487,50 @@ function report-user-message {
 
 # Create inventory file for ansible
 #
-# Make sure ansible_host is host_ip instead of hostname
+# Note:
+#   Make sure ansible_host is host_ip instead of hostname.
+#   MASTER_INSTACE_ID_INFO and NODE_INSTACE_ID_INFO is used for cloudproviders,
+#   for example aliyun, anchnet. We will use instance id as the inventory_hostname.
 #
 # Assumed vars:
 #   MASTER_INTERNAL_SSH_INFO
 #   NODE_INTERNAL_SSH_INFO
 #   KUBE_CURRENT
+#   MASTER_NAME_PREFIX
+#   NODE_NAME_PREFIX
 #
 # Optional vars:
-#   MASTER_EXTERNAR_SSH_INFO
+#   MASTER_EXTERNAL_SSH_INFO
 #   NODE_EXTERNAL_SSH_INFO
+#   MASTER_INSTACE_ID_INFO
+#   NODE_INSTACE_ID_INFO
 function create-inventory-file {
-  if [[ -z "${MASTER_EXTERNAR_SSH_INFO-}" ]]; then
-    MASTER_EXTERNAR_SSH_INFO=${MASTER_INTERNAL_SSH_INFO}
+  if [[ -z "${MASTER_EXTERNAL_SSH_INFO-}" ]]; then
+    MASTER_EXTERNAL_SSH_INFO=${MASTER_INTERNAL_SSH_INFO}
   fi
   if [[ -z "${NODE_EXTERNAL_SSH_INFO-}" ]]; then
     NODE_EXTERNAL_SSH_INFO=${NODE_INTERNAL_SSH_INFO}
   fi
+
   inventory_file=$KUBE_CURRENT/inventory
   # Set master roles
   echo "[masters]" > $inventory_file
   IFS=',' read -ra external_ssh_info <<< "${MASTER_EXTERNAL_SSH_INFO}"
   IFS=',' read -ra internal_ssh_info <<< "${MASTER_INTERNAL_SSH_INFO}"
+  if [[ ! -z "${MASTER_INSTACE_ID_INFO-}" ]]; then
+    IFS=',' read -ra instance_id_info <<< "${MASTER_INSTACE_ID_INFO}"
+  fi
   for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
     j=$((i+1))
+    if [[ ! -z "${MASTER_INSTACE_ID_INFO-}" ]]; then
+      hostname_in_ventory="${instance_id_info[i]}"
+    else
+      hostname_in_ventory="${MASTER_NAME_PREFIX}${j}"
+    fi
     IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
     IFS=':@' read -ra i_ssh_info <<< "${internal_ssh_info[$i]}"
     # External ip is used by ansible, but internal ip is used by kubernetes components
-    echo "kubernetes-master-${j} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
+    echo "${hostname_in_ventory} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
   done
   echo "" >> $inventory_file
 
@@ -1480,9 +1539,14 @@ function create-inventory-file {
   # It's the same with masters
   for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
     j=$((i+1))
+    if [[ ! -z "${MASTER_INSTACE_ID_INFO-}" ]]; then
+      hostname_in_ventory="${instance_id_info[i]}"
+    else
+      hostname_in_ventory="${MASTER_NAME_PREFIX}${j}"
+    fi
     IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
     IFS=':@' read -ra i_ssh_info <<< "${internal_ssh_info[$i]}"
-    echo "kubernetes-master-${j} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
+    echo "${hostname_in_ventory} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
   done
   echo "" >> $inventory_file
 
@@ -1490,11 +1554,20 @@ function create-inventory-file {
   echo "[nodes]" >> $inventory_file
   IFS=',' read -ra external_ssh_info <<< "${NODE_EXTERNAL_SSH_INFO}"
   IFS=',' read -ra internal_ssh_info <<< "${NODE_INTERNAL_SSH_INFO}"
+  if [[ ! -z "${NODE_INSTACE_ID_INFO-}" ]]; then
+    IFS=',' read -ra instance_id_info <<< "${NODE_INSTACE_ID_INFO}"
+  fi
+
   for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
     j=$((i+1))
+    if [[ ! -z "${NODE_INSTACE_ID_INFO-}" ]]; then
+      hostname_in_ventory="${instance_id_info[i]}"
+    else
+      hostname_in_ventory="${NODE_NAME_PREFIX}${j}"
+    fi
     IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
     IFS=':@' read -ra i_ssh_info <<< "${internal_ssh_info[$i]}"
-    echo "kubernetes-node-${j} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
+    echo "${hostname_in_ventory} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
   done
   echo "" >> $inventory_file
 }
@@ -1509,11 +1582,11 @@ function create-inventory-file {
 #
 # Assumed vars:
 #   KUBE_CURRENT
-#   STRING_PREFIX
-#   NUMBER_PREFIX
+#   K8S_STRING_PREFIX
+#   K8S_NUMBER_PREFIX
 # -----------------------------------------------------------------------------
 function create-extra-vars-json-file {
-  create-extra-vars-json-file-common ${KUBE_CURRENT}/extra_vars.json ${STRING_PREFIX} ${NUMBER_PREFIX}
+  create-extra-vars-json-file-common ${KUBE_CURRENT}/extra_vars.json ${K8S_STRING_PREFIX} ${K8S_NUMBER_PREFIX}
 }
 
 # Input:
@@ -1598,4 +1671,16 @@ function install-ansible {
   ansible --version
 
   set +e
+}
+
+function install-ntpdate {
+  if [[ -z "${os_distro-}" ]]; then
+    os_distro=$(grep '^NAME=' /etc/os-release | sed s'/NAME=//' | sed s'/"//g' | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
+  fi
+
+  if [[ ${os_distro} == "ubuntu" ]]; then
+    sudo apt-get install -y ntpdate
+  elif [[ ${os_distro} == "centos" ]]; then
+    sudo yum install -y ntpdate
+  fi
 }

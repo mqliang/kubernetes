@@ -1,0 +1,9 @@
+---
+
+- name: Install aliyuncli tool
+  hosts: localhost
+  become: yes
+  roles:
+    - aliyuncli
+  tags:
+    - aliyuncli
