@@ -136,6 +136,7 @@ function kube-down {
 
   if [[ ${DELETE_INSTANCE_FLAG} == "NO" ]]; then
     get-aliyun-instances-ssh-info
+    aliyun-instance-epilogue
     create-inventory-file
     create-extra-vars-json-file
     clear-kubernetes-by-ansible
