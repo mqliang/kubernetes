@@ -1,0 +1,8 @@
+---
+
+- name: Wait for instance {{ instance_id }} to be deleted successfully
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --InstanceIds '["{{ instance_id }}"]' --filter TotalCount
+  register: result
+  until: result.stdout == "" or result.stdout.find("0") != -1
+  retries: 30
+  delay: 10

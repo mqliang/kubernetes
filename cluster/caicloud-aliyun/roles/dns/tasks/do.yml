@@ -1,0 +1,30 @@
+---
+
+- name: Set common parametes
+  set_fact:
+    common_paras: "--AccessKeyId {{ access_key_id }} --AccessKeySecret {{ access_key_secret }} --RegionId {{ region_id }} --output json"
+    kube_master_ip: ""
+
+- name: Search the security group by name
+  command: aliyuncli ecs DescribeSecurityGroups {{ common_paras }} --SecurityGroupName {{ security_group_name }}
+  register: sg_info
+  until: sg_info.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Get security group id from an existing cluster
+  set_fact:
+    json_sg_info: "{{ sg_info.stdout | from_json }}"
+- fail: msg="Failed to get security group ID"
+  when: json_sg_info.TotalCount|int == 0
+- set_fact:
+    aliyun_sgid: "{{ json_sg_info.SecurityGroups.SecurityGroup[0].SecurityGroupId }}"
+  when: json_sg_info.TotalCount|int > 0
+
+- name: set kube_master_ip
+  include: set-kube-master-ip.yml
+  vars:
+    instance_name: "{{ master_name_prefix }}1"
+
+- name: Process domain record in aliyun dns
+  include: process-dns-record.yml

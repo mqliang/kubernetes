@@ -33,12 +33,18 @@ export LC_ALL="C"
 export LANG="C"
 
 # Default: automatically install ansible and dependencies.
-AUTOMATICALLY_INSTALL_ANSIBLE=${AUTOMATICALLY_INSTALL_ANSIBLE-"YES"}
+AUTOMATICALLY_INSTALL_TOOLS=${AUTOMATICALLY_INSTALL_TOOLS-"YES"}
 ANSIBLE_VERSION=${ANSIBLE_VERSION-"2.1.0.0"}
 
 # Ansible environment variable prefix.
-STRING_PREFIX="CAICLOUD_K8S_CFG_STRING_"
-NUMBER_PREFIX="CAICLOUD_K8S_CFG_NUMBER_"
+K8S_STRING_PREFIX="CAICLOUD_K8S_CFG_STRING_"
+K8S_NUMBER_PREFIX="CAICLOUD_K8S_CFG_NUMBER_"
+
+# For the option --hostname-override
+MASTER_NAME_PREFIX=${MASTER_NAME_PREFIX-"kube-master-"}
+NODE_NAME_PREFIX=${NODE_NAME_PREFIX-"kube-node-"}
+
+DNS_HOST_NAME=${DNS_HOST_NAME-"caicloudstack"}
 
 # -----------------------------------------------------------------------------
 # Derived params for kube-up (calculated based on above params: DO NOT CHANGE).
@@ -74,6 +80,10 @@ function calculate-default {
   if [[ ! -z "${USER_CERT_DIR-}" ]]; then
     # Remove the last '/'
     CAICLOUD_K8S_CFG_STRING_USER_CERT_DIR=${USER_CERT_DIR%/}
+  fi
+
+  if [[ -z "${CAICLOUD_K8S_CFG_STRING_CLUSTER_NAME-}" ]]; then
+    CAICLOUD_K8S_CFG_STRING_CLUSTER_NAME="kube-default"
   fi
 
   # Now only support single master

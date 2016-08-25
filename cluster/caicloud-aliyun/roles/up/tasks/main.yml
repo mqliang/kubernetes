@@ -1,0 +1,137 @@
+---
+
+- name: Check if relative parametes is validated
+  include: check-config.yml
+
+- name: Create aliyun cloud-config file
+  template: src="cloud-config.j2" dest="{{ cloud_config_dir }}/cloud-config"
+
+- name: Set common parametes
+  set_fact:
+    common_paras: "--AccessKeyId {{ access_key_id }} --AccessKeySecret {{ access_key_secret }} --RegionId {{ region_id }} --output json"
+
+- name: Search the security group by name
+  command: aliyuncli ecs DescribeSecurityGroups {{ common_paras }} --SecurityGroupName {{ security_group_name }}
+  register: sg_info
+  until: sg_info.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Get security group id from an existing cluster
+  set_fact:
+    create_sg: true
+    aliyun_sgid: "fake"
+    json_sg_info: "{{ sg_info.stdout | from_json }}"
+- set_fact:
+    create_sg: false
+    aliyun_sgid: "{{ json_sg_info.SecurityGroups.SecurityGroup[0].SecurityGroupId }}"
+  when: json_sg_info.TotalCount|int > 0
+
+- name: Create security group for k8s cluster
+  command: aliyuncli ecs CreateSecurityGroup {{ common_paras }} --SecurityGroupName {{ security_group_name }}
+  register: sg_output
+  until: sg_output.stdout.find("SecurityGroupId") != -1
+  retries: 5
+  delay: 5
+  when: create_sg
+
+- name: Get security group id from the cluster just created
+  set_fact:
+    json_sg_output: "{{ sg_output.stdout | from_json }}"
+  when: create_sg
+- set_fact:
+    aliyun_sgid: "{{ json_sg_output.SecurityGroupId }}"
+  when: create_sg
+
+- name: Failed if security group is not existed
+  fail: msg="Failed to get security group id"
+  when: aliyun_sgid == "fake"
+
+- name: Get security group attribute for internet ingress
+  command: aliyuncli ecs DescribeSecurityGroupAttribute {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --NicType internet --Direction ingress
+  register: attribute_output
+  until: attribute_output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Get the searching result of internet ingress in json format
+  set_fact:
+    ingress_attribute: "{{ attribute_output.stdout | from_json }}"
+
+- name: Check whether to add internet ingress attribute
+  command: /bin/true
+  with_items: "{{ ingress_attribute.Permissions.Permission }}"
+  when: ingress_attribute.Permissions.Permission|length > 0 and item.Direction == "ingress" and item.PortRange == "-1/-1" and item.NicType == "internet" and item.Policy == "Accept" and item.SourceCidrIp == "0.0.0.0/0" and item.IpProtocol == "ALL"
+  register: check_result
+  until: check_result.changed
+
+- name: Add internet ingress attribute
+  command: aliyuncli ecs AuthorizeSecurityGroup {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --IpProtocol "all" --PortRange "-1/-1" --Policy "accept" --SourceCidrIp "0.0.0.0/0" --NicType "internet"
+  when: (ingress_attribute.Permissions.Permission|length == 0) or (ingress_attribute.Permissions.Permission|length > 0 and not check_result.changed)
+  register: output
+  until: output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Get security group attribute for internet egress
+  command: aliyuncli ecs DescribeSecurityGroupAttribute {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --NicType internet --Direction egress
+  register: attribute_output
+  until: attribute_output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Get the searching result of internet egress in json format
+  set_fact:
+    egress_attribute: "{{ attribute_output.stdout | from_json }}"
+
+- name: Check whether to add internet egress attribute
+  command: /bin/true
+  with_items: "{{ egress_attribute.Permissions.Permission }}"
+  when: egress_attribute.Permissions.Permission|length > 0 and item.Direction == "egress" and item.PortRange == "-1/-1" and item.NicType == "internet" and item.Policy == "Accept" and item.DestCidrIp == "0.0.0.0/0" and item.IpProtocol == "ALL"
+  register: check_result
+  until: check_result.changed
+
+- name: Add internet egress attribute
+  command: aliyuncli ecs AuthorizeSecurityGroupEgress {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --IpProtocol "all" --PortRange "-1/-1" --Policy "accept" --DestCidrIp "0.0.0.0/0" --NicType "internet"
+  when: (egress_attribute.Permissions.Permission|length == 0) or (egress_attribute.Permissions.Permission|length > 0 and not check_result.changed)
+  register: output
+  until: output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Start master instances
+  include: start-instance.yml
+  vars:
+    instance_type: "{{ master_instance_type }}"
+    instance_name: "{{ master_name_prefix }}{{ item }}"
+    system_disk_category: "{{ master_system_disk_category }}"
+    system_disk_size: "{{ master_system_disk_size }}"
+  with_sequence: count={{ master_node_num }}
+  async: 1800
+  poll: 0
+
+- name: Start node instances
+  include: start-instance.yml
+  vars:
+    instance_type: "{{ node_instance_type }}"
+    instance_name: "{{ node_name_prefix }}{{ item }}"
+    system_disk_category: "{{ node_system_disk_category }}"
+    system_disk_size: "{{ node_system_disk_size }}"
+  with_sequence: count={{ minion_node_num }}
+  async: 1800
+  poll: 0
+
+- name: Wait master instances to be in Running status
+  include: wait-instance.yml
+  vars:
+    instance_name: "{{ master_name_prefix }}{{ item }}"
+    wait_status: "Running"
+  with_sequence: count={{ master_node_num }}
+
+- name: Wait node instances to be in Running status
+  include: wait-instance.yml
+  vars:
+    instance_name: "{{ node_name_prefix }}{{ item }}"
+    wait_status: "Running"
+  with_sequence: count={{ minion_node_num }}
+  

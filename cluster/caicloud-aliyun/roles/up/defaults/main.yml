@@ -1,0 +1,31 @@
+---
+
+# Supported OS Distro:
+#   ubuntu1404_64_40G_cloudinit_20160427.raw
+#   centos7u2_64_40G_cloudinit_20160520.raw
+image_id: "centos7u2_64_40G_cloudinit_20160520.raw"
+
+# Please refer to: https://help.aliyun.com/document_detail/25685.html?spm=5176.doc25499.2.5.3KNSGn
+master_instance_type: "ecs.s2.small"
+node_instance_type: "ecs.s2.large"
+
+# PayByTraffic or PayByBandwidth
+internet_charge_type: "PayByTraffic"
+internet_max_bandwidth_out: "100"
+
+# cloud: ordinary cloud disk [40~500GB]
+# cloud_efficiency: efficient cloud disk [40~500GB]
+# cloud_ssd: [40~500GB]
+# ephemeral_ssd: [40~500GB]
+master_system_disk_category: "cloud"
+master_system_disk_size: 40
+node_system_disk_category: "cloud"
+node_system_disk_size: 80
+
+# PrePaid or PostPaid
+instance_charge_type: "PostPaid"
+# Required period if PrePaid
+period: 1
+
+# For aliyun cloud-config file
+cloud_config_dir: "/var/run"

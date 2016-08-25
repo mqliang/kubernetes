@@ -1,0 +1,18 @@
+---
+# Get aliyun instances ssh info
+
+- name: Sync time
+  hosts: localhost
+  become: yes
+  roles:
+    - ntpdate
+  tags:
+    - ntpdate
+
+- name: Get aliyun instances ssh info
+  hosts: localhost
+  become: yes
+  roles:
+    - getter
+  tags:
+    - getter

@@ -1,0 +1,17 @@
+---
+# Set domain_record_id environment variable if finded domain record in aliyun dns
+
+# Assumed vars:
+#   record_rr
+#   record_domain_name
+#   record_value
+#   record_record_id
+#   dns_host_name
+#   base_domain_name
+#   kube_master_ip
+
+- name: checking
+  set_fact:
+    domain_record_id: "{{ record_record_id }}"
+    find_domain_record: True
+  when: record_rr == dns_host_name and record_domain_name == base_domain_name and record_value == kube_master_ip

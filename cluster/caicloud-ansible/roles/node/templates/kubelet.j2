@@ -11,7 +11,7 @@ KUBELET_ADDRESS="--address=0.0.0.0"
 KUBELET_HOSTNAME="--hostname-override={{ inventory_hostname }}"
 
 # Location of the api-server
-KUBELET_API_SERVER="--api-servers=https://{{ hostvars[groups['masters'][0]]['ansible_host'] }}:{{ kube_master_api_port }}"
+KUBELET_API_SERVER="--api-servers=https://{{ hostvars[groups['masters'][0]]['internal_ip'] }}:{{ kube_master_api_port }}"
 
 {% set kubelet_options = [] -%}
 {% if dns_setup -%}
@@ -28,4 +28,4 @@ KUBELET_API_SERVER="--api-servers=https://{{ hostvars[groups['masters'][0]]['ans
 {{ kubelet_options.append('--network-plugin-dir=/etc/cni/net.d')|default('', true) -}}
 {% endif -%}
 
-KUBELET_ARGS="--kubeconfig={{ kube_config_dir }}/kubelet.kubeconfig --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['ansible_host'] }} {{ kubelet_options|join(' ') }}"
+KUBELET_ARGS="--kubeconfig={{ kube_config_dir }}/kubelet.kubeconfig --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['internal_ip'] }} {{ kubelet_options|join(' ') }}"

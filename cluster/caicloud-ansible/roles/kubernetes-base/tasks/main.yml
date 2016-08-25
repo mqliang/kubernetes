@@ -32,6 +32,10 @@
 #
 # Misc preparations for bringing up cluster.
 
+- name: Copy cloud-config to {{ kube_config_dir }}
+  copy: src={{ cloud_config_dir }}/cloud-config dest={{ kube_config_dir }}/cloud-config
+  when: host_provider == "aliyun" or host_provider == "anchnet"
+
 - name: Write the global config file for all components
   template: src=config.j2 dest={{ kube_config_dir }}/config
   notify:

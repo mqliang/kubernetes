@@ -8,7 +8,7 @@
 # which, 'kubernetes' service will have endpoint of interface eth0.
 - name: Set apiserver bind address
   set_fact:
-    kube_apiserver_bind_address: "{{ ansible_host }}"
+    kube_apiserver_bind_address: "{{ internal_ip }}"
 
 - name: Determine which certificates to use
   set_fact:
@@ -16,14 +16,14 @@
 
 - set_fact:
     certs_selector: caicloudapp
-  when: host_provider == 'anchnet'
+  when: host_provider == 'anchnet' or host_provider == 'aliyun'
 
 - set_fact:
     certs_selector: user
   when: user_cert_dir is defined
 
 - name: Build master /etc/hosts file
-  lineinfile: dest=/etc/hosts regexp='.*{{ item }}$' line="{{ hostvars[item]['ansible_host'] }} {{ item }}" state=present
+  lineinfile: dest=/etc/hosts regexp='.*{{ item }}$' line="{{ hostvars[item]['internal_ip'] }} {{ item }}" state=present
   with_items: "{{ groups['all'] }}"
 
 - name: Create caicloudapp certs directory

@@ -29,4 +29,4 @@ KUBELET_API_SERVER="--api-servers=http://localhost:{{ kube_master_insecure_port 
 {% endif -%}
 
 # Add your own!
-KUBELET_ARGS="--register-schedulable=false --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['ansible_host'] }} {{ kubelet_options|join(' ') }}"
+KUBELET_ARGS="--register-schedulable=false --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['internal_ip'] }} {{ kubelet_options|join(' ') }}"
