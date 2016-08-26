@@ -214,7 +214,6 @@ function aliyun-instance-epilogue {
 
   if [[ ! -z "${CLUSTER_NAME-}" ]]; then
     CAICLOUD_K8S_CFG_STRING_CLUSTER_NAME=${CLUSTER_NAME}
-    
   fi
 
   if [[ ! -z "${DNS_HOST_NAME-}" ]]; then

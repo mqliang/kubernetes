@@ -31,6 +31,7 @@
         is_coreos: false
         etcd_svc_name: etcd
         bin_dir: "/usr/bin"
+        networking: "flannel"
         kube_config_dir: "/etc/kubernetes"
 
     - name: Determine kubernetes_use_upstart
