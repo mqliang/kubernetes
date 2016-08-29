@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package anchnet_pd
+package aliyun_pd
 
 import (
 	"fmt"
@@ -22,7 +22,6 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/types"
@@ -30,43 +29,45 @@ import (
 	"k8s.io/kubernetes/pkg/util/mount"
 	utilstrings "k8s.io/kubernetes/pkg/util/strings"
 	"k8s.io/kubernetes/pkg/volume"
+
+	"github.com/golang/glog"
 )
 
 // This is the primary entrypoint for volume plugins. It is called from kubelet
 // to register volume plugin.
 func ProbeVolumePlugins() []volume.VolumePlugin {
-	return []volume.VolumePlugin{&anchnetPersistentDiskPlugin{nil}}
+	return []volume.VolumePlugin{&aliyunPersistentDiskPlugin{nil}}
 }
 
-// Main implementation of anchnet volume plugin.
-type anchnetPersistentDiskPlugin struct {
+// Main implementation of aliyun volume plugin.
+type aliyunPersistentDiskPlugin struct {
 	// VolumeHost is an interface that plugins can use to access the kubelet.
 	host volume.VolumeHost
 }
 
-// Make sure anchnetPersistentDiskPlugin acutally implements volume interfaces.
+// Make sure aliyunPersistentDiskPlugin acutally implements volume interfaces.
 // Note: auto-provision is used to automatically provision a PersistentVolume to
 // bind to an unfulfilled PersistentVolumeClaim: it won't be called if there is
 // no unfulfilled PersistentVolumeClaim. The operations are done in
-var _ volume.VolumePlugin = &anchnetPersistentDiskPlugin{}
-var _ volume.PersistentVolumePlugin = &anchnetPersistentDiskPlugin{}
-var _ volume.DeletableVolumePlugin = &anchnetPersistentDiskPlugin{}
-var _ volume.ProvisionableVolumePlugin = &anchnetPersistentDiskPlugin{}
+var _ volume.VolumePlugin = &aliyunPersistentDiskPlugin{}
+var _ volume.PersistentVolumePlugin = &aliyunPersistentDiskPlugin{}
+var _ volume.DeletableVolumePlugin = &aliyunPersistentDiskPlugin{}
+var _ volume.ProvisionableVolumePlugin = &aliyunPersistentDiskPlugin{}
 
 const (
-	anchnetPersistentDiskPluginName = "kubernetes.io/anchnet-pd"
+	aliyunPersistentDiskPluginName = "kubernetes.io/aliyun-pd"
 )
 
-func (plugin *anchnetPersistentDiskPlugin) Init(host volume.VolumeHost) error {
+func (plugin *aliyunPersistentDiskPlugin) Init(host volume.VolumeHost) error {
 	plugin.host = host
 	return nil
 }
 
-func (plugin *anchnetPersistentDiskPlugin) GetPluginName() string {
-	return anchnetPersistentDiskPluginName
+func (plugin *aliyunPersistentDiskPlugin) GetPluginName() string {
+	return aliyunPersistentDiskPluginName
 }
 
-func (plugin *anchnetPersistentDiskPlugin) GetVolumeName(spec *volume.Spec) (string, error) {
+func (plugin *aliyunPersistentDiskPlugin) GetVolumeName(spec *volume.Spec) (string, error) {
 	volumeSource, _, err := getVolumeSource(spec)
 	if err != nil {
 		return "", err
@@ -76,39 +77,39 @@ func (plugin *anchnetPersistentDiskPlugin) GetVolumeName(spec *volume.Spec) (str
 
 // CanSupport checks if the PersistentDiskPlugin can support given spec. It is
 // called from plugin manager.
-func (plugin *anchnetPersistentDiskPlugin) CanSupport(spec *volume.Spec) bool {
-	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.AnchnetPersistentDisk != nil) ||
-		(spec.Volume != nil && spec.Volume.AnchnetPersistentDisk != nil)
+func (plugin *aliyunPersistentDiskPlugin) CanSupport(spec *volume.Spec) bool {
+	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.AliyunPersistentDisk != nil) ||
+		(spec.Volume != nil && spec.Volume.AliyunPersistentDisk != nil)
 }
 
-func (plugin *anchnetPersistentDiskPlugin) RequiresRemount() bool {
+func (plugin *aliyunPersistentDiskPlugin) RequiresRemount() bool {
 	return false
 }
 
 // GetAccessModes describes the ways a given volume can be accessed/mounted.
-func (plugin *anchnetPersistentDiskPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
-	// Anchnet persistent disk can only be mounted once.
+func (plugin *aliyunPersistentDiskPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
+	// Aliyun persistent disk can only be mounted once.
 	return []api.PersistentVolumeAccessMode{
 		api.ReadWriteOnce,
 	}
 }
 
 // NewMounter returns a mounter interface used for kubelet to setup/mount volume.
-func (plugin *anchnetPersistentDiskPlugin) NewMounter(spec *volume.Spec, pod *api.Pod, _ volume.VolumeOptions) (volume.Mounter, error) {
+func (plugin *aliyunPersistentDiskPlugin) NewMounter(spec *volume.Spec, pod *api.Pod, _ volume.VolumeOptions) (volume.Mounter, error) {
 	// Inject real implementations here, test through the internal function.
-	return plugin.newMounterInternal(spec, pod.UID, &AnchnetDiskUtil{}, plugin.host.GetMounter())
+	return plugin.newMounterInternal(spec, pod.UID, &AliyunDiskUtil{}, plugin.host.GetMounter())
 }
 
-func (plugin *anchnetPersistentDiskPlugin) newMounterInternal(spec *volume.Spec, podUID types.UID, manager pdManager, mounter mount.Interface) (volume.Mounter, error) {
+func (plugin *aliyunPersistentDiskPlugin) newMounterInternal(spec *volume.Spec, podUID types.UID, manager pdManager, mounter mount.Interface) (volume.Mounter, error) {
 	// PDs used directly in a pod have a ReadOnly flag set by the pod author.
 	// PDs used as a PersistentVolume gets the ReadOnly flag indirectly through the persistent-claim volume used to mount the PV.
 	var readOnly bool
-	var pd *api.AnchnetPersistentDiskVolumeSource
-	if spec.Volume != nil && spec.Volume.AnchnetPersistentDisk != nil {
-		pd = spec.Volume.AnchnetPersistentDisk
+	var pd *api.AliyunPersistentDiskVolumeSource
+	if spec.Volume != nil && spec.Volume.AliyunPersistentDisk != nil {
+		pd = spec.Volume.AliyunPersistentDisk
 		readOnly = pd.ReadOnly
 	} else {
-		pd = spec.PersistentVolume.Spec.AnchnetPersistentDisk
+		pd = spec.PersistentVolume.Spec.AliyunPersistentDisk
 		readOnly = spec.ReadOnly
 	}
 
@@ -119,8 +120,8 @@ func (plugin *anchnetPersistentDiskPlugin) newMounterInternal(spec *volume.Spec,
 		partition = strconv.Itoa(pd.Partition)
 	}
 
-	return &anchnetPersistentDiskMounter{
-		anchnetPersistentDisk: &anchnetPersistentDisk{
+	return &aliyunPersistentDiskMounter{
+		aliyunPersistentDisk: &aliyunPersistentDisk{
 			podUID:    podUID,
 			volName:   spec.Name(),
 			volumeID:  volumeID,
@@ -136,13 +137,13 @@ func (plugin *anchnetPersistentDiskPlugin) newMounterInternal(spec *volume.Spec,
 }
 
 // NewUnmounter returns a unmounter to cleanup/unmount the volumes.
-func (plugin *anchnetPersistentDiskPlugin) NewUnmounter(volName string, podUID types.UID) (volume.Unmounter, error) {
+func (plugin *aliyunPersistentDiskPlugin) NewUnmounter(volName string, podUID types.UID) (volume.Unmounter, error) {
 	// Inject real implementations here, test through the internal function.
-	return plugin.newUnmounterInternal(volName, podUID, &AnchnetDiskUtil{}, plugin.host.GetMounter())
+	return plugin.newUnmounterInternal(volName, podUID, &AliyunDiskUtil{}, plugin.host.GetMounter())
 }
 
-func (plugin *anchnetPersistentDiskPlugin) newUnmounterInternal(volName string, podUID types.UID, manager pdManager, mounter mount.Interface) (volume.Unmounter, error) {
-	return &anchnetPersistentDiskUnmounter{&anchnetPersistentDisk{
+func (plugin *aliyunPersistentDiskPlugin) newUnmounterInternal(volName string, podUID types.UID, manager pdManager, mounter mount.Interface) (volume.Unmounter, error) {
+	return &aliyunPersistentDiskUnmounter{&aliyunPersistentDisk{
 		podUID:  podUID,
 		volName: volName,
 		manager: manager,
@@ -152,34 +153,34 @@ func (plugin *anchnetPersistentDiskPlugin) newUnmounterInternal(volName string, 
 }
 
 // NewDeleter returns a deleter to delete the volumes.
-func (plugin *anchnetPersistentDiskPlugin) NewDeleter(spec *volume.Spec) (volume.Deleter, error) {
-	return plugin.newDeleterInternal(spec, &AnchnetDiskUtil{})
+func (plugin *aliyunPersistentDiskPlugin) NewDeleter(spec *volume.Spec) (volume.Deleter, error) {
+	return plugin.newDeleterInternal(spec, &AliyunDiskUtil{})
 }
 
-func (plugin *anchnetPersistentDiskPlugin) newDeleterInternal(spec *volume.Spec, manager pdManager) (volume.Deleter, error) {
-	if spec.PersistentVolume != nil && spec.PersistentVolume.Spec.AnchnetPersistentDisk == nil {
-		return nil, fmt.Errorf("spec.PersistentVolumeSource.AnchnetPersistentDisk is nil")
+func (plugin *aliyunPersistentDiskPlugin) newDeleterInternal(spec *volume.Spec, manager pdManager) (volume.Deleter, error) {
+	if spec.PersistentVolume != nil && spec.PersistentVolume.Spec.AliyunPersistentDisk == nil {
+		return nil, fmt.Errorf("spec.PersistentVolumeSource.AliyunPersistentDisk is nil")
 	}
-	return &anchnetPersistentDiskDeleter{
-		anchnetPersistentDisk: &anchnetPersistentDisk{
+	return &aliyunPersistentDiskDeleter{
+		aliyunPersistentDisk: &aliyunPersistentDisk{
 			volName:  spec.Name(),
-			volumeID: spec.PersistentVolume.Spec.AnchnetPersistentDisk.VolumeID,
+			volumeID: spec.PersistentVolume.Spec.AliyunPersistentDisk.VolumeID,
 			manager:  manager,
 			plugin:   plugin,
 		}}, nil
 }
 
 // NewProvisioner returns a provisioner to create the volumes.
-func (plugin *anchnetPersistentDiskPlugin) NewProvisioner(options volume.VolumeOptions) (volume.Provisioner, error) {
+func (plugin *aliyunPersistentDiskPlugin) NewProvisioner(options volume.VolumeOptions) (volume.Provisioner, error) {
 	if len(options.AccessModes) == 0 {
 		options.AccessModes = plugin.GetAccessModes()
 	}
-	return plugin.newProvisionerInternal(options, &AnchnetDiskUtil{})
+	return plugin.newProvisionerInternal(options, &AliyunDiskUtil{})
 }
 
-func (plugin *anchnetPersistentDiskPlugin) newProvisionerInternal(options volume.VolumeOptions, manager pdManager) (volume.Provisioner, error) {
-	return &anchnetPersistentDiskProvisioner{
-		anchnetPersistentDisk: &anchnetPersistentDisk{
+func (plugin *aliyunPersistentDiskPlugin) newProvisionerInternal(options volume.VolumeOptions, manager pdManager) (volume.Provisioner, error) {
+	return &aliyunPersistentDiskProvisioner{
+		aliyunPersistentDisk: &aliyunPersistentDisk{
 			manager: manager,
 			plugin:  plugin,
 		},
@@ -189,20 +190,20 @@ func (plugin *anchnetPersistentDiskPlugin) newProvisionerInternal(options volume
 
 // pdManager abstracts interface to PD operations.
 type pdManager interface {
-	// AttachAndMountDisk attaches a disk specified by a volume.anchnetPersistentDisk
+	// AttachAndMountDisk attaches a disk specified by a volume.aliyunPersistentDisk
 	// to current kubelet. The mount path is 'globalPDPath'.
-	AttachAndMountDisk(b *anchnetPersistentDiskMounter, globalPDPath string) error
+	AttachAndMountDisk(b *aliyunPersistentDiskMounter, globalPDPath string) error
 	// DetachDisk detaches/unmount the disk from the kubelet's host machine.
-	DetachDisk(c *anchnetPersistentDiskUnmounter) error
-	// Creates a disk in anchnet.
-	CreateDisk(provisioner *anchnetPersistentDiskProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error)
-	// Deletes a disk in anchnet.
-	DeleteDisk(deleter *anchnetPersistentDiskDeleter) error
+	DetachDisk(c *aliyunPersistentDiskUnmounter) error
+	// Creates a disk in aliyun.
+	CreateDisk(provisioner *aliyunPersistentDiskProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error)
+	// Deletes a disk in aliyun.
+	DeleteDisk(deleter *aliyunPersistentDiskDeleter) error
 }
 
-// anchnetPersistentDisk are disk resources provided by anchnet that are attached to
+// aliyunPersistentDisk are disk resources provided by aliyun that are attached to
 // the kubelet's host machine and exposed to the pod.
-type anchnetPersistentDisk struct {
+type aliyunPersistentDisk struct {
 	// Name of the volume in provider.
 	volName string
 	// Unique id of the PD, used to find the disk resource in the provider.
@@ -216,13 +217,13 @@ type anchnetPersistentDisk struct {
 	// Mounter interface that provides system calls to mount the global path to the pod local path.
 	mounter mount.Interface
 	// Reference to PD plugin.
-	plugin *anchnetPersistentDiskPlugin
-	// Placeholder for anchnet since it doesn't yet support metrics.
+	plugin *aliyunPersistentDiskPlugin
+	// Placeholder for aliyun since it doesn't yet support metrics.
 	volume.MetricsNil
 }
 
-func detachDiskLogError(pd *anchnetPersistentDisk) {
-	err := pd.manager.DetachDisk(&anchnetPersistentDiskUnmounter{pd})
+func detachDiskLogError(pd *aliyunPersistentDisk) {
+	err := pd.manager.DetachDisk(&aliyunPersistentDiskUnmounter{pd})
 	if err != nil {
 		glog.Warningf("Failed to detach disk: %v (%v)", pd, err)
 	}
@@ -230,14 +231,14 @@ func detachDiskLogError(pd *anchnetPersistentDisk) {
 
 // GetPath returns the directory path the volume is mounted to. The path is a host path, e.g.
 // /var/lib/kubelet/pods/11053ab6-4ba7/volumes/kubernetes.io~pd/mongodb~volume
-func (pd *anchnetPersistentDisk) GetPath() string {
-	name := anchnetPersistentDiskPluginName
+func (pd *aliyunPersistentDisk) GetPath() string {
+	name := aliyunPersistentDiskPluginName
 	return pd.plugin.host.GetPodVolumeDir(pd.podUID, utilstrings.EscapeQualifiedNameForDisk(name), pd.volName)
 }
 
-// anchnetPersistentDiskBuilder setup and mounts persistent disk.
-type anchnetPersistentDiskMounter struct {
-	*anchnetPersistentDisk
+// aliyunPersistentDiskBuilder setup and mounts persistent disk.
+type aliyunPersistentDiskMounter struct {
+	*aliyunPersistentDisk
 	// Filesystem type, optional.
 	fsType string
 	// Specifies whether the disk will be attached as read-only.
@@ -246,10 +247,10 @@ type anchnetPersistentDiskMounter struct {
 	diskMounter *mount.SafeFormatAndMount
 }
 
-var _ volume.Mounter = &anchnetPersistentDiskMounter{}
+var _ volume.Mounter = &aliyunPersistentDiskMounter{}
 
 // GetAttributes returns the attributes of the mounter.
-func (b *anchnetPersistentDiskMounter) GetAttributes() volume.Attributes {
+func (b *aliyunPersistentDiskMounter) GetAttributes() volume.Attributes {
 	return volume.Attributes{
 		ReadOnly:        b.readOnly,
 		Managed:         !b.readOnly,
@@ -258,12 +259,12 @@ func (b *anchnetPersistentDiskMounter) GetAttributes() volume.Attributes {
 }
 
 // SetUp attaches the disk and bind mounts to default path.
-func (b *anchnetPersistentDiskMounter) SetUp(fsGroup *int64) error {
+func (b *aliyunPersistentDiskMounter) SetUp(fsGroup *int64) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
 }
 
 // SetUpAt attaches the disk and bind mounts to the volume path.
-func (b *anchnetPersistentDiskMounter) SetUpAt(dir string, fsGroup *int64) error {
+func (b *aliyunPersistentDiskMounter) SetUpAt(dir string, fsGroup *int64) error {
 	notMnt, err := b.mounter.IsLikelyNotMountPoint(dir)
 	glog.V(4).Infof("PersistentDisk set up: %s %v %v", dir, !notMnt, err)
 	if err != nil && !os.IsNotExist(err) {
@@ -287,7 +288,7 @@ func (b *anchnetPersistentDiskMounter) SetUpAt(dir string, fsGroup *int64) error
 	// Create `dir` to prepare for bind mount.
 	if err := os.MkdirAll(dir, 0750); err != nil {
 		// TODO: we should really eject the attach/detach out into its own control loop.
-		detachDiskLogError(b.anchnetPersistentDisk)
+		detachDiskLogError(b.aliyunPersistentDisk)
 		return err
 	}
 
@@ -321,29 +322,29 @@ func (b *anchnetPersistentDiskMounter) SetUpAt(dir string, fsGroup *int64) error
 		}
 		os.Remove(dir)
 		// TODO: we should really eject the attach/detach out into its own control loop.
-		detachDiskLogError(b.anchnetPersistentDisk)
+		detachDiskLogError(b.aliyunPersistentDisk)
 		return err
 	}
 
 	return nil
 }
 
-var _ volume.Unmounter = &anchnetPersistentDiskUnmounter{}
+var _ volume.Unmounter = &aliyunPersistentDiskUnmounter{}
 
-// anchnetPersistentDiskUnmounter setup and mounts persistent disk.
-type anchnetPersistentDiskUnmounter struct {
-	*anchnetPersistentDisk
+// aliyunPersistentDiskUnmounter setup and mounts persistent disk.
+type aliyunPersistentDiskUnmounter struct {
+	*aliyunPersistentDisk
 }
 
 // Unmounts the bind mount, and detaches the disk only if the PD
 // resource was the last reference to that disk on the kubelet.
-func (c *anchnetPersistentDiskUnmounter) TearDown() error {
+func (c *aliyunPersistentDiskUnmounter) TearDown() error {
 	return c.TearDownAt(c.GetPath())
 }
 
 // Unmounts the bind mount, and detaches the disk only if the PD
 // resource was the last reference to that disk on the kubelet.
-func (c *anchnetPersistentDiskUnmounter) TearDownAt(dir string) error {
+func (c *aliyunPersistentDiskUnmounter) TearDownAt(dir string) error {
 	notMnt, err := c.mounter.IsLikelyNotMountPoint(dir)
 	if err != nil {
 		glog.V(2).Info("Error checking if mountpoint ", dir, ": ", err)
@@ -377,7 +378,7 @@ func (c *anchnetPersistentDiskUnmounter) TearDownAt(dir string) error {
 			return err
 		}
 	} else {
-		glog.V(2).Info("Found multiple refs; won't detach anchnet volume: %v", refs)
+		glog.V(2).Info("Found multiple refs; won't detach aliyun volume: %v", refs)
 	}
 	notMnt, mntErr := c.mounter.IsLikelyNotMountPoint(dir)
 	if mntErr != nil {
@@ -393,29 +394,29 @@ func (c *anchnetPersistentDiskUnmounter) TearDownAt(dir string) error {
 	return nil
 }
 
-var _ volume.Deleter = &anchnetPersistentDiskDeleter{}
+var _ volume.Deleter = &aliyunPersistentDiskDeleter{}
 
-type anchnetPersistentDiskDeleter struct {
-	*anchnetPersistentDisk
+type aliyunPersistentDiskDeleter struct {
+	*aliyunPersistentDisk
 }
 
-func (d *anchnetPersistentDiskDeleter) GetPath() string {
-	name := anchnetPersistentDiskPluginName
+func (d *aliyunPersistentDiskDeleter) GetPath() string {
+	name := aliyunPersistentDiskPluginName
 	return d.plugin.host.GetPodVolumeDir(d.podUID, utilstrings.EscapeQualifiedNameForDisk(name), d.volName)
 }
 
-func (d *anchnetPersistentDiskDeleter) Delete() error {
+func (d *aliyunPersistentDiskDeleter) Delete() error {
 	return d.manager.DeleteDisk(d)
 }
 
-var _ volume.Provisioner = &anchnetPersistentDiskProvisioner{}
+var _ volume.Provisioner = &aliyunPersistentDiskProvisioner{}
 
-type anchnetPersistentDiskProvisioner struct {
-	*anchnetPersistentDisk
+type aliyunPersistentDiskProvisioner struct {
+	*aliyunPersistentDisk
 	options volume.VolumeOptions
 }
 
-func (c *anchnetPersistentDiskProvisioner) Provision() (*api.PersistentVolume, error) {
+func (c *aliyunPersistentDiskProvisioner) Provision() (*api.PersistentVolume, error) {
 	volumeID, sizeGB, labels, err := c.manager.CreateDisk(c)
 	if err != nil {
 		return nil, err
@@ -426,7 +427,7 @@ func (c *anchnetPersistentDiskProvisioner) Provision() (*api.PersistentVolume, e
 			Name:   c.options.PVName,
 			Labels: map[string]string{},
 			Annotations: map[string]string{
-				"kubernetes.io/createdby": "anchent-disk-dynamic-provisioner",
+				"kubernetes.io/createdby": "aliyun-disk-dynamic-provisioner",
 			},
 		},
 		Spec: api.PersistentVolumeSpec{
@@ -436,7 +437,7 @@ func (c *anchnetPersistentDiskProvisioner) Provision() (*api.PersistentVolume, e
 				api.ResourceName(api.ResourceStorage): resource.MustParse(fmt.Sprintf("%dGi", sizeGB)),
 			},
 			PersistentVolumeSource: api.PersistentVolumeSource{
-				AnchnetPersistentDisk: &api.AnchnetPersistentDiskVolumeSource{
+				AliyunPersistentDisk: &api.AliyunPersistentDiskVolumeSource{
 					VolumeID:  volumeID,
 					FSType:    "ext4",
 					Partition: 0,
@@ -462,15 +463,15 @@ func (c *anchnetPersistentDiskProvisioner) Provision() (*api.PersistentVolume, e
 // Note this is different from dir returned from GetPath(), we will later bind mount that
 // directory.
 func makeGlobalPDPath(host volume.VolumeHost, volumeID string) string {
-	return path.Join(host.GetPluginDir(anchnetPersistentDiskPluginName), "mounts", volumeID)
+	return path.Join(host.GetPluginDir(aliyunPersistentDiskPluginName), "mounts", volumeID)
 }
 
 // getVolumeSource gets volume source from volume spec.
-func getVolumeSource(spec *volume.Spec) (*api.AnchnetPersistentDiskVolumeSource, bool, error) {
-	if spec.Volume != nil && spec.Volume.AnchnetPersistentDisk != nil {
-		return spec.Volume.AnchnetPersistentDisk, spec.Volume.AnchnetPersistentDisk.ReadOnly, nil
-	} else if spec.PersistentVolume != nil && spec.PersistentVolume.Spec.AnchnetPersistentDisk != nil {
-		return spec.PersistentVolume.Spec.AnchnetPersistentDisk, spec.ReadOnly, nil
+func getVolumeSource(spec *volume.Spec) (*api.AliyunPersistentDiskVolumeSource, bool, error) {
+	if spec.Volume != nil && spec.Volume.AliyunPersistentDisk != nil {
+		return spec.Volume.AliyunPersistentDisk, spec.Volume.AliyunPersistentDisk.ReadOnly, nil
+	} else if spec.PersistentVolume != nil && spec.PersistentVolume.Spec.AliyunPersistentDisk != nil {
+		return spec.PersistentVolume.Spec.AliyunPersistentDisk, spec.ReadOnly, nil
 	}
-	return nil, false, fmt.Errorf("Spec does not reference anchnet volume type")
+	return nil, false, fmt.Errorf("Spec does not reference aliyun volume type")
 }

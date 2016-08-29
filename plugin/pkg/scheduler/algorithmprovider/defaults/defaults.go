@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/scheduler/factory"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aliyun"
 )
 
 const (
@@ -154,6 +155,15 @@ func defaultPredicates() sets.String {
 				// TODO: allow for generically parameterized scheduler predicates, because this is a bit ugly
 				maxVols := getMaxVols(anchnet_cloud.DefaultMaxAnchnetPDVolumes)
 				return predicates.NewMaxPDVolumeCountPredicate(predicates.AnchnetPDVolumeFilter, maxVols, args.PVInfo, args.PVCInfo)
+			},
+		),
+		// Fit is determined by whether or not there would be too many Anchnet PD volumes attached to the node
+		factory.RegisterFitPredicateFactory(
+			"MaxAliyunPDVolumeCount",
+			func(args factory.PluginFactoryArgs) algorithm.FitPredicate {
+				// TODO: allow for generically parameterized scheduler predicates, because this is a bit ugly
+				maxVols := getMaxVols(aliyun.DefaultMaxAliyunPDVolumes)
+				return predicates.NewMaxPDVolumeCountPredicate(predicates.AliyunPDVolumeFilter, maxVols, args.PVInfo, args.PVCInfo)
 			},
 		),
 		// GeneralPredicates are the predicates that are enforced by all Kubernetes components

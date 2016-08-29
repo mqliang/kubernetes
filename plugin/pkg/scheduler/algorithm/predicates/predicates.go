@@ -342,6 +342,23 @@ var AnchnetPDVolumeFilter VolumeFilter = VolumeFilter{
 	},
 }
 
+// AliyunPDVolumeFilter is a VolumeFilter for filtering Aliyun PersistentDisk Volumes
+var AliyunPDVolumeFilter VolumeFilter = VolumeFilter{
+	FilterVolume: func(vol *api.Volume) (string, bool) {
+		if vol.AliyunPersistentDisk != nil {
+			return vol.AliyunPersistentDisk.VolumeID, true
+		}
+		return "", false
+	},
+
+	FilterPersistentVolume: func(pv *api.PersistentVolume) (string, bool) {
+		if pv.Spec.AliyunPersistentDisk != nil {
+			return pv.Spec.AliyunPersistentDisk.VolumeID, true
+		}
+		return "", false
+	},
+}
+
 type VolumeZoneChecker struct {
 	pvInfo  PersistentVolumeInfo
 	pvcInfo PersistentVolumeClaimInfo
