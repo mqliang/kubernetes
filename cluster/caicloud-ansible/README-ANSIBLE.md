@@ -52,3 +52,6 @@ You can just setup certain parts instead of doing it all, e.g. to only run addon
 ```
 `ansible-playbook -v -i cluster/caicloud-ansible/inventory.vagrant cluster/caicloud-ansible/cluster.yml -t addons`
 ```
+
+
+[![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/cluster/caicloud-ansible/README-ANSIBLE.md?pixel)]()

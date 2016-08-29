@@ -168,3 +168,6 @@ Typical workflow for running ansible e2e tests:
   ```
   $ TEST_BUILD=Y TEST_UP=N CAICLOUD_TEST_FOCUS_REGEX="\[ReplicationController.*light\]" KUBERNETES_PROVIDER=caicloud-ansible ./hack/caicloud/caicloud-e2e-test.sh
   ```
+
+
+[![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/cluster/caicloud-ansible/README.md?pixel)]()

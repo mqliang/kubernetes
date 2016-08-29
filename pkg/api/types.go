@@ -528,7 +528,7 @@ type AliyunPersistentDiskVolumeSource struct {
 	// Optional: Partition on the disk to mount.
 	// If omitted, kubelet will attempt to mount the device name.
 	// Ex. For /dev/sda1, this field is "1", for /dev/sda, this field is 0 or empty.
-	Partition int32 `json:"partition,omitempty" protobuf:"varint,3,opt,name=partition"`
+	Partition int `json:"partition,omitempty" protobuf:"varint,3,opt,name=partition"`
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty" protobuf:"varint,4,opt,name=readOnly"`

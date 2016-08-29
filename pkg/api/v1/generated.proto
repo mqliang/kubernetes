@@ -71,6 +71,30 @@ message Affinity {
   optional PodAntiAffinity podAntiAffinity = 3;
 }
 
+// AliyunPersistentDiskVolumeSource represents a Persistent Disk resource in Aliyun.
+// 
+// An aliyun PD must exist and be formatted before mounting to a container.
+// An aliyun PD can only be mounted as read/write once.
+message AliyunPersistentDiskVolumeSource {
+  // Unique name of the PD resource. Used to identify the disk in aliyun
+  optional string volumeID = 1;
+
+  // Required: Filesystem type to mount.
+  // Must be a filesystem type supported by the host operating system.
+  // Ex. "ext4", "xfs", "ntfs"
+  // TODO: how do we prevent errors in the filesystem from compromising the machine
+  optional string fsType = 2;
+
+  // Optional: Partition on the disk to mount.
+  // If omitted, kubelet will attempt to mount the device name.
+  // Ex. For /dev/sda1, this field is "1", for /dev/sda, this field is 0 or empty.
+  optional int32 partition = 3;
+
+  // Optional: Defaults to false (read/write). ReadOnly here will force
+  // the ReadOnly setting in VolumeMounts.
+  optional bool readOnly = 4;
+}
+
 // AnchnetPersistentDiskVolumeSource represents a Persistent Disk resource in Anchnet.
 // 
 // An anchnet PD must exist and be formatted before mounting to a container.
@@ -1738,6 +1762,10 @@ message PersistentVolumeSource {
   // AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
   // kubelet's host machine and then exposed to the pod.
   optional AnchnetPersistentDiskVolumeSource anchnetPersistentDisk = 15;
+
+  // AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a
+  // kubelet's host machine and then exposed to the pod.
+  optional AliyunPersistentDiskVolumeSource aliyunPersistentDisk = 16;
 }
 
 // PersistentVolumeSpec is the specification of a persistent volume.
@@ -2931,6 +2959,10 @@ message VolumeSource {
   // AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
   // kubelet's host machine and then exposed to the pod.
   optional AnchnetPersistentDiskVolumeSource anchnetPersistentDisk = 21;
+
+  // AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a
+  // kubelet's host machine and then exposed to the pod.
+  optional AliyunPersistentDiskVolumeSource aliyunPersistentDisk = 22;
 }
 
 // Represents a vSphere volume resource.

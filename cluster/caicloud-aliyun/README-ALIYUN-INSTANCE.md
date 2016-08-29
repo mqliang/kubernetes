@@ -68,3 +68,6 @@ ansible-playbook -v --extra-vars="access_key_id=XXXX access_key_secret=YYYY dele
 It will delete all the instances in the aliyun security group (refer to `group_vars/all.yml`).
 
 This will work on Ubuntu and CentOS.
+
+
+[![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/cluster/caicloud-aliyun/README-ALIYUN-INSTANCE.md?pixel)]()

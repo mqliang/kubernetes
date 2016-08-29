@@ -122,3 +122,6 @@ Aliyun instances will not be stopped and deleted after bringing down kubernetes 
 export CAICLOUD_ALIYUN_CFG_STRING_DELETE_INSTANCE_FLAG="YES"
 KUBERNETES_PROVIDER=caicloud-aliyun ./cluster/kube-down.sh
 ```
+
+
+[![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/cluster/caicloud-aliyun/README.md?pixel)]()
