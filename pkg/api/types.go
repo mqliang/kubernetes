@@ -210,6 +210,9 @@ type VolumeSource struct {
 	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
 	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty"`
+	// AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	AliyunPersistentDisk *AliyunPersistentDiskVolumeSource `json:"aliyunPersistentDisk,omitempty"`
 	// HostPath represents file or directory on the host machine that is
 	// directly exposed to the container. This is generally used for system
 	// agents or other privileged things that are allowed to see the host
@@ -359,6 +362,9 @@ type PersistentVolumeSource struct {
 	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
 	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty"`
+	// AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	AliyunPersistentDisk *AliyunPersistentDiskVolumeSource `json:"aliyunPersistentDisk,omitempty"`
 }
 
 type PersistentVolumeClaimVolumeSource struct {
@@ -594,6 +600,27 @@ type AnchnetPersistentDiskVolumeSource struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty"`
+}
+
+// AliyunPersistentDiskVolumeSource represents a Persistent Disk resource in Aliyun.
+//
+// An aliyun PD must exist and be formatted before mounting to a container.
+// An aliyun PD can only be mounted as read/write once.
+type AliyunPersistentDiskVolumeSource struct {
+	// Unique name of the PD resource. Used to identify the disk in aliyun
+	VolumeID string `json:"volumeID" protobuf:"bytes,1,opt,name=volumeID"`
+	// Required: Filesystem type to mount.
+	// Must be a filesystem type supported by the host operating system.
+	// Ex. "ext4", "xfs", "ntfs"
+	// TODO: how do we prevent errors in the filesystem from compromising the machine
+	FSType string `json:"fsType,omitempty" protobuf:"bytes,2,opt,name=fsType"`
+	// Optional: Partition on the disk to mount.
+	// If omitted, kubelet will attempt to mount the device name.
+	// Ex. For /dev/sda1, this field is "1", for /dev/sda, this field is 0 or empty.
+	Partition int32 `json:"partition,omitempty" protobuf:"varint,3,opt,name=partition"`
+	// Optional: Defaults to false (read/write). ReadOnly here will force
+	// the ReadOnly setting in VolumeMounts.
+	ReadOnly bool `json:"readOnly,omitempty" protobuf:"varint,4,opt,name=readOnly"`
 }
 
 // Represents a Persistent Disk resource in Google Compute Engine.
