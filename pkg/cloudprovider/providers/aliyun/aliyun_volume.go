@@ -17,10 +17,8 @@ limitations under the License.
 package aliyun
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strings"
 	"time"
 
@@ -35,14 +33,14 @@ import (
 const DefaultMaxAliyunPDVolumes = 5
 
 const (
-	// Number of retries when unable to fetch device name from anchnet.
+	// Number of retries when unable to fetch device name from aliyun.
 	RetryCountOnDeviceEmpty = 5
 	// Constant interval between two retries for the above situation.
 	RetryIntervalOnDeviceEmpty = 6 * time.Second
 )
 
 const (
-	// Number of retries when getting errors while accessing anchnet, e.g.
+	// Number of retries when getting errors while accessing aliyun, e.g.
 	// request too frequent.
 	RetryCountOnError = 5
 	// Initial interval between two retries for the above situation. Following
@@ -60,10 +58,13 @@ type Volumes interface {
 	// to mean "the instance on which we are running"
 	DetachDisk(instanceID string, volumeID string) error
 
-	// Create a volume with the specified options.
-	CreateVolume(volumeOptions *VolumeOptions) (volumeID string, err error)
-	// Delete a volume.
-	DeleteVolume(volumeID string) error
+	// Create a disk with the specified options.
+	CreateDisk(volumeOptions *VolumeOptions) (volumeID string, err error)
+	// Delete a disk.
+	DeleteDisk(volumeID string) error
+
+	// Check if the volume is already attached to the instance
+	DiskIsAttached(instanceID, diskName string) (bool, error)
 }
 
 type VolumeOptions struct {
@@ -78,27 +79,28 @@ var _ Volumes = (*Aliyun)(nil)
 // Returns the device path (e.g. /dev/xvdf) where we attached the volume.
 func (aly *Aliyun) AttachDisk(instanceID string, volumeID string, readOnly bool) (string, error) {
 	glog.Infof("AttachDisk(%v, %v, %v)", instanceID, volumeID, readOnly)
+	/*
+		// Do not support attaching volume for other instances.
+		if instanceID != "" {
+			return "", errors.New("unable to attach disk for instance other than self instance")
+		}
 
-	// Do not support attaching volume for other instances.
-	if instanceID != "" {
-		return "", errors.New("unable to attach disk for instance other than self instance")
-	}
+		// Get hostname and convert it to instance ID. During cluster provisioning, we set hostname to
+		// lowercased instance ID. Ideally, we can issue a request to cloudprovider to get instance
+		// information of the host itself, but aliyun lacks the API.
+		hostname, err := os.Hostname()
+		if err != nil {
+			return "", err
+		}
+		instanceID = nameToInstanceId(hostname)
 
-	// Get hostname and convert it to instance ID. During cluster provisioning, we set hostname to
-	// lowercased instance ID. Ideally, we can issue a request to cloudprovider to get instance
-	// information of the host itself, but anchnet lacks the API.
-	hostname, err := os.Hostname()
-	if err != nil {
-		return "", err
-	}
-	instanceID = nameToInstanceId(hostname)
-
-	// Before attaching volume, check /sys/block for known disks. This is used in case anchnet
-	// doesn't return device name from describe volume API.
-	existing, err := readSysBlock("sd")
-	if err != nil {
-		return "", err
-	}
+		// Before attaching volume, check /sys/block for known disks. This is used in case aliyun
+		// doesn't return device name from describe volume API.
+		existing, err := readSysBlock("xvd")
+		if err != nil {
+			return "", err
+		}
+	*/
 
 	// Do the volume attach.
 	if err := aly.attachVolume(instanceID, volumeID); err != nil {
@@ -112,37 +114,37 @@ func (aly *Aliyun) AttachDisk(instanceID string, volumeID string, readOnly bool)
 			glog.Infof("Volume %s device path is empty, retrying", volumeID)
 			time.Sleep(RetryIntervalOnDeviceEmpty)
 		} else {
-			devicePath = diskInfo.Device
-			break
+			return diskInfo.Device, nil
 		}
 	}
-
-	if devicePath == "" {
-		glog.Infof("Unable to fetch device name from describeVolume endpoint, fallback to search /sys/block")
-		glog.Infof("AttachDisk found existing disks %+v", existing)
-		// After attaching volume, check /sys/block again.
-		current, err := readSysBlock("sd")
-		if err != nil {
-			return "", err
-		}
-		glog.Infof("AttachDisk found current disks %+v", current)
-
-		existingMap := make(map[string]bool)
-		for _, disk := range existing {
-			existingMap[disk] = true
-		}
-
-		var diff []string
-		for _, disk := range current {
-			if _, ok := existingMap[disk]; !ok {
-				diff = append(diff, disk)
+	/*
+		if devicePath == "" {
+			glog.Infof("Unable to fetch device name from describeVolume endpoint, fallback to search /sys/block")
+			glog.Infof("AttachDisk found existing disks %+v", existing)
+			// After attaching volume, check /sys/block again.
+			current, err := readSysBlock("xvd")
+			if err != nil {
+				return "", err
 			}
+			glog.Infof("AttachDisk found current disks %+v", current)
+
+			existingMap := make(map[string]bool)
+			for _, disk := range existing {
+				existingMap[disk] = true
+			}
+
+			var diff []string
+			for _, disk := range current {
+				if _, ok := existingMap[disk]; !ok {
+					diff = append(diff, disk)
+				}
+			}
+			if len(diff) != 1 {
+				return "", fmt.Errorf("Unable to find volume %v", diff)
+			}
+			devicePath = "/dev/" + diff[0]
 		}
-		if len(diff) != 1 {
-			return "", fmt.Errorf("Unable to find volume %v", diff)
-		}
-		devicePath = "/dev/" + diff[0]
-	}
+	*/
 
 	glog.Infof("Found device path %+v", devicePath)
 	return devicePath, nil
@@ -156,7 +158,7 @@ func (aly *Aliyun) DetachDisk(instanceID string, volumeID string) error {
 }
 
 // Create a volume with the specified options.
-func (aly *Aliyun) CreateVolume(options *VolumeOptions) (string, error) {
+func (aly *Aliyun) CreateDisk(options *VolumeOptions) (string, error) {
 	glog.Infof("CreateDisk(%v, %v)", options.Name, options.CapacityGB)
 
 	if options.CapacityGB < 5 || options.CapacityGB > 2000 {
@@ -189,7 +191,7 @@ func (aly *Aliyun) CreateVolume(options *VolumeOptions) (string, error) {
 }
 
 // Delete a volume.
-func (aly *Aliyun) DeleteVolume(volumeID string) error {
+func (aly *Aliyun) DeleteDisk(volumeID string) error {
 	glog.Infof("DeleteDisk: %v", volumeID)
 
 	volume, err := aly.describeVolume(volumeID)
@@ -341,6 +343,17 @@ func (aly *Aliyun) GetAutoLabelsForPD(volumeID string) (map[string]string, error
 	labels[unversioned.LabelZoneFailureDomain] = info.ZoneId
 
 	return labels, nil
+}
+
+func (aly *Aliyun) DiskIsAttached(instanceID, volumeID string) (bool, error) {
+	info, err := aly.describeVolume(volumeID)
+	if err != nil {
+		return false, err
+	}
+	if info.InstanceId == instanceID {
+		return true, nil
+	}
+	return false, nil
 }
 
 // getAllZones retrieves  a list of all the zones in which nodes are running

@@ -190,12 +190,6 @@ func (plugin *aliyunPersistentDiskPlugin) newProvisionerInternal(options volume.
 
 // pdManager abstracts interface to PD operations.
 type pdManager interface {
-	// AttachAndMountDisk attaches a disk specified by a volume.aliyunPersistentDisk
-	// to current kubelet. The mount path is 'globalPDPath'.
-	AttachAndMountDisk(b *aliyunPersistentDiskMounter, globalPDPath string) error
-	// DetachDisk detaches/unmount the disk from the kubelet's host machine.
-	DetachDisk(c *aliyunPersistentDiskUnmounter) error
-	// Creates a disk in aliyun.
 	CreateDisk(provisioner *aliyunPersistentDiskProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error)
 	// Deletes a disk in aliyun.
 	DeleteDisk(deleter *aliyunPersistentDiskDeleter) error
@@ -220,13 +214,6 @@ type aliyunPersistentDisk struct {
 	plugin *aliyunPersistentDiskPlugin
 	// Placeholder for aliyun since it doesn't yet support metrics.
 	volume.MetricsNil
-}
-
-func detachDiskLogError(pd *aliyunPersistentDisk) {
-	err := pd.manager.DetachDisk(&aliyunPersistentDiskUnmounter{pd})
-	if err != nil {
-		glog.Warningf("Failed to detach disk: %v (%v)", pd, err)
-	}
 }
 
 // GetPath returns the directory path the volume is mounted to. The path is a host path, e.g.
@@ -279,16 +266,8 @@ func (b *aliyunPersistentDiskMounter) SetUpAt(dir string, fsGroup *int64) error 
 	globalPDPath := makeGlobalPDPath(b.plugin.host, b.volumeID)
 	glog.V(2).Infof("Mount PersistentDisk at %v", globalPDPath)
 
-	// Call pdManager, which in turn calls cloudprovider to setup up disk. The disk
-	// must exist, i.e. b.VolumeID is a valid identifier (vol-xxxxxx).
-	if err := b.manager.AttachAndMountDisk(b, globalPDPath); err != nil {
-		return err
-	}
-
 	// Create `dir` to prepare for bind mount.
 	if err := os.MkdirAll(dir, 0750); err != nil {
-		// TODO: we should really eject the attach/detach out into its own control loop.
-		detachDiskLogError(b.aliyunPersistentDisk)
 		return err
 	}
 
@@ -321,8 +300,6 @@ func (b *aliyunPersistentDiskMounter) SetUpAt(dir string, fsGroup *int64) error 
 			}
 		}
 		os.Remove(dir)
-		// TODO: we should really eject the attach/detach out into its own control loop.
-		detachDiskLogError(b.aliyunPersistentDisk)
 		return err
 	}
 
@@ -368,18 +345,7 @@ func (c *aliyunPersistentDiskUnmounter) TearDownAt(dir string) error {
 		glog.V(2).Info("Error unmounting dir ", dir, ": ", err)
 		return err
 	}
-	// If len(refs) is 1, then all bind mounts have been removed, and the
-	// remaining reference is the global mount. It is safe to detach.
-	if len(refs) == 1 {
-		// c.volumeID is not initially set for volume-unmounters, so set it here.
-		c.volumeID = path.Base(refs[0])
-		if err := c.manager.DetachDisk(c); err != nil {
-			glog.V(2).Info("Failed to detach disk ", c.volumeID)
-			return err
-		}
-	} else {
-		glog.V(2).Info("Found multiple refs; won't detach aliyun volume: %v", refs)
-	}
+
 	notMnt, mntErr := c.mounter.IsLikelyNotMountPoint(dir)
 	if mntErr != nil {
 		glog.Errorf("IsLikelyNotMountPoint check failed: %v", mntErr)

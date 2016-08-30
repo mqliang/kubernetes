@@ -74,6 +74,8 @@ func ProbeAttachableVolumePlugins(config componentconfig.VolumeConfiguration) []
 
 	allPlugins = append(allPlugins, aws_ebs.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, anchnet_pd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, aliyun_pd.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, flexvolume.ProbeVolumePlugins(config.FlexVolumePluginDir)...)
 	allPlugins = append(allPlugins, vsphere_volume.ProbeVolumePlugins()...)

@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/network/kubenet"
 	// Volume plugins
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/kubernetes/pkg/volume/aliyun_pd"
 	"k8s.io/kubernetes/pkg/volume/anchnet_pd"
 	"k8s.io/kubernetes/pkg/volume/aws_ebs"
 	"k8s.io/kubernetes/pkg/volume/azure_dd"
@@ -69,6 +70,7 @@ func ProbeVolumePlugins(pluginDir string) []volume.VolumePlugin {
 	// Kubelet does not currently need to configure volume plugins.
 	// If/when it does, see kube-controller-manager/app/plugins.go for example of using volume.VolumeConfig
 	allPlugins = append(allPlugins, anchnet_pd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, aliyun_pd.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, aws_ebs.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, empty_dir.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
