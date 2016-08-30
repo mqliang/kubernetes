@@ -26,7 +26,7 @@ KUBE_ROOT="$(dirname ${BASH_SOURCE})/../.."
 source "${KUBE_ROOT}/cluster/caicloud-anchnet/config-default.sh"
 source "${KUBE_ROOT}/cluster/caicloud/common.sh"
 source "${KUBE_ROOT}/cluster/caicloud/${KUBE_DISTRO}/helper.sh"
-
+source "${KUBE_ROOT}/cluster/lib/util.sh"
 
 # -----------------------------------------------------------------------------
 # Cluster specific library utility functions.
