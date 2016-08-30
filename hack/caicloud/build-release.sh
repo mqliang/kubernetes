@@ -182,7 +182,7 @@ function create-cloud-image {
   KUBERNETES_PROVIDER=$1
   ANCHNET_CONFIG_FILE=$2
   source "${KUBE_ROOT}/cluster/kube-util.sh"
-  source "${KUBE_ROOT}/cluster/kube-env.sh"
+  source "${KUBE_ROOT}/cluster/lib/util.sh"
   build-instance-image
 }
 
