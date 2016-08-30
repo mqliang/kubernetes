@@ -1,0 +1,21 @@
+description "etcd 2.x"
+
+start on (net-device-up and local-filesystems and runlevel [2345])
+stop on runlevel [016]
+
+respawn
+respawn limit 10 5
+
+limit nofile 65536 65536
+
+script
+  if [ -f "{{ etcd_config_dir }}/etcd-server-events.conf" ]; then
+    set -a
+    . {{ etcd_config_dir }}/etcd-server-events.conf
+    set +a
+  fi
+
+  mkdir -p {{ etcd_events_dir }}
+  chdir {{ etcd_events_dir }}
+  exec {{ bin_dir }}/etcd >>/var/log/etcd-server-events.log 2>&1
+end script

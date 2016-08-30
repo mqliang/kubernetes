@@ -1,11 +1,11 @@
 [Unit]
-Description=Etcd Server
+Description=Etcd Server Events
 After=network.target
 
 [Service]
 Type=notify
-WorkingDirectory={{ etcd_data_dir }}
-EnvironmentFile=-{{ etcd_config_dir }}/etcd.conf
+WorkingDirectory={{ etcd_events_dir }}
+EnvironmentFile=-{{ etcd_config_dir }}/etcd-server-events.conf
 ExecStart={{ bin_dir }}/etcd
 Restart=on-failure
 LimitNOFILE=65536

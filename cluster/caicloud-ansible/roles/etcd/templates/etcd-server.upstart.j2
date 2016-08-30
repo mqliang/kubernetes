@@ -9,13 +9,13 @@ respawn limit 10 5
 limit nofile 65536 65536
 
 script
-  if [ -f "{{ etcd_config_dir }}/etcd.conf" ]; then
+  if [ -f "{{ etcd_config_dir }}/etcd-server.conf" ]; then
     set -a
-    . {{ etcd_config_dir }}/etcd.conf
+    . {{ etcd_config_dir }}/etcd-server.conf
     set +a
   fi
 
   mkdir -p {{ etcd_data_dir }}
   chdir {{ etcd_data_dir }}
-  exec {{ bin_dir }}/etcd >>/var/log/etcd.log 2>&1
+  exec {{ bin_dir }}/etcd >>/var/log/etcd-server.log 2>&1
 end script
