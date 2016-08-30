@@ -17,98 +17,27 @@ limitations under the License.
 package anchnet_pd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/anchnet"
+	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
+)
+
+const (
+	diskPartitionSuffix = ""
+	checkSleepDuration  = time.Second
 )
 
 // AnchnetDiskUtil implements pdManager which abstracts interface to PD operations.
 type AnchnetDiskUtil struct{}
 
-func (util *AnchnetDiskUtil) AttachAndMountDisk(b *anchnetPersistentDiskMounter, globalPDPath string) error {
-	cloud, err := getCloudProvider(b.anchnetPersistentDisk.plugin)
-	if err != nil {
-		return err
-	}
-	devicePath, err := cloud.AttachDisk("", b.volumeID, b.readOnly)
-	if err != nil {
-		return err
-	}
-	if b.partition != "" {
-		devicePath = devicePath + b.partition
-	}
-	numTries := 0
-	for {
-		_, err := os.Stat(devicePath)
-		if err == nil {
-			break
-		}
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		numTries++
-		if numTries == 10 {
-			return errors.New("Could not attach disk: Timeout after 10s (" + devicePath + ")")
-		}
-		time.Sleep(time.Second)
-	}
-
-	// Only mount the PD globally once.
-	notMnt, err := b.mounter.IsLikelyNotMountPoint(globalPDPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if err := os.MkdirAll(globalPDPath, 0750); err != nil {
-				return err
-			}
-			notMnt = true
-		} else {
-			return err
-		}
-	}
-	options := []string{}
-	if b.readOnly {
-		options = append(options, "ro")
-	}
-	if notMnt {
-		err = b.diskMounter.FormatAndMount(devicePath, globalPDPath, b.fsType, options)
-		if err != nil {
-			os.Remove(globalPDPath)
-			return err
-		}
-	}
-	return nil
-}
-
-func (util *AnchnetDiskUtil) DetachDisk(c *anchnetPersistentDiskUnmounter) error {
-	// Unmount the global PD mount, which should be the only one.
-	globalPDPath := makeGlobalPDPath(c.plugin.host, c.volumeID)
-	if err := c.mounter.Unmount(globalPDPath); err != nil {
-		glog.Info("Error unmount dir ", globalPDPath, ": ", err)
-		return err
-	}
-	if err := os.Remove(globalPDPath); err != nil {
-		glog.Info("Error removing dir ", globalPDPath, ": ", err)
-		return err
-	}
-	// Detach the disk.
-	cloud, err := getCloudProvider(c.anchnetPersistentDisk.plugin)
-	if err != nil {
-		return err
-	}
-	if err := cloud.DetachDisk("", c.volumeID); err != nil {
-		glog.Info("Error detaching disk ", c.volumeID, ": ", err)
-		return err
-	}
-	return nil
-}
-
 func (util *AnchnetDiskUtil) CreateDisk(p *anchnetPersistentDiskProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error) {
-	cloud, err := getCloudProvider(p.anchnetPersistentDisk.plugin)
+	cloud, err := getCloudProvider(p.anchnetPersistentDisk.plugin.host.GetCloudProvider())
 	if err != nil {
 		return "", 0, nil, err
 	}
@@ -118,7 +47,7 @@ func (util *AnchnetDiskUtil) CreateDisk(p *anchnetPersistentDiskProvisioner) (vo
 	requestBytes := p.options.Capacity.Value()
 	requestGB := volume.RoundUpSize(requestBytes, 1024*1024*1024)
 
-	volumeID, err = cloud.CreateVolume(&anchnet_cloud.VolumeOptions{
+	volumeID, err = cloud.CreateDisk(&anchnet_cloud.VolumeOptions{
 		Name:       name,
 		CapacityGB: int(requestGB),
 	})
@@ -138,12 +67,12 @@ func (util *AnchnetDiskUtil) CreateDisk(p *anchnetPersistentDiskProvisioner) (vo
 }
 
 func (util *AnchnetDiskUtil) DeleteDisk(deleter *anchnetPersistentDiskDeleter) error {
-	cloud, err := getCloudProvider(deleter.anchnetPersistentDisk.plugin)
+	cloud, err := getCloudProvider(deleter.anchnetPersistentDisk.plugin.host.GetCloudProvider())
 	if err != nil {
 		return err
 	}
 
-	if err = cloud.DeleteVolume(deleter.volumeID); err != nil {
+	if err = cloud.DeleteDisk(deleter.volumeID); err != nil {
 		glog.V(2).Infof("Error deleting Anchnet PD volume %s: %v", deleter.volName, err)
 		return err
 	}
@@ -152,19 +81,61 @@ func (util *AnchnetDiskUtil) DeleteDisk(deleter *anchnetPersistentDiskDeleter) e
 }
 
 // Return cloud provider
-func getCloudProvider(plugin *anchnetPersistentDiskPlugin) (*anchnet_cloud.Anchnet, error) {
-	if plugin == nil {
-		return nil, fmt.Errorf("Failed to get Anchnet Cloud Provider. plugin object is nil.")
-	}
-	if plugin.host == nil {
-		return nil, fmt.Errorf("Failed to get Anchnet Cloud Provider. plugin.host object is nil.")
-	}
-
-	cloudProvider := plugin.host.GetCloudProvider()
+func getCloudProvider(cloudProvider cloudprovider.Interface) (*anchnet_cloud.Anchnet, error) {
 	anchnetCloudProvider, ok := cloudProvider.(*anchnet_cloud.Anchnet)
 	if !ok || anchnetCloudProvider == nil {
-		return nil, fmt.Errorf("Failed to get Anchnet Cloud Provider. plugin.host.GetCloudProvider returned %v instead", cloudProvider)
+		return nil, fmt.Errorf("Failed to get Anchnet Cloud Provider. GetCloudProvider returned %v instead", cloudProvider)
 	}
 
 	return anchnetCloudProvider, nil
+}
+
+// Unmount the global PD mount, which should be the only one, and delete it.
+func unmountPDAndRemoveGlobalPath(globalMountPath string, mounter mount.Interface) error {
+	err := mounter.Unmount(globalMountPath)
+	os.Remove(globalMountPath)
+	return err
+}
+
+// Checks if the specified path exists
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	} else if os.IsNotExist(err) {
+		return false, nil
+	} else {
+		return false, err
+	}
+}
+
+// Returns list of all paths for given EBS mount
+// This is more interesting on GCE (where we are able to identify volumes under /dev/disk-by-id)
+// Here it is mostly about applying the partition path
+func getDiskByIdPaths(partition string, devicePath string) []string {
+	devicePaths := []string{}
+	if devicePath != "" {
+		devicePaths = append(devicePaths, devicePath)
+	}
+
+	if partition != "" {
+		for i, path := range devicePaths {
+			devicePaths[i] = path + diskPartitionSuffix + partition
+		}
+	}
+
+	return devicePaths
+}
+
+// Returns the first path that exists, or empty string if none exist.
+func verifyDevicePath(devicePaths []string) (string, error) {
+	for _, path := range devicePaths {
+		if pathExists, err := pathExists(path); err != nil {
+			return "", fmt.Errorf("Error checking if path exists: %v", err)
+		} else if pathExists {
+			return path, nil
+		}
+	}
+
+	return "", nil
 }

@@ -17,10 +17,8 @@ limitations under the License.
 package anchnet_cloud
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strings"
 	"time"
 
@@ -37,6 +35,23 @@ const (
 	RetryIntervalOnDeviceEmpty = 6 * time.Second
 )
 
+// Volumes is an interface for managing cloud-provisioned volumes.
+type Volumes interface {
+	// AttachDisk attaches the disk to the specified instance. `instanceID` can be empty
+	// to mean "the instance on which we are running".
+	// Returns the device path (e.g. /dev/xvdf) where we attached the volume.
+	AttachDisk(instanceID string, volumeID string, readOnly bool) (string, error)
+	// DetachDisk detaches the disk from the specified instance. `instanceID` can be empty
+	// to mean "the instance on which we are running"
+	DetachDisk(instanceID string, volumeID string) error
+	// Create a volume with the specified options.
+	CreateDisk(volumeOptions *VolumeOptions) (volumeID string, err error)
+	// Delete a volume.
+	DeleteDisk(volumeID string) error
+	// Check if the volume is already attached to the instance
+	DiskIsAttached(instanceID, diskName string) (bool, error)
+}
+
 var _ Volumes = (*Anchnet)(nil)
 
 // AttachDisk attaches the disk to the specified instance. `instanceID` can be empty
@@ -44,27 +59,28 @@ var _ Volumes = (*Anchnet)(nil)
 // Returns the device path (e.g. /dev/xvdf) where we attached the volume.
 func (an *Anchnet) AttachDisk(instanceID string, volumeID string, readOnly bool) (string, error) {
 	glog.Infof("AttachDisk(%v, %v, %v)", instanceID, volumeID, readOnly)
+	/*
+		// Do not support attaching volume for other instances.
+		if instanceID != "" {
+			return "", errors.New("unable to attach disk for instance other than self instance")
+		}
 
-	// Do not support attaching volume for other instances.
-	if instanceID != "" {
-		return "", errors.New("unable to attach disk for instance other than self instance")
-	}
+		// Get hostname and convert it to instance ID. During cluster provisioning, we set hostname to
+		// lowercased instance ID. Ideally, we can issue a request to cloudprovider to get instance
+		// information of the host itself, but anchnet lacks the API.
+		hostname, err := os.Hostname()
+		if err != nil {
+			return "", err
+		}
+		instanceID = convertToInstanceID(hostname)
 
-	// Get hostname and convert it to instance ID. During cluster provisioning, we set hostname to
-	// lowercased instance ID. Ideally, we can issue a request to cloudprovider to get instance
-	// information of the host itself, but anchnet lacks the API.
-	hostname, err := os.Hostname()
-	if err != nil {
-		return "", err
-	}
-	instanceID = convertToInstanceID(hostname)
-
-	// Before attaching volume, check /sys/block for known disks. This is used in case anchnet
-	// doesn't return device name from describe volume API.
-	existing, err := readSysBlock("sd")
-	if err != nil {
-		return "", err
-	}
+		// Before attaching volume, check /sys/block for known disks. This is used in case anchnet
+		// doesn't return device name from describe volume API.
+		existing, err := readSysBlock("sd")
+		if err != nil {
+			return "", err
+		}
+	*/
 
 	// Do the volume attach.
 	attach_response, err := an.attachVolume(instanceID, volumeID)
@@ -86,37 +102,38 @@ func (an *Anchnet) AttachDisk(instanceID string, volumeID string, readOnly bool)
 			glog.Infof("Volume %s device path is empty, retrying", volumeID)
 			time.Sleep(RetryIntervalOnDeviceEmpty)
 		} else {
-			devicePath = describe_response.ItemSet[0].Device
-			break
+			return describe_response.ItemSet[0].Device, nil
 		}
 	}
 
-	if devicePath == "" {
-		glog.Infof("Unable to fetch device name from describeVolume endpoint, fallback to search /sys/block")
-		glog.Infof("AttachDisk found existing disks %+v", existing)
-		// After attaching volume, check /sys/block again.
-		current, err := readSysBlock("sd")
-		if err != nil {
-			return "", err
-		}
-		glog.Infof("AttachDisk found current disks %+v", current)
-
-		existingMap := make(map[string]bool)
-		for _, disk := range existing {
-			existingMap[disk] = true
-		}
-
-		var diff []string
-		for _, disk := range current {
-			if _, ok := existingMap[disk]; !ok {
-				diff = append(diff, disk)
+	/*
+		if devicePath == "" {
+			glog.Infof("Unable to fetch device name from describeVolume endpoint, fallback to search /sys/block")
+			glog.Infof("AttachDisk found existing disks %+v", existing)
+			// After attaching volume, check /sys/block again.
+			current, err := readSysBlock("sd")
+			if err != nil {
+				return "", err
 			}
+			glog.Infof("AttachDisk found current disks %+v", current)
+
+			existingMap := make(map[string]bool)
+			for _, disk := range existing {
+				existingMap[disk] = true
+			}
+
+			var diff []string
+			for _, disk := range current {
+				if _, ok := existingMap[disk]; !ok {
+					diff = append(diff, disk)
+				}
+			}
+			if len(diff) != 1 {
+				return "", fmt.Errorf("Unable to find volume %v", diff)
+			}
+			devicePath = "/dev/" + diff[0]
 		}
-		if len(diff) != 1 {
-			return "", fmt.Errorf("Unable to find volume %v", diff)
-		}
-		devicePath = "/dev/" + diff[0]
-	}
+	*/
 
 	glog.Infof("Found device path %+v", devicePath)
 	return devicePath, nil
@@ -141,7 +158,7 @@ func (an *Anchnet) DetachDisk(instanceID string, volumeID string) error {
 }
 
 // Create a volume with the specified options.
-func (an *Anchnet) CreateVolume(volumeOptions *VolumeOptions) (volumeID string, err error) {
+func (an *Anchnet) CreateDisk(volumeOptions *VolumeOptions) (volumeID string, err error) {
 	glog.Infof("CreateDisk(%v, %v)", volumeOptions.Name, volumeOptions.CapacityGB)
 
 	if volumeOptions.CapacityGB < 10 || volumeOptions.CapacityGB > 1000 || volumeOptions.CapacityGB%10 != 0 {
@@ -163,7 +180,7 @@ func (an *Anchnet) CreateVolume(volumeOptions *VolumeOptions) (volumeID string, 
 }
 
 // Delete a volume.
-func (an *Anchnet) DeleteVolume(volumeID string) error {
+func (an *Anchnet) DeleteDisk(volumeID string) error {
 	glog.Infof("DeleteDisk: %v", volumeID)
 	delete_response, err := an.deleteVolume(volumeID)
 	if err != nil {
@@ -292,6 +309,17 @@ func (an *Anchnet) GetAutoLabelsForPD(name string) (map[string]string, error) {
 	labels[unversioned.LabelZoneRegion] = zone.Region
 
 	return labels, nil
+}
+
+func (aly *Anchnet) DiskIsAttached(instanceID, volumeID string) (bool, error) {
+	info, err := aly.describeVolume(volumeID)
+	if err != nil {
+		return false, err
+	}
+	if info.ItemSet[0].Instance.InstanceID == instanceID {
+		return true, nil
+	}
+	return false, nil
 }
 
 // readSysBlock reads /sys/block and returns a list of devices start with `prefix`.

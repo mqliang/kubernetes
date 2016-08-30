@@ -17,7 +17,6 @@ limitations under the License.
 package aliyun_pd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -26,90 +25,20 @@ import (
 	"k8s.io/kubernetes/pkg/volume"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/util/mount"
+)
+
+const (
+	diskPartitionSuffix = ""
+	checkSleepDuration  = time.Second
 )
 
 // AliyunDiskUtil implements pdManager which abstracts interface to PD operations.
 type AliyunDiskUtil struct{}
 
-func (util *AliyunDiskUtil) AttachAndMountDisk(b *aliyunPersistentDiskMounter, globalPDPath string) error {
-	cloud, err := getCloudProvider(b.aliyunPersistentDisk.plugin)
-	if err != nil {
-		return err
-	}
-	devicePath, err := cloud.AttachDisk("", b.volumeID, b.readOnly)
-	if err != nil {
-		return err
-	}
-	if b.partition != "" {
-		devicePath = devicePath + b.partition
-	}
-	numTries := 0
-	for {
-		_, err := os.Stat(devicePath)
-		if err == nil {
-			break
-		}
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		numTries++
-		if numTries == 10 {
-			return errors.New("Could not attach disk: Timeout after 10s (" + devicePath + ")")
-		}
-		time.Sleep(time.Second)
-	}
-
-	// Only mount the PD globally once.
-	notMnt, err := b.mounter.IsLikelyNotMountPoint(globalPDPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if err := os.MkdirAll(globalPDPath, 0750); err != nil {
-				return err
-			}
-			notMnt = true
-		} else {
-			return err
-		}
-	}
-	options := []string{}
-	if b.readOnly {
-		options = append(options, "ro")
-	}
-	if notMnt {
-		err = b.diskMounter.FormatAndMount(devicePath, globalPDPath, b.fsType, options)
-		if err != nil {
-			os.Remove(globalPDPath)
-			return err
-		}
-	}
-	return nil
-}
-
-func (util *AliyunDiskUtil) DetachDisk(c *aliyunPersistentDiskUnmounter) error {
-	// Unmount the global PD mount, which should be the only one.
-	globalPDPath := makeGlobalPDPath(c.plugin.host, c.volumeID)
-	if err := c.mounter.Unmount(globalPDPath); err != nil {
-		glog.Info("Error unmount dir ", globalPDPath, ": ", err)
-		return err
-	}
-	if err := os.Remove(globalPDPath); err != nil {
-		glog.Info("Error removing dir ", globalPDPath, ": ", err)
-		return err
-	}
-	// Detach the disk.
-	cloud, err := getCloudProvider(c.aliyunPersistentDisk.plugin)
-	if err != nil {
-		return err
-	}
-	if err := cloud.DetachDisk("", c.volumeID); err != nil {
-		glog.Info("Error detaching disk ", c.volumeID, ": ", err)
-		return err
-	}
-	return nil
-}
-
 func (util *AliyunDiskUtil) CreateDisk(p *aliyunPersistentDiskProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error) {
-	cloud, err := getCloudProvider(p.aliyunPersistentDisk.plugin)
+	cloud, err := getCloudProvider(p.aliyunPersistentDisk.plugin.host.GetCloudProvider())
 	if err != nil {
 		return "", 0, nil, err
 	}
@@ -119,7 +48,7 @@ func (util *AliyunDiskUtil) CreateDisk(p *aliyunPersistentDiskProvisioner) (volu
 	requestBytes := p.options.Capacity.Value()
 	requestGB := volume.RoundUpSize(requestBytes, 1024*1024*1024)
 
-	volumeID, err = cloud.CreateVolume(&aliyun.VolumeOptions{
+	volumeID, err = cloud.CreateDisk(&aliyun.VolumeOptions{
 		Name:       name,
 		CapacityGB: int(requestGB),
 	})
@@ -139,12 +68,12 @@ func (util *AliyunDiskUtil) CreateDisk(p *aliyunPersistentDiskProvisioner) (volu
 }
 
 func (util *AliyunDiskUtil) DeleteDisk(deleter *aliyunPersistentDiskDeleter) error {
-	cloud, err := getCloudProvider(deleter.aliyunPersistentDisk.plugin)
+	cloud, err := getCloudProvider(deleter.aliyunPersistentDisk.plugin.host.GetCloudProvider())
 	if err != nil {
 		return err
 	}
 
-	if err = cloud.DeleteVolume(deleter.volumeID); err != nil {
+	if err = cloud.DeleteDisk(deleter.volumeID); err != nil {
 		glog.V(2).Infof("Error deleting Aliyun PD volume %s: %v", deleter.volName, err)
 		return err
 	}
@@ -153,19 +82,61 @@ func (util *AliyunDiskUtil) DeleteDisk(deleter *aliyunPersistentDiskDeleter) err
 }
 
 // Return cloud provider
-func getCloudProvider(plugin *aliyunPersistentDiskPlugin) (*aliyun.Aliyun, error) {
-	if plugin == nil {
-		return nil, fmt.Errorf("Failed to get Aliyun Cloud Provider. plugin object is nil.")
-	}
-	if plugin.host == nil {
-		return nil, fmt.Errorf("Failed to get Aliyun Cloud Provider. plugin.host object is nil.")
-	}
-
-	cloudProvider := plugin.host.GetCloudProvider()
+func getCloudProvider(cloudProvider cloudprovider.Interface) (*aliyun.Aliyun, error) {
 	aliyunCloudProvider, ok := cloudProvider.(*aliyun.Aliyun)
 	if !ok || aliyunCloudProvider == nil {
-		return nil, fmt.Errorf("Failed to get Aliyun Cloud Provider. plugin.host.GetCloudProvider returned %v instead", cloudProvider)
+		return nil, fmt.Errorf("Failed to get Aliyun Cloud Provider. GetCloudProvider returned %v instead", cloudProvider)
 	}
 
 	return aliyunCloudProvider, nil
+}
+
+// Unmount the global PD mount, which should be the only one, and delete it.
+func unmountPDAndRemoveGlobalPath(globalMountPath string, mounter mount.Interface) error {
+	err := mounter.Unmount(globalMountPath)
+	os.Remove(globalMountPath)
+	return err
+}
+
+// Checks if the specified path exists
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	} else if os.IsNotExist(err) {
+		return false, nil
+	} else {
+		return false, err
+	}
+}
+
+// Returns list of all paths for given EBS mount
+// This is more interesting on GCE (where we are able to identify volumes under /dev/disk-by-id)
+// Here it is mostly about applying the partition path
+func getDiskByIdPaths(partition string, devicePath string) []string {
+	devicePaths := []string{}
+	if devicePath != "" {
+		devicePaths = append(devicePaths, devicePath)
+	}
+
+	if partition != "" {
+		for i, path := range devicePaths {
+			devicePaths[i] = path + diskPartitionSuffix + partition
+		}
+	}
+
+	return devicePaths
+}
+
+// Returns the first path that exists, or empty string if none exist.
+func verifyDevicePath(devicePaths []string) (string, error) {
+	for _, path := range devicePaths {
+		if pathExists, err := pathExists(path); err != nil {
+			return "", fmt.Errorf("Error checking if path exists: %v", err)
+		} else if pathExists {
+			return path, nil
+		}
+	}
+
+	return "", nil
 }
