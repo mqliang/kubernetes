@@ -4,5 +4,15 @@
   command: systemctl --system daemon-reload
 
 - name: restart etcd
-  service: name=etcd state=restarted
-  when: etcd_started.changed == false
+  command: /bin/true
+  notify:
+    - restart etcd-server
+    - restart etcd-server-events
+
+- name: restart etcd-server
+  service: name=etcd-server state=restarted
+  when: etcd_server_started.changed == false
+
+- name: restart etcd-server-events
+  service: name=etcd-server-events state=restarted
+  when: etcd_server_events_started.changed == false

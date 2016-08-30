@@ -13,7 +13,10 @@
   file: path={{ etcd_config_dir }} state=directory
 
 - name: Create etcd data directory
-  file: path={{ etcd_data_dir }} state=directory
+  file: path={{ item }} state=directory
+  with_items:
+    - "{{ etcd_data_dir }}"
+    - "{{ etcd_events_dir }}"
 
 #
 # Install etcd and create configuration file.
@@ -22,22 +25,30 @@
   include: qiniu.yml
 
 - name: Write etcd config file
-  template: src=etcd.conf.j2 dest={{ etcd_config_dir }}/etcd.conf
+  template: src=etcd-server{{ item }}.conf.j2 dest={{ etcd_config_dir }}/etcd-server{{ item }}.conf
+  with_items:
+    - ""
+    - "-events"
   notify:
     - restart etcd
 
 - name: Create upstart script for upstart based distribution
-  template: src=etcd.upstart dest=/etc/init/etcd.conf
+  template: src=etcd-server{{ item }}.upstart.j2 dest=/etc/init/etcd-server{{ item }}.conf
+  with_items:
+    - ""
+    - "-events"
   notify:
     - restart etcd
   when: kubernetes_use_upstart
 
 - name: Write etcd systemd unit file for systemd based distribution
-  template: src=etcd.service dest=/etc/systemd/system/etcd.service
+  template: src=etcd-server{{ item }}.service.j2 dest=/etc/systemd/system/etcd-server{{ item }}.service
+  with_items:
+    - ""
+    - "-events"
   notify:
     - reload systemd
     - restart etcd
-  register: etcd_unit
   when: not kubernetes_use_upstart
 
 #
@@ -45,11 +56,18 @@
 
 - name: Reload systemd if etcd systemd unit file changed
   command: systemctl --system daemon-reload
-  when: not kubernetes_use_upstart and etcd_unit.changed
+  when: not kubernetes_use_upstart
 
 - name: Enable etcd
-  service: name=etcd enabled=yes
+  service: name=etcd-server{{ item }} enabled=yes
+  with_items:
+    - ""
+    - "-events"
 
-- name: Start etcd
-  service: name=etcd state=started
-  register: etcd_started
+- name: Start etcd-server
+  service: name=etcd-server state=started
+  register: etcd_server_started
+
+- name: Start etcd-server-events
+  service: name=etcd-server-events state=started
+  register: etcd_server_events_started

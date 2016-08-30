@@ -15,10 +15,6 @@ etcd_download_url: "{{ etcd_download_url_base }}/etcd-v{{ etcd_version }}-linux-
 # rarely needed to change the values.
 #
 
-# Main ports for etcd.
-etcd_client_port: 2379
-etcd_peer_port: 2380
-
 etcd_peers_group: etcd
 etcd_url_scheme: http
 etcd_peer_url_scheme: http
@@ -26,7 +22,9 @@ etcd_peer_url_scheme: http
 # Default etcd configuration directory. For upstart, this will be overriden
 # to "/etc/default".
 etcd_config_dir: "/etc/sysconfig"
+
 etcd_data_dir: "/var/lib/etcd"
+etcd_events_dir: "/var/lib/etcd-events"
 
 etcd_ca_file: "{{ etcd_config_dir }}/ca.crt"
 etcd_cert_file: "{{ etcd_config_dir }}/server.crt"
@@ -36,10 +34,20 @@ etcd_peer_cert_file: "{{ etcd_config_dir }}/peer.crt"
 etcd_peer_key_file: "{{ etcd_config_dir }}/peer.key"
 
 etcd_initial_cluster_state: new
+
 etcd_initial_cluster_token: etcd-k8-cluster
+etcd_events_initial_cluster_token: etcd-k8s-events-cluster
 
 etcd_machine_address: "{{ hostvars[inventory_hostname]['internal_ip'] }}"
+
 etcd_initial_advertise_peer_urls: "{{ etcd_peer_url_scheme }}://{{ etcd_machine_address }}:{{ etcd_peer_port }}"
+etcd_events_initial_advertise_peer_urls: "{{ etcd_peer_url_scheme }}://{{ etcd_machine_address }}:{{ etcd_events_peer_port }}"
+
 etcd_listen_peer_urls: "{{ etcd_peer_url_scheme }}://0.0.0.0:{{ etcd_peer_port }}"
+etcd_events_listen_peer_urls: "{{ etcd_peer_url_scheme }}://0.0.0.0:{{ etcd_events_peer_port }}"
+
 etcd_advertise_client_urls: "{{ etcd_url_scheme }}://{{ etcd_machine_address }}:{{ etcd_client_port }}"
+etcd_events_advertise_client_urls: "{{ etcd_url_scheme }}://{{ etcd_machine_address }}:{{ etcd_events_client_port }}"
+
 etcd_listen_client_urls: "{{ etcd_url_scheme }}://0.0.0.0:{{ etcd_client_port }}"
+etcd_events_listen_client_urls: "{{ etcd_url_scheme }}://0.0.0.0:{{ etcd_events_client_port }}"

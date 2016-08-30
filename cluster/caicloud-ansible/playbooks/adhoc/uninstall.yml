@@ -75,6 +75,8 @@
         - flanneld
         - calicoctl
         - "{{ etcd_svc_name }}"
+        - etcd-server
+        - etcd-server-events
       failed_when: false
 
     - name: Remove packages
@@ -87,6 +89,8 @@
         - kubernetes-master
         - kubernetes-client
         - "{{ etcd_svc_name }}"
+        - etcd-server
+        - etcd-server-events
         - kube-addons
         - atomic-enterprise
         - atomic-enterprise-master
@@ -151,7 +155,8 @@
         - /etc/systemd/system/flanneld.service
         - /etc/systemd/system/flanneld.service.wants
         - /etc/systemd/system/calicoctl.service
-        - /etc/systemd/system/multi-user.target.wants/etcd.service
+        - /etc/systemd/system/multi-user.target.wants/etcd-server.service
+        - /etc/systemd/system/multi-user.target.wants/etcd-server-events.service
         - /etc/systemd/system/multi-user.target.wants/flanneld.service
         - /etc/systemd/system/multi-user.target.wants/kubelet.service
         - /etc/systemd/system/multi-user.target.wants/kube-proxy.service
@@ -170,7 +175,8 @@
         - /etc/init/kube-controller-manager.conf
         - /etc/init/kube-apiserver.conf
         - /etc/init/kube-addons.conf
-        - /etc/init/etcd.conf
+        - /etc/init/etcd-server.conf
+        - /etc/init/etcd-server-events.conf
         - /etc/init/flanneld.conf
         - /etc/init/calicoctl.conf
         - /etc/default/kubelet
@@ -178,7 +184,8 @@
         - /etc/default/kube-scheduler
         - /etc/default/kube-controller-manager
         - /etc/default/kube-apiserver
-        - /etc/default/etcd.conf
+        - /etc/default/etcd-server.conf
+        - /etc/default/etcd-server-events.conf
         - /etc/default/flanneld
         - /etc/default/calicoctl
         - /usr/libexec/kubernetes
@@ -187,6 +194,8 @@
         - /usr/local/caicloud-kube
         - /etc/systemd/system/docker.service.d/40-docker-depends-on-flannel.conf
         - "{{ kube_config_dir }}"
+        - /var/lib/etcd
+        - /var/lib/etcd-events
 
     - name: Ubuntu | Update docker.conf let docker to be independent of flannel
       lineinfile:
