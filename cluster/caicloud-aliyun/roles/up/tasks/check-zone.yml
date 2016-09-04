@@ -1,0 +1,45 @@
+---
+# Assumed vars:
+#   ZONE_INFO
+
+- set_fact:
+    find_master_instance_type: false
+    find_node_instance_type: false
+    find_master_disk_category: false
+    find_node_disk_category: false
+
+- name: Display zone info
+  debug: msg="{{ ZONE_INFO }}"
+
+# How to break the loop when find it????
+- name: Check if master instanceType is available
+  set_fact:
+    find_master_instance_type: true
+  when: item == "{{ master_instance_type }}"
+  with_items: "{{ ZONE_INFO.AvailableInstanceTypes.InstanceTypes }}"
+- debug: msg="Warning -- Cannot find {{ master_instance_type }}"
+  when: not find_master_instance_type
+
+- name: Check if node instanceType is available
+  set_fact:
+    find_node_instance_type: true
+  when: item == "{{ node_instance_type }}"
+  with_items: "{{ ZONE_INFO.AvailableInstanceTypes.InstanceTypes }}"
+- debug: msg="Warning -- Cannot find {{ node_instance_type }}"
+  when: not find_node_instance_type
+
+- name: Check if master diskCategory is available
+  set_fact:
+    find_master_disk_category: true
+  when: item == "{{ master_system_disk_category }}"
+  with_items: "{{ ZONE_INFO.AvailableDiskCategories.DiskCategories }}"
+- debug: msg="Warning -- Cannot find {{ master_system_disk_category }}"
+  when: not find_master_disk_category
+
+- name: Check if node diskCategory is available
+  set_fact:
+    find_node_disk_category: true
+  when: item == "{{ node_system_disk_category }}"
+  with_items: "{{ ZONE_INFO.AvailableDiskCategories.DiskCategories }}"
+- debug: msg="Warning -- Cannot find {{ node_system_disk_category }}"
+  when: not find_node_disk_category

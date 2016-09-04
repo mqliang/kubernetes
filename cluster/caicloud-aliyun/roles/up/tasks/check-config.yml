@@ -5,6 +5,21 @@
   fail: msg="Required access_key_id and access_key_secret"
   when: access_key_id == "fake" or access_key_secret == "fake"
 
+- name: Get zones in region {{ region_id }}
+  command: aliyuncli ecs DescribeZones --AccessKeyId {{ access_key_id }} --AccessKeySecret {{ access_key_secret }} --RegionId {{ region_id }} --output json
+  register: check_zone
+- set_fact:
+    json_check_zone: "{{ check_zone.stdout | from_json }}"
+
+- name: Check if resources of zones is available
+  include: check-zone.yml
+  vars:
+    ZONE_INFO: "{{ check_zone_item }}"
+  when: check_zone_item.ZoneId == "{{ zone_id }}"
+  with_items: "{{ json_check_zone.Zones.Zone }}"
+  loop_control:
+    loop_var: check_zone_item
+
 # aliyuncli output filter: https://help.aliyun.com/knowledge_detail/41584.html
 - name: Check if the ImageId is available
   command: aliyuncli ecs DescribeImages --AccessKeyId {{ access_key_id }} --AccessKeySecret {{ access_key_secret }} --RegionId {{ region_id }} --output json --Status Available --ImageId {{ image_id }}

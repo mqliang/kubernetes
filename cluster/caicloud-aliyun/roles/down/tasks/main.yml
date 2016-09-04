@@ -35,7 +35,7 @@
     node_instances_list: "{{ [] }}"
 
 - name: Get master instances with name prefix '{{ master_name_prefix }}' in the security group
-  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ master_name_prefix }}* --filter Instances.Instance[*].InstanceId
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --ZoneId {{ zone_id }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ master_name_prefix }}* --filter Instances.Instance[*].InstanceId
   register: master_instances_output
   until: master_instances_output.stdout.find("Code") == -1
   retries: 5
@@ -46,7 +46,7 @@
   when: sg_flag and master_instances_output.stdout != ""
 
 - name: Get node instances with name prefix '{{ node_name_prefix }}' in the security group
-  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ node_name_prefix }}* --filter Instances.Instance[*].InstanceId
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --ZoneId {{ zone_id }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ node_name_prefix }}* --filter Instances.Instance[*].InstanceId
   register: node_instances_output
   until: node_instances_output.stdout.find("Code") == -1
   retries: 5
@@ -97,7 +97,7 @@
   when: sg_flag
 
 - name: Check if security group is empty
-  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }}
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --ZoneId {{ zone_id }} --SecurityGroupId {{ aliyun_sgid }}
   register: result
   until: result.stdout.find("Code") == -1
   retries: 10
