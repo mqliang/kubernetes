@@ -7,7 +7,7 @@
 
 # Search the instance by InstanceName
 - name: Wait the instance {{ instance_name }} to be in {{ wait_status }} status
-  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }}
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --ZoneId {{ zone_id }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }}
   register: search_output
   until: search_output.stdout.find("Code") == -1 and search_output.stdout.find("{{ wait_status }}") != -1
   retries: 30

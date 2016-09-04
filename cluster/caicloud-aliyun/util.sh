@@ -22,6 +22,7 @@ KUBE_CURRENT=$(dirname "${BASH_SOURCE}")
 KUBE_ROOT="$KUBE_CURRENT/../.."
 
 # Get cluster configuration parameters from config-default.
+source "${KUBE_ROOT}/cluster/lib/util.sh"
 source "${KUBE_ROOT}/cluster/caicloud-aliyun/config-default.sh"
 source "${KUBE_ROOT}/cluster/caicloud/common.sh"
 

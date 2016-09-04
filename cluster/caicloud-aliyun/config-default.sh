@@ -99,6 +99,19 @@ function aliyun-instance-prelogue-common {
     CAICLOUD_ALIYUN_CFG_STRING_CAICLOUD_ACCESS_KEY_SECRET="${CAICLOUD_ACCESS_KEY_SECRET}"
   fi
 
+  # Make sure region id and zone id must be either set or not set
+  if [[ ! -z "${CAICLOUD_ALIYUN_CFG_STRING_REGION_ID-}" ]]; then
+    if [[ -z "${CAICLOUD_ALIYUN_CFG_STRING_ZONE_ID-}" ]]; then
+      echo "Error: region id and zone id must be either set or not set. If not set, it will use the default value. Recommended to set both." >&2
+      exit 1
+    fi
+  elif [[ ! -z "${CAICLOUD_ALIYUN_CFG_STRING_ZONE_ID-}" ]]; then
+    if [[ -z "${CAICLOUD_ALIYUN_CFG_STRING_REGION_ID-}" ]]; then
+      echo "Error: region id and zone id must be either set or not set. If not set, it will use the default value. Recommended to set both." >&2
+      exit 1
+    fi
+  fi
+
   if [[ ! -z "${NTPDATE_SYNC_TIME-}" ]]; then
     CAICLOUD_ALIYUN_CFG_STRING_NTPDATE_SYNC_TIME="${NTPDATE_SYNC_TIME}"
   fi

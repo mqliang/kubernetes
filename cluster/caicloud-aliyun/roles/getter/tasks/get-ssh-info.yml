@@ -6,7 +6,7 @@
 #   save_to_file
 
 - name: Get instance info
-  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }}
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --ZoneId {{ zone_id }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }}
   register: search_output
   until: search_output.stdout.find("Code") == -1 and search_output.stdout.find("Running") != -1
   retries: 5
