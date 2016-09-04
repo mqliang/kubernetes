@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
@@ -47,6 +46,7 @@ type Config struct {
 		AccessKeyID     string `json:"accessKeyID"`
 		AccessKeySecret string `json:"accessKeySecret"`
 		RegionID        string `json:"regionID"`
+		ZoneID          string `json:"zoneID"`
 	}
 	LoadBalancer LoadBalancerOpts
 }
@@ -57,6 +57,7 @@ type Aliyun struct {
 	ecsClient *ecs.Client
 	slbClient *slb.Client
 	regionID  string
+	zoneID    string
 	lbOpts    LoadBalancerOpts
 	// InstanceID of the server where this Aliyun object is instantiated.
 	localInstanceID string
@@ -89,17 +90,12 @@ func readConfig(config io.Reader) (Config, error) {
 
 // newAliyun returns a new instance of Aliyun cloud provider.
 func newAliyun(config Config) (cloudprovider.Interface, error) {
-	ecsClient := ecs.NewClient(config.Global.AccessKeyID, config.Global.AccessKeySecret)
-	slbClient := slb.NewClient(config.Global.AccessKeyID, config.Global.AccessKeySecret)
-
-	// Get the local instance by it's hostname.
-	hostname, err := os.Hostname()
-	if err != nil {
-		glog.Errorf("Error get os.Hostname: %v", err)
-		return nil, err
+	if config.Global.AccessKeyID == "" || config.Global.AccessKeySecret == "" || config.Global.RegionID == "" || config.Global.ZoneID == "" {
+		return nil, fmt.Errorf("Invalid fields in config file")
 	}
 
-	glog.V(4).Infof("Get the local instance hostname: %s", hostname)
+	ecsClient := ecs.NewClient(config.Global.AccessKeyID, config.Global.AccessKeySecret)
+	slbClient := slb.NewClient(config.Global.AccessKeyID, config.Global.AccessKeySecret)
 
 	if config.LoadBalancer.AddressType == "" {
 		config.LoadBalancer.AddressType = slb.InternetAddressType
@@ -131,6 +127,7 @@ func newAliyun(config Config) (cloudprovider.Interface, error) {
 		ecsClient: ecsClient,
 		slbClient: slbClient,
 		regionID:  config.Global.RegionID,
+		zoneID:    config.Global.ZoneID,
 		lbOpts:    config.LoadBalancer,
 	}
 
@@ -175,5 +172,8 @@ func (aly *Aliyun) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []st
 func (aly *Aliyun) GetZone() (cloudprovider.Zone, error) {
 	glog.V(1).Infof("Current zone is %v", aly.regionID)
 
-	return cloudprovider.Zone{Region: aly.regionID}, nil
+	return cloudprovider.Zone{
+		FailureDomain: aly.zoneID,
+		Region:        aly.regionID,
+	}, nil
 }
