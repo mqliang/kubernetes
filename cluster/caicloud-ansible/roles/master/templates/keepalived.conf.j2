@@ -1,0 +1,50 @@
+! Configuration File for keepalived
+# Script used to check if HAProxy is running
+vrrp_script check_script {
+  script "/etc/keepalived/check_haproxy.py http://admin:caicloud@127.0.0.1/haproxy?stats"
+  interval 5 # check every 5 seconds
+  # keepalived会定时执行脚本并对脚本执行的结果进行分析，动态调整vrrp_instance的优先级。
+  # 如果脚本执行结果为0，并且weight配置的值大于0，则权重相应的增加
+  # 如果脚本执行结果非0，并且weight配置的值小于0，则权重相应的减少
+  # 其他情况，维持原本配置的优先级，即配置文件中priority对应的值
+  # 当进程监控失败时，如果不设置weigth，则 keepalived 进入 FAULT 状态
+  weight 5
+  fall 2 # require 2 fail for KO
+  rise 1 # require 1 successes for OK
+}
+# Virtual interface
+# The priority specifies the order in which the assigned interface to take over in a failover
+vrrp_instance VI_01 {
+  # role is MASTER or BACKUP
+  state {% if inventory_hostname == groups['masters'][0] %}MASTER{% else %}BACKUP{% endif %}
+  #VRRP实例绑定的网卡
+  interface {{ interface.stdout }}
+  track_interface {
+    {{ interface.stdout }}
+  }
+  vrrp_garp_master_repeat 5
+  vrrp_garp_master_refresh 10
+  #相同VRID的属于同一组，根据优先级选举出一个主
+  virtual_router_id 51
+  priority {{ priority }}
+  #nopreempt
+  #VRRP心跳包的发送周期，单位为s
+  advert_int 1
+  authentication {
+    auth_type PASS
+    auth_pass caicloud
+  }
+  # The virtual ip address shared between the two loadbalancers
+  virtual_ipaddress {
+    #VRRP心跳内容，VIP地址
+    {{ load_balancer_vip }} dev {{ interface.stdout }} label {{ interface.stdout }}:vip
+  }
+  track_script {
+    check_script
+  }
+  # don’t include parameters in the notify script, but exclude notify_xxxx
+  notify "/etc/keepalived/notify_state.sh"
+  #notify_master "/etc/keepalived/notify.sh MASTER"
+  #notify_backup "/etc/keepalived/notify.sh BACKUP"
+  #notify_fault "/etc/keepalived/notify.sh FAULT"
+}

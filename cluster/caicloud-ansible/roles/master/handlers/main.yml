@@ -16,15 +16,22 @@
 
 - name: restart apiserver
   service: name=kube-apiserver state=restarted
-  when: apiserver_started.changed == false
+  when: apiserver_started.changed == false and not use_hyperkube
+
+- name: restart apiserver | use_hyperkube
+  shell:  |
+    mv {{ kube_manifest_dir }}/hyperkube-apiserver.yaml {{ kube_config_temp_dir }}/hyperkube-apiserver.yaml;
+    sleep 20;
+    mv {{ kube_config_temp_dir }}/hyperkube-apiserver.yaml {{ kube_manifest_dir }}/hyperkube-apiserver.yaml;
+  when: apiserver_started.changed == false and use_hyperkube
 
 - name: restart controller-manager
   service: name=kube-controller-manager state=restarted
-  when: controller_manager_started.changed == false
+  when: controller_manager_started.changed == false and not use_hyperkube
 
 - name: restart scheduler
   service: name=kube-scheduler state=restarted
-  when: scheduler_started.changed == false
+  when: scheduler_started.changed == false and not use_hyperkube
 
 - name: restart kubelet
   service: name=kubelet state=restarted
@@ -32,5 +39,19 @@
 
 - name: restart proxy
   service: name=kube-proxy state=restarted
-  when: proxy_started.changed == false
+  when: proxy_started.changed == false and not use_hyperkube
+
+- name: wait for kube-scheduler
+  uri: url=http://localhost:{{ kube_scheduler_port }}/healthz
+  register: scheduler_result
+  until: scheduler_result.status == 200
+  retries: 15
+  delay: 20
+
+- name: wait for kube-controller-manager
+  uri: url=http://localhost:{{ kube_controller_port }}/healthz
+  register: controller_manager_result
+  until: controller_manager_result.status == 200
+  retries: 15
+  delay: 20
   

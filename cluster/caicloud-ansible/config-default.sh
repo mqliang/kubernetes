@@ -86,8 +86,17 @@ function calculate-default {
     CAICLOUD_K8S_CFG_STRING_CLUSTER_NAME="kube-default"
   fi
 
+  if [[ ! -z "${LOAD_BALANCER_VIP-}" ]]; then
+    CAICLOUD_K8S_CFG_STRING_LOAD_BALANCER_VIP=${LOAD_BALANCER_VIP}
+  fi
+
+  if [[ ! -z "${USE_HYPERKUBE-}" ]]; then
+    CAICLOUD_K8S_CFG_NUMBER_USE_HYPERKUBE=${USE_HYPERKUBE}
+  fi
+
   # Now only support single master
   # Todo: support multi-master
+  # should not use in ha master
   CAICLOUD_K8S_CFG_STRING_KUBE_MASTER_IP=${MASTER_SSH_INFO#*@}
 }
 

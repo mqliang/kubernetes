@@ -1,6 +1,17 @@
 ---
 # This playbook deploys kubernetes cluster on caicloud supported platforms.
 
+- name: Precheck for loadbalancer
+  hosts:
+    - masters
+    - nodes
+    - localhost
+  become: yes
+  roles:
+    - loadbalancer
+  tags:
+    - loadbalancer
+
 - name: Install etcd
   hosts: etcd
   become: yes

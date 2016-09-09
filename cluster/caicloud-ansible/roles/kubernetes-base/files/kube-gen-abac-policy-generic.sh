@@ -8,6 +8,7 @@ abac_policy_file="${abac_policy_dir}/abac.json"
 #############################################################################
 touch "${abac_policy_file}"
 echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"*\",\"nonResourcePath\":\"*\",\"readonly\":true}}" > ${abac_policy_file}
+echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"healthz\",\"nonResourcePath\":\"/healthz\",\"readonly\":true}}" >> ${abac_policy_file}
 echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"admin\",\"namespace\":\"*\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> ${abac_policy_file}
 echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"system:controller_manager\",\"namespace\":\"*\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> ${abac_policy_file}
 echo "{\"apiVersion\":\"abac.authorization.kubernetes.io/v1beta1\",\"kind\":\"Policy\",\"spec\":{\"user\":\"kubelet\",\"namespace\":\"*\",\"resource\":\"*\",\"apiGroup\":\"*\"}}" >> ${abac_policy_file}

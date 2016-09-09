@@ -18,4 +18,4 @@
 
 - name: restart proxy
   service: name=kube-proxy state=restarted
-  when: proxy_started.changed == false
+  when: proxy_started.changed == false and not use_hyperkube

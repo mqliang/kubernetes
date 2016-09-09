@@ -7,7 +7,14 @@
   register: "{{ item }}_config"
   with_items:
     - kubelet
+
+- copy:
+    src=init_conf/{{ item }}.conf
+    dest=/etc/init/{{ item }}.conf
+  register: "{{ item }}_config"
+  with_items:
     - kube-proxy
+  when: not use_hyperkube
 
 - name: Ubuntu | Write upstart script files
   copy:
@@ -16,11 +23,23 @@
   register: "{{ item }}_service"
   with_items:
     - kubelet
+
+- copy:
+    src=init_scripts/{{ item}}
+    dest=/etc/init.d/{{ item }}
+  register: "{{ item }}_service"
+  with_items:
     - kube-proxy
+  when: not use_hyperkube
 
 - name: Ubuntu | Write kubernetes node default files
   template: src={{ item }}-default.j2 dest="/etc/default/{{ item }}"
   register: "{{ item }}_default"
   with_items:
     - kubelet
+
+- template: src={{ item }}-default.j2 dest="/etc/default/{{ item }}"
+  register: "{{ item }}_default"
+  with_items:
     - kube-proxy
+  when: not use_hyperkube

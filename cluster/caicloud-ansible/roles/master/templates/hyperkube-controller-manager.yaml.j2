@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-controller-manager
+  namespace: kube-system
+spec:
+  hostNetwork: true
+  containers:
+  - name: kube-controller-manager
+    image: index.caicloud.io/caicloud/hyperkube:{{ hyperkube_version }}
+    resources:
+      requests:
+        cpu: 200m
+        # Add this because we set resourcequotas and remove limitranges
+        memory: 10Mi
+    command:
+    - /hyperkube
+    - controller-manager
+    - --leader-elect=true
+    - --master=https://{{ inventory_hostname }}:{{ kube_master_api_port }}
+    - --kubeconfig={{ kube_config_dir }}/controller-manager.kubeconfig
+    - --cluster-name={{ cluster_name }}
+{% if host_provider == "aliyun" or host_provider == "anchnet" %}
+    --cloud-provider={{ host_provider }}
+    --cloud-config={{ kube_config_dir }}/cloud-config
+{% endif %}
+    - --service-account-private-key-file={{ kube_cert_dir }}/server.key
+    - --root-ca-file={{ kube_cert_dir }}/ca.crt
+    - --v={{ kube_log_level }}
+    - --port={{ kube_controller_port }}
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: {{ kube_controller_port }}
+      initialDelaySeconds: 15
+      timeoutSeconds: 1
+    volumeMounts:
+    - mountPath: /etc/kubernetes
+      name: etckube
+      readOnly: true
+    - mountPath: /etc/ssl
+      name: etcssl
+      readOnly: true
+    - mountPath: /usr/share/ssl
+      name: usrsharessl
+      readOnly: true
+    - mountPath: /var/ssl
+      name: varssl
+      readOnly: true
+    - mountPath: /usr/ssl
+      name: usrssl
+      readOnly: true
+    - mountPath: /usr/lib/ssl
+      name: usrlibssl
+      readOnly: true
+    - mountPath: /usr/local/openssl
+      name: usrlocalopenssl
+      readOnly: true
+    - mountPath: /etc/openssl
+      name: etcopenssl
+      readOnly: true
+    - mountPath: /etc/pki/tls
+      name: etcpkitls
+      readOnly: true
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes
+    name: etckube
+  - hostPath:
+      path: /etc/ssl
+    name: etcssl
+  - hostPath:
+      path: /usr/share/ssl
+    name: usrsharessl
+  - hostPath:
+      path: /var/ssl
+    name: varssl
+  - hostPath:
+      path: /usr/ssl
+    name: usrssl
+  - hostPath:
+      path: /usr/lib/ssl
+    name: usrlibssl
+  - hostPath:
+      path: /usr/local/openssl
+    name: usrlocalopenssl
+  - hostPath:
+      path: /etc/openssl
+    name: etcopenssl
+  - hostPath:
+      path: /etc/pki/tls
+    name: etcpkitls
