@@ -30,3 +30,12 @@
   changed_when: "'Added' in gentoken.stdout"
   notify:
     - restart daemons
+
+- name: Generate tokens for healthz
+  command: "{{ kube_script_dir }}/kube-gen-token.sh healthz"
+  environment:
+    TOKEN_DIR: "{{ kube_token_dir }}"
+  register: gentoken
+  changed_when: "'Added' in gentoken.stdout"
+  notify:
+    - restart daemons

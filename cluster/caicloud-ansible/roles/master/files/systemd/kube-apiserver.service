@@ -2,7 +2,8 @@
 Description=Kubernetes API Server
 Documentation=https://github.com/kubernetes/kubernetes
 After=network.target
-After=etcd.service
+After=etcd-server.service
+After=etcd-server-events.service
 
 [Service]
 EnvironmentFile=-/etc/kubernetes/config

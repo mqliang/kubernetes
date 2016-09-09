@@ -11,7 +11,7 @@ KUBELET_ADDRESS="--address=0.0.0.0"
 KUBELET_HOSTNAME="--hostname-override={{ inventory_hostname }}"
 
 # Location of the api-server
-KUBELET_API_SERVER="--api-servers=https://{{ hostvars[groups['masters'][0]]['internal_ip'] }}:{{ kube_master_api_port }}"
+KUBELET_API_SERVER="--api-servers={{ kube_apiserver_endpoint }}"
 
 {% set kubelet_options = [] -%}
 {% if dns_setup -%}

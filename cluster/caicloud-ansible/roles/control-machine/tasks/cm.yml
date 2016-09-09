@@ -50,10 +50,9 @@
     domain_name: "{{ base_domain_name }}"
   when: mapping_domain_to_ip and (base_domain_name is defined)
 
+- name: Update /etc/hosts | Remove wrong hosts
+  shell: newhosts=`mktemp` && sed -e '/{{ dns_host_name }}.{{ domain_name }}/d' /etc/hosts > $newhosts && cp $newhosts /etc/hosts && rm $newhosts
+
 - name: Update /etc/hosts for mapping domain name to ip
-  lineinfile:
-    dest: /etc/hosts
-    regexp: "{{ dns_host_name }}.{{ domain_name }}"
-    line: "{{ kube_master_ip }} {{ dns_host_name }}.{{ domain_name }}"
-    state: present
+  shell: echo "{{ kube_apiserver_endpoint_ip }} {{ dns_host_name }}.{{ domain_name }}" >> /etc/hosts
   when: mapping_domain_to_ip

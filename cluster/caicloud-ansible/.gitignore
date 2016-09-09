@@ -3,3 +3,5 @@ inventory
 *.swp
 *~
 cluster.retry
+extra_vars.json
+uninstall.retry

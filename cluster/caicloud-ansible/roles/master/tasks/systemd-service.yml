@@ -9,8 +9,17 @@
     - reload systemd
     - restart daemons
   with_items:
+    - kubelet
+
+- copy:
+    src=systemd/{{ item }}.service
+    dest=/etc/systemd/system/{{ item }}.service
+  notify:
+    - reload systemd
+    - restart daemons
+  with_items:
     - kube-apiserver
     - kube-controller-manager
     - kube-scheduler
-    - kubelet
     - kube-proxy
+  when: not use_hyperkube
