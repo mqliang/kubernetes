@@ -59,11 +59,10 @@ function create-resource-from-file {
 }
 
 function create-kube-system-namespace {
-  # Delete system namespace if it already exists.
-  if /opt/bin/kubectl get ns | grep ${SYSTEM_NAMESPACE}; then
-    /opt/bin/kubectl delete ns --server="${MASTER_INSECURE_ADDRESS}:${MASTER_INSECURE_PORT}" ${SYSTEM_NAMESPACE}
-  fi
-  create-resource-from-file ~/kube/namespace.yaml 100 10 "default"
+  # Update system namespace if it already exists. We used to delete kube-system namespace and recreate it,
+  # but now kube-system is created by default and is protected from being deleted (scripts will just error
+  # out if we try to delete it). So we switch to 'kubectl apply -f' here.
+  /opt/bin/kubectl apply -f ~/kube/namespace.yaml --server="${MASTER_INSECURE_ADDRESS}:${MASTER_INSECURE_PORT}"
 }
 
 function create-kube-system-quota {
