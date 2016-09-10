@@ -197,6 +197,12 @@ function kube-up {
   source "${KUBE_ROOT}/cluster/common.sh"
   find-kubectl-binary
   create-kubeconfig
+  # For some reason, after rebase to 1.3.3 kubectl.sh does not pick up kubeconfig files
+  # specified by environment variable KUBECONFIG any more. Copying KUBECONFIG to the default
+  # location will fix the issue, otherwise validate cluster will fail.
+  if [[ -f "${KUBECONFIG}" ]]; then
+    cp ${KUBECONFIG} $HOME/.kube/config
+  fi
 }
 
 # Validate a kubernetes cluster
