@@ -19,16 +19,25 @@
     http_proxy: "{{ http_proxy|default('') }}"
     https_proxy: "{{ https_proxy|default('') }}"
     no_proxy: "{{ no_proxy|default('') }}"
-  when: kube_tarball.stat.exists == False
+  when: kube_tarball.stat.exists == False and inventory_hostname in groups['masters']
   register: kube_tarball_download
   until: kube_tarball_download|success
   retries: 5
   delay: 3
 
-- name: Remove existing caicloud-kube
-  file:
-    path: /usr/local/caicloud-kube
-    state: absent
+- name: Fetch caicloud kubernetes tar file
+  script: copy.sh
+  environment:
+    REMOTE_FILE_NAME: "{{ kube_current_release_directory }}/{{ kube_download_file }}"
+    REMOTE_USER: "{{ hostvars[groups['masters'][0]]['ansible_user'] }}"
+    REMOTE_IP: "{{ hostvars[groups['masters'][0]]['internal_ip'] }}"
+    REMOTE_PASSWORD: "{{ hostvars[groups['masters'][0]]['ansible_ssh_pass'] }}"
+    DEST_PATH: "{{ kube_current_release_directory }}"
+  when: kube_tarball.stat.exists == False and inventory_hostname not in groups['masters']
+  register: kube_tarball_copy
+  until: kube_tarball_copy|success
+  retries: 5
+  delay: 3
 
 - name: Extract tar file
   unarchive:

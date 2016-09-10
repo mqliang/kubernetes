@@ -5,7 +5,8 @@ flannel_version: 0.5.5
 
 # The default url to download the flannel tar from.
 flannel_download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"
-flannel_download_url: "{{ flannel_download_url_base }}/flannel-{{ flannel_version }}-linux-amd64.tar.gz"
+flannel_download_file: "flannel-{{ flannel_version }}-linux-amd64.tar.gz"
+flannel_download_url: "{{ flannel_download_url_base }}/{{ flannel_download_file }}"
 
 # The backend that flannel should use.
 flannel_backend: "vxlan"
