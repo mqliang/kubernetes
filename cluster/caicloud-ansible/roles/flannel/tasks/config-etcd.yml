@@ -4,7 +4,7 @@
 
 - name: Set facts for etcdctl command
   set_fact:
-    peers: "{% for hostname in groups['etcd'] %}http://{{ hostvars[hostname]['internal_ip'] }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
+    peers: "{% for hostname in groups['etcd'] %}http://{{ hostvars[hostname]['internal_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}"
     conf_file: "/tmp/subnet-conf.json"
     conf_loc: "/{{ cluster_name }}/network/config"
   run_once: true

@@ -151,3 +151,9 @@ monitoring_image_influxdb: "index.caicloud.io/caicloud/influxdb:1.0.0-beta2"
 monitoring_image_grafana: "index.caicloud.io/caicloud/monitoring-grafana:v3.1.0-withfields"
 monitoring_image_watcher: "index.caicloud.io/caicloud/monitoring-watcher:v1.0.0-rc2"
 monitoring_image_server: "index.caicloud.io/caicloud/monitoring-server:v1.0.0-rc2"
+
+# Main ports for etcd.
+etcd_client_port: 2379
+etcd_peer_port: 2380
+etcd_events_client_port: 2381
+etcd_events_peer_port: 2382

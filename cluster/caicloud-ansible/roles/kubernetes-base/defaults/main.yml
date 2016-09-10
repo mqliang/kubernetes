@@ -1,7 +1,7 @@
 ---
 
 # Version of Kubernetes binaries.
-kube_version: v1.3.3+2016-08-01-17-03-38
+kube_version: v1.3.3+v0.10.0
 
 # The URL to download Kubernetes binaries from.
 kube_download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"

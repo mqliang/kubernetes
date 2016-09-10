@@ -17,7 +17,7 @@ KUBE_API_PORT="--secure-port={{ kube_master_api_port }}"
 KUBE_SERVICE_ADDRESSES="--service-cluster-ip-range={{ kube_service_addresses }}"
 
 # Location of the etcd cluster
-KUBE_ETCD_SERVERS="--etcd-servers={% for node in groups['etcd'] %}http://{{ hostvars[node]['internal_ip'] }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
+KUBE_ETCD_SERVERS="--etcd-servers={% for node in groups['etcd'] %}http://{{ hostvars[node]['internal_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %} --etcd-servers-overrides={% for node in groups['etcd'] %}/events#http://{{ hostvars[node]['internal_ip'] }}:{{ etcd_events_client_port }}{% if not loop.last %},{% endif %}{% endfor %}"
 
 # default admission control policies
 KUBE_ADMISSION_CONTROL="--admission-control={{ admission_controllers }}"
