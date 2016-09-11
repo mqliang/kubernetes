@@ -8,7 +8,7 @@
 #   system_disk_size
 
 - name: Check if instance {{ instance_name }} exists
-  command: aliyuncli ecs DescribeInstances {{ common_paras }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }}
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --ZoneId {{ zone_id }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }}
   register: output
   until: output.stdout.find("Code") == -1
   retries: 5
@@ -30,7 +30,7 @@
 # https://help.aliyun.com/document_detail/25499.html?spm=5176.doc25685.6.230.0ESZ8U
 # Instance is in Stopped status after creating.
 - name: Create aliyun instance {{ instance_name }} by PostPaid
-  command: aliyuncli ecs CreateInstance {{ common_paras }} --ImageId {{ image_id }} --InstanceType {{ instance_type }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }} --InternetChargeType {{ internet_charge_type }} --InternetMaxBandwidthOut {{ internet_max_bandwidth_out }} --Password {{ instance_password }} --SystemDiskCategory {{ system_disk_category }} --SystemDiskSize {{ system_disk_size }} --InstanceChargeType {{ instance_charge_type }}
+  command: aliyuncli ecs CreateInstance {{ common_paras }} --ZoneId {{ zone_id }} --ImageId {{ image_id }} --InstanceType {{ instance_type }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }} --InternetChargeType {{ internet_charge_type }} --InternetMaxBandwidthOut {{ internet_max_bandwidth_out }} --Password {{ instance_password }} --SystemDiskCategory {{ system_disk_category }} --SystemDiskSize {{ system_disk_size }} --InstanceChargeType {{ instance_charge_type }}
   register: output_postpaid
   until: output_postpaid.stdout.find("InstanceId") != -1
   retries: 5
@@ -43,7 +43,7 @@
   when: instance_create_flag and instance_charge_type == "PostPaid"
 
 - name: Create aliyun instance {{ instance_name }} by PrePaid
-  command: aliyuncli ecs CreateInstance {{ common_paras }} --ImageId {{ image_id }} --InstanceType {{ instance_type }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }} --InternetChargeType {{ internet_charge_type }} --InternetMaxBandwidthOut {{ internet_max_bandwidth_out }} --Password {{ instance_password }} --SystemDiskCategory {{ system_disk_category }} --SystemDiskSize {{ system_disk_size }} --InstanceChargeType {{ instance_charge_type }} --Period {{ period }}
+  command: aliyuncli ecs CreateInstance {{ common_paras }} --ZoneId {{ zone_id }} --ImageId {{ image_id }} --InstanceType {{ instance_type }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }} --InternetChargeType {{ internet_charge_type }} --InternetMaxBandwidthOut {{ internet_max_bandwidth_out }} --Password {{ instance_password }} --SystemDiskCategory {{ system_disk_category }} --SystemDiskSize {{ system_disk_size }} --InstanceChargeType {{ instance_charge_type }} --Period {{ period }}
   register: output_prepaid
   until: output_prepaid.stdout.find("InstanceId") != -1
   retries: 5
