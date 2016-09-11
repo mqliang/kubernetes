@@ -127,6 +127,7 @@ func (aly *Aliyun) getAddressesByInstanceId(instanceId string) ([]api.NodeAddres
 func (aly *Aliyun) getInstanceByInstanceId(instanceId string) (ecs.InstanceAttributesType, error) {
 	args := ecs.DescribeInstancesArgs{
 		RegionId:    common.Region(aly.regionID),
+		ZoneId:      aly.zoneID,
 		InstanceIds: fmt.Sprintf("[\"%s\"]", instanceId),
 	}
 
@@ -147,6 +148,7 @@ func (aly *Aliyun) getInstanceByInstanceId(instanceId string) (ecs.InstanceAttri
 func (aly *Aliyun) getInstancesByNameFilter(name_filter string) ([]ecs.InstanceAttributesType, error) {
 	args := ecs.DescribeInstancesArgs{
 		RegionId:     common.Region(aly.regionID),
+		ZoneId:       aly.zoneID,
 		InstanceName: name_filter,
 	}
 
