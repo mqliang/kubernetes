@@ -47,3 +47,6 @@ To add nodes to a baremetal cluster, you have to know the ssh info of master and
 ```
 MASTER_SSH_INFO=vagrant:vagrant@192.168.205.10 NODE_SSH_INFO=vagrant:vagrant@192.168.205.13 KUBERNETES_PROVIDER=caicloud-baremetal ./cluster/kube-add-node.sh
 ```
+
+
+[![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/cluster/caicloud-baremetal/README.md?pixel)]()

@@ -119,7 +119,7 @@ metadata:
 spec:
   containers:
   - name: nginx
-    image: nginx
+    image: index.caicloud.io/nginx
     ports:
     - containerPort: 80
 ```

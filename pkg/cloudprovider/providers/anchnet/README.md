@@ -14,3 +14,6 @@ The directory contains implementation of anchnet cloud provider.
 
 - DescribeLoadbalancer, DeleteLoadbalancer, CreateLoadbalancer
   These are called when Services with type LoadBalancer are created. (see anchnet_lb.go)
+
+
+[![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/pkg/cloudprovider/providers/anchnet/README.md?pixel)]()

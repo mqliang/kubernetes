@@ -253,3 +253,6 @@ Before upgrading cluster, it's important to understand the following points:
   we'll also restart docker (e.g. upgrade docker version, change network setting, etc), in which case
   existing containers WILL be restarted by kubelet. The best we can do is to separate docker upgrade from
   kubernetes upgrade, provided as an option during kube-push.
+
+
+[![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/cluster/caicloud/README.md?pixel)]()

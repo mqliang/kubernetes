@@ -1,3 +1,32 @@
+<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
+
+<!-- BEGIN STRIP_FOR_RELEASE -->
+
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+
+<h2>PLEASE NOTE: This document applies to the HEAD of the source tree</h2>
+
+If you are using a released version of Kubernetes, you should
+refer to the docs that go with that version.
+
+Documentation for other releases can be found at
+[releases.k8s.io](http://releases.k8s.io).
+</strong>
+--
+
+<!-- END STRIP_FOR_RELEASE -->
+
+<!-- END MUNGE: UNVERSIONED_WARNING -->
+
 # Anchnet volume example
 
 The folder contains two examples for working with anchnet volume: Pod with volume and Persistent volume.
@@ -76,6 +105,7 @@ spec:
 ```
 
 After creating the volume, we can list it:
+
 ```sh
 $ kubectl get pv
 NAME         LABELS    CAPACITY   ACCESSMODES   STATUS      CLAIM     REASON    AGE
@@ -98,6 +128,7 @@ spec:
 ```
 
 After creating the volume claim, we can list it:
+
 ```sh
 $ kubectl get pvc
 NAME      LABELS    STATUS    VOLUME       CAPACITY   ACCESSMODES   AGE
@@ -130,3 +161,8 @@ spec:
       persistentVolumeClaim:
         claimName: myclaim
 ```
+
+
+<!-- BEGIN MUNGE: GENERATED_ANALYTICS -->
+[![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/examples/caicloud/anchnet_volume/README.md?pixel)]()
+<!-- END MUNGE: GENERATED_ANALYTICS -->
