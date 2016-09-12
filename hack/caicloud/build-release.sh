@@ -38,6 +38,7 @@ function usage {
   echo -e " FLANNEL_VERSION  \tflannel version to use. flannel will be packed into release tarball. Default value: ${FLANNEL_VERSION}"
   echo -e " UPLOAD_TO_QINIU  \tUpload to qiniu.com or not, options: Y or N. Default to ${UPLOAD_TO_QINIU}"
   echo -e " BUILD_CLOUD_IMAGE\tBuild cloud image or not, options: Y or N. Default to ${BUILD_CLOUD_IMAGE}"
+  echo -e " RELEASE_HYPERKUBE\tBuild and upload hyperkube docker image or not, options: Y or N. Default to ${RELEASE_HYPERKUBE}"
 }
 
 # KUBE_ROOT is a absolute path to root of the repo
@@ -54,6 +55,9 @@ BUILD_CLOUD_IMAGE=${BUILD_CLOUD_IMAGE:-"Y"}
 
 # Do we want to build script docker image: Y or N. Default to Y.
 BUILD_SCRIPTS_DOCKER_IMAGE=${BUILD_SCRIPTS_DOCKER_IMAGE:-"Y"}
+
+# Do we want to build and upload hyperkube docker image: Y or N. Default to Y.
+RELEASE_HYPERKUBE=${RELEASE_HYPERKUBE:-"Y"}
 
 # Get configs and commone utilities.
 source ${KUBE_ROOT}/hack/caicloud/common.sh
@@ -89,6 +93,7 @@ CAICLOUD_KUBE_PKG="caicloud-kube-${CAICLOUD_KUBE_VERSION}.tar.gz"
 CAICLOUD_KUBE_KUBECTL_PKG="caicloud-kubectl-${CAICLOUD_KUBE_VERSION}.tar.gz"
 CAICLOUD_KUBE_SCRIPT_PKG="caicloud-kube-script-${CAICLOUD_KUBE_VERSION}.tar.gz"
 CAICLOUD_KUBE_SCRIPT_DOCKER_IMAGE="index.caicloud.io/caicloud/caicloud-kubernetes"
+CAICLOUD_CAICLOUD_REGISTRY="index.caicloud.io/caicloud"
 
 # -----------------------------------------------------------------------------
 # Start building tarball from current code base.
@@ -165,6 +170,12 @@ tar czf ${KUBE_ROOT}/_output/caicloud/${CAICLOUD_KUBE_KUBECTL_PKG} caicloud-kube
 rm -rf caicloud-kubectl
 
 cd - > /dev/null
+
+# Build and upload hyperkube docker image.
+if [[ "$RELEASE_HYPERKUBE" == "Y" ]]; then
+  make -C $KUBE_ROOT WHAT=cmd/hyperkube KUBE_STATIC_OVERRIDES="hyperkube" KUBE_BUILD_PLATFORMS="linux/amd64"
+  VERSION="${CAICLOUD_VERSION}" REGISTRY="${CAICLOUD_CAICLOUD_REGISTRY}" make -C $KUBE_ROOT/cluster/caicloud/images/hyperkube/ "push"
+fi
 
 # Decide if we upload releases to Qiniu.
 if [[ "${UPLOAD_TO_QINIU}" == "Y" ]]; then
