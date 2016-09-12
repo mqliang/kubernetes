@@ -27,6 +27,9 @@ KUBELET_API_SERVER="--api-servers=http://localhost:{{ kube_master_insecure_port 
 {% if networking == "calico" -%}
 {{ kubelet_options.append('--network-plugin-dir=/etc/cni/net.d')|default('', true) -}}
 {% endif -%}
+{% if host_provider == "aliyun" or host_provider == "anchnet" -%}
+{{ kubelet_options.append('--enable-controller-attach-detach=true')|default('', true) -}}
+{% endif -%}
 
 # Add your own!
 KUBELET_ARGS="--register-schedulable=false --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['internal_ip'] }} {{ kubelet_options|join(' ') }}"

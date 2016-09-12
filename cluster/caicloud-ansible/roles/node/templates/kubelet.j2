@@ -27,5 +27,8 @@ KUBELET_API_SERVER="--api-servers=https://{{ hostvars[groups['masters'][0]]['int
 {% if networking == "calico" -%}
 {{ kubelet_options.append('--network-plugin-dir=/etc/cni/net.d')|default('', true) -}}
 {% endif -%}
+{% if host_provider == "aliyun" or host_provider == "anchnet" -%}
+{{ kubelet_options.append('--enable-controller-attach-detach=true')|default('', true) -}}
+{% endif -%}
 
 KUBELET_ARGS="--kubeconfig={{ kube_config_dir }}/kubelet.kubeconfig --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['internal_ip'] }} {{ kubelet_options|join(' ') }}"
