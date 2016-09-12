@@ -54,6 +54,13 @@ import (
 	"k8s.io/kubernetes/pkg/volume/quobyte"
 	"k8s.io/kubernetes/pkg/volume/rbd"
 	"k8s.io/kubernetes/pkg/volume/vsphere_volume"
+<<<<<<< HEAD
+=======
+
+	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aliyun"
+	"k8s.io/kubernetes/pkg/volume/aliyun_pd"
+>>>>>>> 9258ebd... add aliyun disk driver
 )
 
 // ProbeAttachableVolumePlugins collects all volume plugins for the attach/
@@ -67,6 +74,8 @@ func ProbeAttachableVolumePlugins(config componentconfig.VolumeConfiguration) []
 
 	allPlugins = append(allPlugins, aws_ebs.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, anchnet_pd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, aliyun_pd.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, flexvolume.ProbeVolumePlugins(config.FlexVolumePluginDir)...)
 	allPlugins = append(allPlugins, vsphere_volume.ProbeVolumePlugins()...)
@@ -133,6 +142,8 @@ func ProbeControllerVolumePlugins(cloud cloudprovider.Interface, config componen
 			allPlugins = append(allPlugins, photon_pd.ProbeVolumePlugins()...)
 		case anchnet_pd.ProviderName == cloud.ProviderName():
 			allPlugins = append(allPlugins, anchnet_pd.ProbeVolumePlugins()...)
+		case aliyun_pd.ProviderName == cloud.ProviderName():
+			allPlugins = append(allPlugins, aliyun_pd.ProbeVolumePlugins()...)
 		}
 	}
 
@@ -167,6 +178,8 @@ func NewAlphaVolumeProvisioner(cloud cloudprovider.Interface, config componentco
 		return getProvisionablePluginFromVolumePlugins(photon_pd.ProbeVolumePlugins())
 	case cloud != nil && anchnet_cloud.ProviderName == cloud.ProviderName():
 		return getProvisionablePluginFromVolumePlugins(anchnet_pd.ProbeVolumePlugins())
+	case cloud != nil && aliyun.ProviderName == cloud.ProviderName():
+		return getProvisionablePluginFromVolumePlugins(aliyun_pd.ProbeVolumePlugins())
 	}
 	return nil, nil
 }
