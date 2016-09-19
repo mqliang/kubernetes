@@ -20,16 +20,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/denverdino/aliyungo/slb"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 )
 
 const (
 	ProviderName = "aliyun"
+	// TTL for API call cache.
+	cacheTTL = 3 * time.Hour
 )
 
 type LoadBalancerOpts struct {
@@ -59,8 +64,22 @@ type Aliyun struct {
 	regionID  string
 	zoneID    string
 	lbOpts    LoadBalancerOpts
-	// InstanceID of the server where this Aliyun object is instantiated.
-	localInstanceID string
+
+	// An address cache used to cache NodeAddresses.
+	addressCache cache.Store
+	// A constant address cache used to cache NodeAddresses. Ideally, we should
+	// just use addressCache above, but if aliyun ecs api is unavailabe
+	// while addressCache expires, we'll end up evict all pods. This constant
+	// address cache never changes, so in case of such API unavailability, we
+	// use this const cache. In all normal cases, the timed address cache will
+	// be used.
+	constAddressCache map[string][]api.NodeAddress
+}
+
+// An entry in addressCache.
+type AddressCacheEntry struct {
+	name      string
+	addresses []api.NodeAddress
 }
 
 func init() {
@@ -123,12 +142,22 @@ func newAliyun(config Config) (cloudprovider.Interface, error) {
 		}
 	}
 
+	keyFunc := func(obj interface{}) (string, error) {
+		entry, ok := obj.(AddressCacheEntry)
+		if !ok {
+			return "", cache.KeyError{Obj: obj, Err: fmt.Errorf("Unable to convert entry object to AddressCacheEntry")}
+		}
+		return entry.name, nil
+	}
+
 	aly := Aliyun{
-		ecsClient: ecsClient,
-		slbClient: slbClient,
-		regionID:  config.Global.RegionID,
-		zoneID:    config.Global.ZoneID,
-		lbOpts:    config.LoadBalancer,
+		ecsClient:         ecsClient,
+		slbClient:         slbClient,
+		regionID:          config.Global.RegionID,
+		zoneID:            config.Global.ZoneID,
+		lbOpts:            config.LoadBalancer,
+		addressCache:      cache.NewTTLStore(keyFunc, cacheTTL),
+		constAddressCache: make(map[string][]api.NodeAddress),
 	}
 
 	glog.V(4).Infof("new Aliyun: '%v'", aly)

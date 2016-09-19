@@ -24,17 +24,48 @@ import (
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 )
+
+// IMPORTANT: In kubernetes, hostname is queried from local machine using 'uname -n',
+// or is overridden by 'hostnameOverride' flag in kubelet. On the other hand, nodename
+// means the name of the node appears to cloudprovider. In aliyun, an example node
+// instance has id i-23puezw7y, but has hostname iZ23puezw7yZ. We don't change hostname
+// to instanceId, instead hostname is overridden to node name as well (i-23puezw7y).
+// The hostname of aliyun instance is thus not used.
+
+var _ cloudprovider.Instances = (*Aliyun)(nil)
 
 // NodeAddresses returns the addresses of the specified instance.
 func (aly *Aliyun) NodeAddresses(name string) ([]api.NodeAddress, error) {
 	glog.V(4).Infof("NodeAddresses(%v) called", name)
 
+	// Return directly if we find node address in cache.
+	data, exists, err := aly.addressCache.GetByKey(name)
+	if exists && err == nil {
+		glog.V(4).Infof("Using addressCache: %v => %v", name, data.(AddressCacheEntry).addresses)
+		return data.(AddressCacheEntry).addresses, nil
+	}
+
+	// Can't find address in cache, build it.
+
 	addrs, err := aly.getAddressesByInstanceId(nameToInstanceId(name))
 	if err != nil {
-		glog.Errorf("Error getting node address by name '%s': %v", name, err)
-		return nil, err
+		// Aliyun ecs api is unavailabe, try to use constAddressCache
+		cas, ok := aly.constAddressCache[name]
+		if !ok {
+			glog.Errorf("Error getting node address by name '%s': %v", name, err)
+			return nil, err
+		}
+		glog.V(4).Infof("Using constAddressCache: %v => %v", name, cas)
+		return cas, nil
 	}
+
+	aly.addressCache.Add(AddressCacheEntry{
+		name:      name,
+		addresses: addrs,
+	})
+	aly.constAddressCache[name] = addrs
 
 	glog.V(4).Infof("NodeAddresses(%v) => %v", name, addrs)
 	return addrs, nil
@@ -85,7 +116,7 @@ func (aly *Aliyun) CurrentNodeName(hostname string) (string, error) {
 	return hostname, nil
 }
 
-// getAddressesByName return an instance address slice by it's name.
+// getAddressesByInstanceId return an address slice by it's instanceId.
 func (aly *Aliyun) getAddressesByInstanceId(instanceId string) ([]api.NodeAddress, error) {
 	instance, err := aly.getInstanceByInstanceId(instanceId)
 	if err != nil {
