@@ -27,6 +27,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
+var _ cloudprovider.LoadBalancer = (*Aliyun)(nil)
+
 // GetLoadBalancer returns whether the specified load balancer exists, and
 // if so, what its status is.
 func (aly *Aliyun) GetLoadBalancer(clusterName string, service *api.Service) (status *api.LoadBalancerStatus, exists bool, err error) {
