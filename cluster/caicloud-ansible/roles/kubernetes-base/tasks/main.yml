@@ -17,6 +17,9 @@
 - name: Create kubernetes config directory
   file: path={{ kube_config_dir }} state=directory
 
+- name: Create kubernetes config temp directory
+  file: path={{ kube_config_temp_dir }} state=directory
+
 - name: Create kubernetes script directory
   file: path={{ kube_script_dir }} state=directory
 
@@ -28,6 +31,13 @@
 
 - name: Create the kubelet working directory
   file: path={{ kubelet_working_dir }} state=directory
+
+# Install expect and rsync.
+- name: Install expect and rsync
+  package: name={{ item }} state=present
+  with_items:
+    - "expect"
+    - "rsync"
 
 #
 # Misc preparations for bringing up cluster.

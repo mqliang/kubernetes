@@ -7,3 +7,4 @@
 
 - name: restart kube-addons
   service: name=kube-addons state=restarted
+  when: inventory_hostname == groups['masters'][0]

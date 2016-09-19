@@ -34,6 +34,7 @@ set -o pipefail
 
 cert_ip="${MASTER_IP:="${1}"}"
 master_name="${MASTER_NAME:="kubernetes"}"
+kube_master_name="${KUBE_MASTER_NAME:="${master_name}"}"
 service_range="${SERVICE_CLUSTER_IP_RANGE:="10.0.0.0/16"}"
 dns_domain="${DNS_DOMAIN:="cluster.local"}"
 cert_dir="${CERT_DIR:-"/srv/kubernetes"}"
@@ -72,7 +73,10 @@ octets=($(echo "${service_range}" | sed -e 's|/.*||' -e 's/\./ /g'))
 service_ip=$(echo "${octets[*]}" | sed 's/ /./g')
 
 # Determine appropriete subject alt names
-sans="IP:${cert_ip},IP:${service_ip},DNS:kubernetes,DNS:kubernetes.default,DNS:kubernetes.default.svc,DNS:kubernetes.default.svc.${dns_domain},DNS:${master_name}"
+sans="IP:${cert_ip},IP:${service_ip},DNS:kubelet,DNS:kubecfg,DNS:kubectl,DNS:kubernetes,DNS:kubernetes.default,DNS:kubernetes.default.svc,DNS:kubernetes.default.svc.${dns_domain},DNS:${kube_master_name}"
+if [[ ! -z $LOAD_BALANCER_VIP ]]; then
+	sans="${sans},IP:${LOAD_BALANCER_VIP}"
+fi
 
 # easy-rsa.tar.gz is already copied to local host.
 tar xzf easy-rsa.tar.gz

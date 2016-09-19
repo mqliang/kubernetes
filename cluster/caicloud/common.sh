@@ -724,6 +724,7 @@ function setup-instance {
 
   while true; do
     log "Attempt $(($attempt+1)) to setup instance ssh for $1"
+    local fail=0
     expect <<EOF
 set timeout $((($attempt+1)*3))
 spawn scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oLogLevel=quiet \
@@ -739,7 +740,9 @@ expect {
   eof {}
 }
 EOF
-
+    if [[ $? != "0" ]]; then
+      fail=1
+    fi
     expect <<EOF
 set timeout $((($attempt+1)*3))
 spawn ssh -t -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oLogLevel=quiet \
@@ -757,6 +760,10 @@ expect {
   eof {}
 }
 EOF
+
+    if [[ $? != "0" ]]; then
+      fail=1
+    fi
 
     if [[ ! -z "${4:-}" ]]; then
       expect <<EOF
@@ -776,9 +783,12 @@ expect {
   eof {}
 }
 EOF
+      if [[ $? != "0" ]]; then
+        fail=1
+      fi
     fi
 
-    if [[ "$?" != "0" ]]; then
+    if [[ $fail != "0" ]]; then
       # We give more attempts for setting up ssh to allow slow instance startup.
       if (( attempt > 40 )); then
         echo

@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-scheduler
+  namespace: kube-system
+spec:
+  hostNetwork: true
+  containers:
+  - name: kube-scheduler
+    image: index.caicloud.io/caicloud/hyperkube:{{ hyperkube_version }}
+    resources:
+      requests:
+        cpu: 100m
+        # Add this because we set resourcequotas and remove limitranges
+        memory: 10Mi
+    command:
+    - /hyperkube
+    - scheduler
+    - --leader-elect=true
+    - --master=https://{{ inventory_hostname }}:{{ kube_master_api_port }}
+    - --v={{ kube_log_level }}
+    - --kubeconfig={{ kube_config_dir }}/scheduler.kubeconfig
+    - --port={{ kube_scheduler_port }}
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: {{ kube_scheduler_port }}
+      initialDelaySeconds: 15
+      timeoutSeconds: 1
+    volumeMounts:
+    - mountPath: /etc/kubernetes
+      name: etckube
+      readOnly: true
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes
+    name: etckube

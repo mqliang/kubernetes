@@ -40,7 +40,7 @@
   when: not kubernetes_use_upstart
 
 - name: Write the delay-node-services target for systemd
-  copy: src=systemd/delay-node-services.target dest=/etc/systemd/system/ mode=0644
+  template: src=delay-node-services.target.j2 dest=/etc/systemd/system/delay-node-services.target mode=0644
   when: not kubernetes_use_upstart
 
 - name: Enable delay-node-services for systemd
@@ -71,12 +71,26 @@
   template: src=proxy.j2 dest={{ kube_config_dir }}/proxy
   notify:
     - restart proxy
+  when: not use_hyperkube
 
 - name: Write the kubecfg (auth) file for kube-proxy
   template: src=proxy.kubeconfig.j2 dest={{ kube_config_dir }}/proxy.kubeconfig
   notify:
     - restart proxy
+  when: not use_hyperkube
 
 - name: Start proxy
   service: name=kube-proxy enabled=yes state=started
   register: proxy_started
+  when: not use_hyperkube
+
+#
+# Install kube-proxy use hyperkube.
+
+- name: Write the kubecfg (auth) file for kube-proxy
+  template: src=proxy.kubeconfig.j2 dest={{ kube_config_dir }}/proxy.kubeconfig
+  when: use_hyperkube
+
+- name: Write kube-proxy manifest
+  template: src=hyperkube-proxy.yaml.j2 dest={{ kube_manifest_dir }}/hyperkube-proxy.yaml
+  when: use_hyperkube
