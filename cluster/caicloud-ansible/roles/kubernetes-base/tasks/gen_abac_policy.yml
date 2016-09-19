@@ -41,10 +41,3 @@
     - "{{ groups['nodes'] }}"
   notify:
     - restart apiserver
-
-- name: Verify abac policy
-  file:
-    path={{ kube_token_dir }}/abac.json
-    group={{ kube_cert_group }}
-    owner=kube
-    mode=0640

@@ -7,6 +7,10 @@
   become: yes
 
   tasks:
+    - name: Set use_hyperkube to true by default
+      set_fact:
+        use_hyperkube: true
+
     - name: Display system information
       debug: msg="{{ ansible_distribution }} {{ ansible_distribution_version }}"
 
@@ -66,11 +70,7 @@
     - name: Stop services
       service: name={{ item }} state=stopped
       with_items:
-        - kube-apiserver
-        - kube-controller-manager
         - kubelet
-        - kube-proxy
-        - kube-scheduler
         - kube-addons
         - flanneld
         - calicoctl
@@ -78,6 +78,16 @@
         - etcd-server
         - etcd-server-events
       failed_when: false
+
+    - name: Stop services
+      service: name={{ item }} state=stopped
+      with_items:
+        - kube-apiserver
+        - kube-controller-manager
+        - kube-proxy
+        - kube-scheduler
+      failed_when: false
+      when: not use_hyperkube
 
     - name: Remove packages
       action: "{{ ansible_pkg_mgr }} name={{ item }} state=absent"
@@ -258,6 +268,7 @@
     - name: Initialize facts
       set_fact:
         bin_dir: "/usr/bin"
+        cloud_config_dir: "/var/run"
 
     - name: Remove remaining files
       file: path={{ item }} state=absent
@@ -266,12 +277,35 @@
         - "{{ ansible_env.HOME }}/.kube/config"
         - "{{ cloud_config_dir }}/cloud-config"
 
-    # kube_master_ip is from extra vars
+    - name: Determine use loadbalancer or not | Set default to false
+      set_fact:
+        use_load_balancer: false
+
+    - name: Use loadbalancer on muti masters with vagrant provider
+      set_fact:
+        use_load_balancer: true
+        load_balancer_vip: "{{ load_balancer_default_vip }}"
+      when: host_provider == "vagrant" and (groups['masters'] | count) > 1 and (load_balancer_vip is not defined)
+
+    - name: Determine use loadbalancer or not
+      set_fact:
+        use_load_balancer: true
+      when: (groups['masters'] | count) > 1 and ( load_balancer_vip is defined )
+
+    - set_fact:
+        first_master_eip:  "{{ hostvars[groups['masters'][0]]['ansible_host'] }}"
+
+    - name: Set kube apiserver endpoint eip
+      set_fact:
+        kube_apiserver_endpoint_ip: |-
+          {% if use_load_balancer -%}
+            {{ load_balancer_vip }}
+          {%- else -%}
+            {{ first_master_eip }}
+          {%- endif %}
+
+    # avoid "Device or resource busy" when run in pod
     - name: Update /etc/hosts if uninstalling caicloudstack
       become: yes
-      lineinfile:
-        dest: /etc/hosts
-        regexp: "^{{ kube_master_ip }} {{ dns_host_name }}.*"
-        state: absent
+      shell: newhosts=`mktemp` && sed -e '/{{ kube_apiserver_endpoint_ip }} {{ dns_host_name }}/d' /etc/hosts > $newhosts && cp $newhosts /etc/hosts && rm $newhosts
       when: (dns_host_name is defined) and (dns_host_name == "caicloudstack")
-

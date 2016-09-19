@@ -1,8 +1,5 @@
 ---
 
-# Version of Kubernetes binaries.
-kube_version: v1.3.3+v0.10.0
-
 # The URL to download Kubernetes binaries from.
 kube_download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"
 kube_download_file: "caicloud-kube-{{ kube_version }}.tar.gz"

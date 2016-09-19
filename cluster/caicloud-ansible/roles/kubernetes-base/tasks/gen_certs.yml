@@ -20,6 +20,24 @@
     mode=0500
   changed_when: false
 
+- name: Set master ips | init kube_master_ip
+  set_fact:
+    kube_master_ips: []
+
+- name: Set master ips | join each master ip
+  set_fact:
+    kube_master_ips: "{{ kube_master_ips | union(hostvars[item]['ansible_all_ipv4_addresses']) }}"
+  with_items:
+    - "{{ groups['masters'] }}"
+
+- name: Set master ips | join with ',IP:'
+  set_fact:
+    kube_master_ips: "{{ kube_master_ips | join (',IP:') }}"
+
+- name: Set master name
+  set_fact:
+    kube_master_name: "{{ groups['masters'] | join (',DNS:') }}"
+
 - name: Run create cert script on master
   command:
     "{{ kube_script_dir }}/make-ca-cert.sh"
@@ -27,24 +45,13 @@
     creates: "{{ kube_cert_dir }}/server.crt"
   environment:
     SCRIPT_DIR: "{{ kube_script_dir }}"
-    MASTER_IP: "{{ kube_cert_ip }}"
+    MASTER_IP: "{{ kube_master_ips }}"
+    LOAD_BALANCER_VIP: "{{ load_balancer_vip | default('') }}"
     MASTER_NAME: "{{ inventory_hostname }}"
+    KUBE_MASTER_NAME: "{{ kube_master_name | default('') }}"
     DNS_DOMAIN: "{{ dns_domain }}"
     SERVICE_CLUSTER_IP_RANGE: "{{ kube_service_addresses }}"
     CERT_DIR: "{{ kube_cert_dir }}"
     CERT_GROUP: "{{ kube_cert_group }}"
     HTTP_PROXY: "{{ http_proxy|default('') }}"
     HTTPS_PROXY: "{{ https_proxy|default('') }}"
-
-- name: Verify certificate permissions
-  file:
-    path={{ item }}
-    group={{ kube_cert_group }}
-    owner=kube
-    mode=0440
-  with_items:
-    - "{{ kube_cert_dir }}/ca.crt"
-    - "{{ kube_cert_dir }}/server.crt"
-    - "{{ kube_cert_dir }}/server.key"
-    - "{{ kube_cert_dir }}/kubecfg.crt"
-    - "{{ kube_cert_dir }}/kubecfg.key"

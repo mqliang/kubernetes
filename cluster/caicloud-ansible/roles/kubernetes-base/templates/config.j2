@@ -14,13 +14,13 @@
 KUBE_LOGTOSTDERR="--logtostderr=true"
 
 # journal verbosity level, the higher is the more verbose
-KUBE_LOG_LEVEL="--v=0"
+KUBE_LOG_LEVEL="--v={{ kube_log_level }}"
 
 # Should this cluster be allowed to run privileged docker containers
 KUBE_ALLOW_PRIV="--allow-privileged=true"
 
 # How the replication controller, scheduler, and proxy connect to master
-KUBE_MASTER="--master=https://{{ hostvars[groups['masters'][0]]['internal_ip'] }}:{{ kube_master_api_port }}"
+KUBE_MASTER="--master={{ kube_apiserver_endpoint }}"
 
 # The following values are used to configure:
 #

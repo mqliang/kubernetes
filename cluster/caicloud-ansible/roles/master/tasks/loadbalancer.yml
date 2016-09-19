@@ -1,0 +1,90 @@
+---
+# Set up loadbalancer.yml
+
+- name: Copy caicloudapp.com certificates (ca, cert, key)
+  copy: src="caicloudapp_certs/" dest="{{ caicloudapp_cert_dir }}/"
+  when: certs_selector == "caicloudapp"
+
+- name: Copy caicloudprivatetest.com certificates (ca, cert, key)
+  copy: src="caicloudprivatetest_certs/" dest="{{ caicloudapp_cert_dir }}/"
+  when: certs_selector == "caicloudprivatetest"
+
+- name: Copy user certificates (ca, cert, key)
+  copy: src="{{ user_cert_dir }}/" dest="{{ caicloudapp_cert_dir }}/"
+  when: certs_selector == "user"
+
+- name: Read back the healthz token
+  slurp:
+    src: "{{ kube_token_dir }}/healthz.token"
+  register: healthz_token
+
+- name: Create haproxy certificates | {{ load_balancer_name }}.pem
+  shell:  "cat {{ caicloudapp_cert_dir }}/master.crt {{ caicloudapp_cert_dir }}/master.key > {{ kube_cert_dir }}/{{ load_balancer_name }}.pem"
+
+- name: Create haproxy certificates | server.pem
+  shell:  "cat {{ kube_cert_dir }}/server.crt {{ kube_cert_dir }}/server.key > {{ kube_cert_dir }}/server.pem"
+
+- name: Verify certificate permissions
+  file:
+    path={{ item }}
+    group={{ kube_cert_group }}
+    owner=kube
+    mode=0440
+  with_items:
+    - "{{ kube_cert_dir }}/server.pem"
+    - "{{ kube_cert_dir }}/{{ load_balancer_name }}.pem"
+
+- name: Create haproxy config directory
+  file: path={{ haproxy_config_dir }} state=directory
+
+- name: Create keepalived config directory
+  file: path={{ keepalived_config_dir }} state=directory
+
+- name: Get interface for keepalived
+  shell:  ip addr show | grep '^ *inet' | grep "{{ hostvars[inventory_hostname]['internal_ip'] }}" | awk '{print $NF}'
+  register: interface
+  when: use_keepalived
+
+- name: Count priority for keepalived
+  set_fact:
+    priority: "{{ 100 - (groups['masters'].index(inventory_hostname) | int) * 3 }}"
+  when: use_keepalived
+
+- name: Support ip_vs for keepalived | CentOS
+  script: "ipvs/load-ipvs-centos.sh"
+  when: use_keepalived and (ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux')
+
+- name: Support ip_vs for keepalived | Ubuntu
+  script: "ipvs/load-ipvs-ubuntu.sh"
+  when: use_keepalived and (ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu')
+
+- name: Copy master haproxy pod config
+  template: src=haproxy.cfg.j2 dest={{ haproxy_config_dir }}/haproxy.cfg
+
+- name: Copy master keepalived pod config
+  template: src=keepalived.conf.j2 dest={{ keepalived_config_dir }}/keepalived.conf
+  when: use_keepalived
+
+- copy:
+    src: "keepalived/check_haproxy.py"
+    dest: "{{ keepalived_config_dir }}"
+    mode: 0644
+    owner: root
+    group: root
+  when: use_keepalived
+
+- copy:
+    src: "keepalived/notify_state.sh"
+    dest: "{{ keepalived_config_dir }}"
+    mode: 0644
+    owner: root
+    group: root
+  when: use_keepalived
+
+- name: Copy loadbalancer pod into manifest directory of each kubelet
+  template:
+    src: "loadbalancer.yaml.j2"
+    dest: "{{ kube_manifest_dir }}/loadbalancer.yaml"
+    mode: 0644
+    owner: root
+    group: root

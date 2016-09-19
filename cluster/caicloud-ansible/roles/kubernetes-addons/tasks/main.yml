@@ -24,8 +24,9 @@
 - name: Write kube-system quota resource
   template: src="quota.yaml.j2" dest="{{ kube_config_dir }}/addons/quota.yaml"
 
-- name: Write kube-system limitrange resource
-  copy: src="limitrange.yaml" dest="{{ kube_config_dir }}/addons/limitrange.yaml"
+# Disable limitrange.
+# - name: Write kube-system limitrange resource
+#   copy: src="limitrange.yaml" dest="{{ kube_config_dir }}/addons/limitrange.yaml"
 
 - include: dns.yml
   when: dns_setup
@@ -65,3 +66,4 @@
 
 - name: Enable and start kube addons
   service: name=kube-addons enabled=yes state=started
+  when: inventory_hostname == groups['masters'][0]

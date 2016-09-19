@@ -16,11 +16,3 @@
     PASSWORD: "{{ kube_password }}"
   notify:
     - restart apiserver
-
-- name: Verify basic auth permissions
-  file:
-    path={{ kube_token_dir }}/basic-auth.csv
-    group={{ kube_cert_group }}
-    owner=kube
-    mode=0440
-  
