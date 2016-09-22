@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2015 The Kubernetes Authors All rights reserved.
+# Copyright 2016 The Kubernetes Authors All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,26 +18,41 @@
 # on error. Therefore, we disable errexit here.
 set +o errexit
 
-KUBE_ROOT="$(dirname "${BASH_SOURCE}")/../.."
+KUBE_CURRENT=$(dirname "${BASH_SOURCE}")
+KUBE_ROOT="$KUBE_CURRENT/../.."
 
-# Get cluster configuration parameters from config-default. KUBE_DISTRO
-# will be available after sourcing file config-default.sh.
+# Get cluster configuration parameters from config-default.
 source "${KUBE_ROOT}/cluster/caicloud-baremetal/config-default.sh"
 source "${KUBE_ROOT}/cluster/caicloud/common.sh"
-source "${KUBE_ROOT}/cluster/caicloud/${KUBE_DISTRO}/helper.sh"
-
+source "${KUBE_ROOT}/cluster/lib/util.sh"
 
 # -----------------------------------------------------------------------------
 # Cluster specific library utility functions.
 # -----------------------------------------------------------------------------
 # Verify cluster prerequisites.
 function verify-prereqs {
-  if [[ "$(which curl)" == "" ]]; then
-    log "Can't find curl in PATH, please fix and retry."
+  if [[ "${AUTOMATICALLY_INSTALL_TOOLS-}" == "YES" ]]; then
+    install-ansible
+  fi
+
+  # Check needed binaries
+  if [[ `uname` != "Darwin" ]]; then
+    needed_binaries=("expect" "ansible" "ansible-playbook" "sshpass" "netaddr")
+    for binary in ${needed_binaries[@]}; do
+      if [[ `eval which ${binary}` == "" ]]; then
+        log "Can't find ${binary} binary in PATH, please fix and retry."
+        exit 1
+      fi
+    done
+  fi
+
+  # Make sure we have set MASTER_SSH_INFO and NODE_SSH_INFO
+  if [[ "$MASTER_SSH_INFO" == "" ]]; then
+    log "MASTER_SSH_INFO is not been set."
     exit 1
   fi
-  if [[ "$(which expect)" == "" ]]; then
-    log "Can't find expect binary in PATH, please fix and retry."
+  if [[ "$NODE_SSH_INFO" == "" ]]; then
+    log "NODE_SSH_INFO is not been set."
     exit 1
   fi
 }
@@ -46,7 +61,7 @@ function verify-prereqs {
 function kube-up {
   # Print all environment and local variables at this point.
   log "+++++ Running kube-up with variables ..."
-  KUBE_UP=Y && (set -o posix; set)
+  set -o posix; set
 
   # Make sure we have:
   #  1. a staging area
@@ -54,140 +69,44 @@ function kube-up {
   ensure-temp-dir
   ensure-ssh-agent
 
-  # setup-instances is a common operations aross all cloudproviders, including
-  # baremetal, see caicloud/common.sh for a list of setups.
   setup-instances
-  # setup-baremetal-instances is baremetal specific setups for all instances.
-  setup-baremetal-instances
-
-  # Create certificates and credentials to secure cluster communication.
-  create-certs-and-credentials
-
-  # Concurrently install all binaries and packages for instances.
-  local pids=""
-  fetch-tarball-in-master && install-binaries-from-master & pids="$pids $!"
-  install-packages & pids="$pids $!"
-  wait ${pids}
-
-  # After kube-up, we'll need to remove "~/.kube" working directory.
-  trap-add 'clean-up-working-dir' EXIT
-
-  # Prepare master environment.
-  send-master-files
-  send-node-files
-
-  # Now start kubernetes.
-  start-kubernetes
-
-  # Create config file, i.e. ~/.kube/config.
-  source "${KUBE_ROOT}/cluster/common.sh"
-  # create-kubeconfig assumes master ip is in the variable KUBE_MASTER_IP.
-  # Also, in bare metal environment, we are deploying on master instance,
-  # so we make sure it can find kubectl binary.
-  if [[ ${USE_SELF_SIGNED_CERT} == "true" ]]; then
-    KUBE_MASTER_IP="${MASTER_IIP}"
-  else
-    KUBE_MASTER_IP="${MASTER_DOMAIN_NAME}"
-  fi
 
   find-kubectl-binary
-  create-kubeconfig
-}
+  # If cann't find kubectl binary, we need to fetch it from master node.
+  if [[ -z "${KUBECTL_PATH-}" ]]; then
+    fetch-kubectl-binary
+  fi
 
-# Validate a kubernetes cluster
-function validate-cluster {
-  # by default call the generic validate-cluster.sh script, customizable by
-  # any cluster provider if this does not fit.
-  "${KUBE_ROOT}/cluster/validate-cluster.sh"
+  create-inventory-file
+  create-extra-vars-json-file
 
-  echo "... calling deploy-addons" >&2
-  deploy-addons "${MASTER_SSH_INFO}"
+  start-kubernetes-by-ansible
+  ret=$?
+  if [[ $ret -ne 0 ]]; then
+    echo "Failed to start kubernetes by ansible." >&2
+    exit $ret
+  fi
 }
 
 # Delete a kubernetes cluster
 function kube-down {
-  # Print all environment and local variables at this point.
-  KUBE_UP=N && (set -o posix; set)
-
-  # Make sure we have:
-  #  1. a staging area
-  #  2. a public/private key pair used to provision instances.
-  ensure-temp-dir
-  ensure-ssh-agent
-
-  send-master-files
-  send-node-files
-
-  cleanup-kubernetes
+  create-inventory-file
+  create-extra-vars-json-file
+  clear-kubernetes-by-ansible
 }
 
-# Update a kubernetes cluster.
-function kube-push {
-	echo "TODO: kube-push" 1>&2
-}
-
-# Must ensure that the following ENV vars are set
+# Find master to work with.
 function detect-master {
-  echo "KUBE_MASTER_IP: $KUBE_MASTER_IP" 1>&2
-  echo "KUBE_MASTER: $KUBE_MASTER" 1>&2
+  export KUBE_MASTER_IP=${KUBE_MASTER_IP:-"cluster.caicloudprivatetest.com"}
+  export KUBE_MASTER=${KUBE_MASTER:-"cluster.caicloudprivatetest.com"}
 }
 
-# Get minion names if they are not static.
-function detect-minion-names {
-  echo "MINION_NAMES: [${MINION_NAMES[*]}]" 1>&2
-}
-
-# Get minion IP addresses and store in KUBE_MINION_IP_ADDRESSES[]
-function detect-minions {
-  echo "KUBE_MINION_IP_ADDRESSES: [${KUBE_MINION_IP_ADDRESSES[*]}]" 1>&2
-}
-
-# Setup baremetal instances. Right now, the setup includes:
-# - add node hostname into master, so that master can reach nodes via their hostname
-# - make sure instance can ping itself via hostname (rarely needed)
-function setup-baremetal-instances {
-  IFS=',' read -ra instance_ssh_info <<< "${INSTANCE_SSH_EXTERNAL}"
-  INSTANCE_HOSTNAME_ARR=""
-  for (( i = 0; i < ${#instance_ssh_info[*]}; i++ )); do
-    INSTANCE_HOSTNAME=`ssh-to-instance "${instance_ssh_info[$i]}" "hostname"`
-    INSTANCE_HOSTNAME=$(echo ${INSTANCE_HOSTNAME} | tr -d '\r')
-    if [[ -z "${INSTANCE_HOSTNAME_ARR-}" ]]; then
-      INSTANCE_HOSTNAME_ARR="${INSTANCE_HOSTNAME}"
-    else
-      INSTANCE_HOSTNAME_ARR="${INSTANCE_HOSTNAME_ARR},${INSTANCE_HOSTNAME}"
-    fi
-  done
-  # Take out the first since it's master
-  NODE_HOSTNAME_ARR=${INSTANCE_HOSTNAME_ARR#*,}
-
-  IFS=',' read -ra instance_hostnames <<< "${INSTANCE_HOSTNAME_ARR}"
-  # Get hostname of all instances and add them to master's setup script.
-  (
-    echo "#!/bin/bash"
-    grep -v "^#" "${KUBE_ROOT}/cluster/caicloud/${KUBE_DISTRO}/helper.sh"
-    for (( i = 0; i < ${#instance_ssh_info[*]}; i++ )); do
-      IFS=':@' read -ra ssh_info <<< "${instance_ssh_info[$i]}"
-      echo "add-hosts-entry ${instance_hostnames[$i]} ${ssh_info[2]}"
-    done
-    echo ""
-  ) > "${KUBE_TEMP}/master-host-setup.sh"
-  chmod a+x "${KUBE_TEMP}/master-host-setup.sh"
-  scp-then-execute-expect "${MASTER_SSH_EXTERNAL}" "${KUBE_TEMP}/master-host-setup.sh" "~" "\
-mkdir -p ~/kube && sudo mv ~/master-host-setup.sh ~/kube && \
-sudo ./kube/master-host-setup.sh || \
-echo 'Command failed setting up master'"
-
-  # Make sure instance can ping itself via hostname.
-  for (( i = 0; i < ${#instance_ssh_info[*]}; i++ )); do
-    (
-      echo "#!/bin/bash"
-      grep -v "^#" "${KUBE_ROOT}/cluster/caicloud/${KUBE_DISTRO}/helper.sh"
-      echo "add-hosts-entry \`hostname\` 127.0.0.1"
-    ) > "${KUBE_TEMP}/instance-host-setup.sh"
-    chmod a+x "${KUBE_TEMP}/instance-host-setup.sh"
-    scp-then-execute-expect "${instance_ssh_info[$i]}" "${KUBE_TEMP}/instance-host-setup.sh" "~" "\
-mkdir -p ~/kube && sudo mv ~/instance-host-setup.sh ~/kube && \
-sudo ./kube/instance-host-setup.sh || \
-echo 'Command failed setting up master'"
-  done
+# Execute prior to running tests to build a release if required for env.
+function test-build-release {
+  log "Running test-build-release for ansible"
+  # Make sure we have a sensible version.
+  source ${KUBE_ROOT}/hack/caicloud/common.sh
+  export KUBE_GIT_VERSION="${K8S_VERSION}+caicloud-ansible-e2e"
+  export KUBE_GIT_TREE_STATE="clean"
+  caicloud-build-local
 }
