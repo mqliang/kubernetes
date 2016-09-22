@@ -34,14 +34,14 @@ The options are described there in full detail.
 
 ## Bring up VMs (optional)
 
-The `inventory.vagrant` example inventory file is configured to use virtualbox machines in `cluster/caicloud-baremetal`.
+The `inventory.xxxx` example inventory file is configured to use virtualbox machines in `cluster/caicloud-baremetal`.
 Change to that directory and run `vagrant up` will bring up three machines to test out the ansible playbook.
 
 ## Running the playbook
 
 After going through the setup, run the following command:
 
-`ansible-playbook -v -i cluster/caicloud-ansible/inventory.vagrant cluster/caicloud-ansible/cluster.yml`
+`ansible-playbook -v -i cluster/caicloud-ansible/inventory.xxxx --extra-vars "@cluster/caicloud-ansible/extra_vars.json" cluster/caicloud-ansible/cluster.yml`
 
 This will work on Ubuntu and CentOS.
 
@@ -50,5 +50,5 @@ This will work on Ubuntu and CentOS.
 You can just setup certain parts instead of doing it all, e.g. to only run addons:
 
 ```
-`ansible-playbook -v -i cluster/caicloud-ansible/inventory.vagrant cluster/caicloud-ansible/cluster.yml -t addons`
+`ansible-playbook -v -i cluster/caicloud-ansible/inventory.xxxx --extra-vars "@cluster/caicloud-ansible/extra_vars.json" cluster/caicloud-ansible/cluster.yml -t addons`
 ```

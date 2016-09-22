@@ -86,7 +86,7 @@ export CAICLOUD_ALIYUN_CFG_STRING_SECURITY_GROUP_NAME="dev-1"
 
 ## Change kubernetes cluster configurations
 
-We can change the default configurations of the kubernetes cluster by environment variables. If not seting these environment variables, It will use the default values. For details, please refer to [README-ALIYUN-INSTANCE](../caicloud-ansible/README-ANSIBLE.md).
+We can change the default configurations of the kubernetes cluster by environment variables. If not seting these environment variables, It will use the default values. For details, please refer to [README-ANSIBLE](../caicloud-ansible/README-ANSIBLE.md).
 
 Naming rules of kubernetes cluster environment variables:
 ```

@@ -1,0 +1,7 @@
+{
+  "cluster_name": "kube-default",
+  "dns_host_name": "caicloudstack",
+  "host_provider": "other",
+  "load_balancer_vip": "192.168.205.253",
+  "use_hyperkube": false
+}
