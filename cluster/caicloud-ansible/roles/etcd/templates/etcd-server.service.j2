@@ -6,7 +6,11 @@ After=network.target
 Type=notify
 WorkingDirectory={{ etcd_data_dir }}
 EnvironmentFile=-{{ etcd_config_dir }}/etcd-server.conf
-ExecStart={{ bin_dir }}/etcd
+ExecStart={{ bin_dir }}/etcd \
+        $ETCD_GENERAL_OPTIONS \
+        $ETCD_CLUSTER_OPTIONS \
+        $ETCD_PROXY_OPTIONS \
+        $ETCD_SECURITY_OPTIONS
 Restart=on-failure
 LimitNOFILE=65536
 

@@ -6,36 +6,51 @@
 {% endmacro -%}
 
 #[general]
-{% if groups[etcd_peers_group] and groups[etcd_peers_group] | length > 0 %}
-ETCD_NAME={{ ansible_hostname }}
-{% else %}
-ETCD_NAME=default
-{% endif %}
-ETCD_DATA_DIR={{ etcd_events_dir }}
+{% set general_options = [] -%}
+{% if groups[etcd_peers_group] and groups[etcd_peers_group] | length > 0 -%}
+{{ general_options.append('--name=' + ansible_hostname)|default('', true) -}}
+{% else -%}
+{{ general_options.append('--name=default')|default('', true) -}}
+{% endif -%}
+{{ general_options.append('--data-dir=' + etcd_events_dir)|default('', true) -}}
+
+ETCD_GENERAL_OPTIONS="{{ general_options|join(' ') }}"
+
 
 #[cluster]
-{% if groups[etcd_peers_group] and groups[etcd_peers_group] | length > 0 %}
-ETCD_INITIAL_ADVERTISE_PEER_URLS={{ etcd_events_initial_advertise_peer_urls }}
-ETCD_INITIAL_CLUSTER={{ initial_cluster() }}
-ETCD_INITIAL_CLUSTER_STATE={{ etcd_initial_cluster_state }}
-ETCD_INITIAL_CLUSTER_TOKEN={{ etcd_events_initial_cluster_token }}
-{% endif %}
+{% set cluster_options = [] -%}
+{% if groups[etcd_peers_group] and groups[etcd_peers_group] | length > 0 -%}
+{{ cluster_options.append('--initial-advertise-peer-urls=' + etcd_events_initial_advertise_peer_urls)|default('', true) -}}
+{{ cluster_options.append('--initial-cluster=' + initial_cluster())|default('', true) -}}
+{{ cluster_options.append('--initial-cluster-state=' + etcd_initial_cluster_state)|default('', true) -}}
+{{ cluster_options.append('--initial-cluster-token=' + etcd_events_initial_cluster_token)|default('', true) -}}
+{% endif -%}
+{{ cluster_options.append('--listen-peer-urls=' + etcd_events_listen_peer_urls)|default('', true) -}}
+{{ cluster_options.append('--advertise-client-urls=' + etcd_events_advertise_client_urls)|default('', true) -}}
+{{ cluster_options.append('--listen-client-urls=' + etcd_events_listen_client_urls)|default('', true) -}}
 
-ETCD_LISTEN_PEER_URLS={{ etcd_events_listen_peer_urls }}
-ETCD_ADVERTISE_CLIENT_URLS={{ etcd_events_advertise_client_urls }}
-ETCD_LISTEN_CLIENT_URLS="{{ etcd_events_listen_client_urls }}"
+ETCD_CLUSTER_OPTIONS="{{ cluster_options|join(' ') }}"
+
 
 #[proxy]
-ETCD_PROXY="off"
+{% set proxy_options = [] -%}
+{{ proxy_options.append('--proxy=off')|default('', true) -}}
+
+ETCD_PROXY_OPTIONS="{{ proxy_options|join(' ') }}"
+
 
 #[security]
+{% set security_options = [] -%}
 {% if etcd_url_scheme == 'https' -%}
-ETCD_CA_FILE={{ etcd_ca_file }}
-ETCD_CERT_FILE={{ etcd_cert_file }}
-ETCD_KEY_FILE={{ etcd_key_file }}
+{{ security_options.append('--ca-file=' + etcd_ca_file)|default('', true) -}}
+{{ security_options.append('--cert-file=' + etcd_cert_file)|default('', true) -}}
+{{ security_options.append('--key-file=' + etcd_key_file)|default('', true) -}}
 {% endif -%}
 {% if etcd_peer_url_scheme == 'https' -%}
-ETCD_PEER_CA_FILE={{ etcd_peer_ca_file }}
-ETCD_PEER_CERT_FILE={{ etcd_peer_cert_file }}
-ETCD_PEER_KEY_FILE={{ etcd_peer_key_file }}
+{{ security_options.append('--peer-ca-file=' + etcd_peer_ca_file)|default('', true) -}}
+{{ security_options.append('--peer-cert-file=' + etcd_peer_cert_file)|default('', true) -}}
+{{ security_options.append('--peer-key-file=' + etcd_peer_key_file)|default('', true) -}}
 {% endif -%}
+
+ETCD_SECURITY_OPTIONS="{{ security_options|join(' ') }}"
+
