@@ -17,5 +17,5 @@ script
 
   mkdir -p {{ etcd_events_dir }}
   chdir {{ etcd_events_dir }}
-  exec {{ bin_dir }}/etcd >>/var/log/etcd-server-events.log 2>&1
+  exec {{ bin_dir }}/etcd $ETCD_GENERAL_OPTIONS $ETCD_CLUSTER_OPTIONS $ETCD_PROXY_OPTIONS $ETCD_SECURITY_OPTIONS >>/var/log/etcd-server-events.log 2>&1
 end script
