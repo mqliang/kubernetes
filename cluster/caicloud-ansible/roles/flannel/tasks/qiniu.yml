@@ -18,8 +18,8 @@
   when: flannel_tarball.stat.exists == False
   register: flannel_tarball_download
   until: flannel_tarball_download|success
-  retries: 5
-  delay: 3
+  retries: 10
+  delay: 5
 
 - name: Extract tar file
   unarchive:

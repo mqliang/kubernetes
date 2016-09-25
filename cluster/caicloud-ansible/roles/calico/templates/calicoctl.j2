@@ -2,4 +2,4 @@
 
 ETCD_ENDPOINTS="{{ etcd_endpoints }}"
 
-CALICOCTL_OPTS="node --ip={{ hostvars[inventory_hostname]['ansible_host'] }} {{ calicoctl_opts | default('') }}"
+CALICOCTL_OPTS="node --ip={{ hostvars[inventory_hostname]['internal_ip'] }} {{ calicoctl_opts | default('') }}"

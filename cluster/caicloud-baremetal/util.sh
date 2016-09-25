@@ -69,7 +69,9 @@ function kube-up {
   ensure-temp-dir
   ensure-ssh-agent
 
-  setup-instances
+  if [[ "${SETUP_INSTANCES-}" == "YES" ]]; then
+    setup-instances
+  fi
 
   find-kubectl-binary
   # If cann't find kubectl binary, we need to fetch it from master node.
@@ -90,6 +92,7 @@ function kube-up {
 
 # Delete a kubernetes cluster
 function kube-down {
+  ensure-ssh-agent
   create-inventory-file
   create-extra-vars-json-file
   clear-kubernetes-by-ansible
