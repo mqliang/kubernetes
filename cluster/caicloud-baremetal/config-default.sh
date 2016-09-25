@@ -46,6 +46,12 @@ NODE_NAME_PREFIX=${NODE_NAME_PREFIX-"kube-node-"}
 
 DNS_HOST_NAME=${DNS_HOST_NAME-"caicloudstack"}
 
+# Setup instances or not.
+SETUP_INSTANCES=${SETUP_INSTANCES-"YES"}
+
+SSH_PRIVATE_KEY_FILE=${SSH_PRIVATE_KEY_FILE-"$HOME/.ssh/id_rsa"}
+SSH_PUBLIC_KEY_FILE=${SSH_PUBLIC_KEY_FILE-"$SSH_PRIVATE_KEY_FILE.pub"}
+
 # -----------------------------------------------------------------------------
 # Derived params for kube-up (calculated based on above params: DO NOT CHANGE).
 # If above configs are changed manually, remember to call the function.

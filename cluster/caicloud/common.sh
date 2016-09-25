@@ -728,7 +728,7 @@ function setup-instance {
     expect <<EOF
 set timeout $((($attempt+1)*3))
 spawn scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oLogLevel=quiet \
-  $HOME/.ssh/id_rsa.pub ${2}@${1}:~/host_rsa.pub
+  ${SSH_PUBLIC_KEY_FILE-"$HOME/.ssh/id_rsa.pub"} ${2}@${1}:~/host_rsa.pub
 
 expect {
   "*?assword*" {
@@ -869,9 +869,14 @@ function ensure-temp-dir {
 # Create ~/.ssh/id_rsa.pub if it doesn't exist, and make it is added to
 # ssh-agent.
 function ensure-ssh-agent {
-  if [[ ! -f ${HOME}/.ssh/id_rsa.pub ]]; then
-    log "+++++++++ Create public/private key pair in ~/.ssh/id_rsa"
-    ssh-keygen -f ~/.ssh/id_rsa -t rsa -N ''
+  if [[ ! -f ${SSH_PUBLIC_KEY_FILE-"$HOME/.ssh/id_rsa.pub"} ]]; then
+    if [[ ${SETUP_INSTANCES-"YES"} == "YES" ]]; then
+      log "+++++++++ Create public/private key pair in ${SSH_PRIVATE_KEY_FILE-"$HOME/.ssh/id_rsa"}"
+      ssh-keygen -f ${SSH_PRIVATE_KEY_FILE-"$HOME/.ssh/id_rsa"} -t rsa -N ''
+      export SSH_PUBLIC_KEY_FILE="${SSH_PRIVATE_KEY_FILE-"$HOME/.ssh/id_rsa"}.pub"
+    else
+      log "+++++++++ Using private key in ${SSH_PRIVATE_KEY_FILE-"$HOME/.ssh/id_rsa"}"
+    fi
   fi
   ssh-add -L > /dev/null 2>&1
   # Could not open a connection to authentication agent (ssh-agent),
@@ -884,7 +889,7 @@ function ensure-ssh-agent {
   # The agent has no identities, try adding one of the default identities,
   # with or without pass phrase.
   if [[ "$?" == "1" ]]; then
-    ssh-add || true
+    ssh-add ${SSH_PRIVATE_KEY_FILE-"$HOME/.ssh/id_rsa"} || true
   fi
   # Expect at least one identity to be available.
   if ! ssh-add -L > /dev/null 2>&1; then
