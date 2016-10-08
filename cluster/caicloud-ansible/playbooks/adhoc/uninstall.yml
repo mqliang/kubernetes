@@ -63,6 +63,8 @@
       command: etcdctl rm --recursive {{ item }}
       with_items:
         - "/registry"
+        - "/calico"
+        - "/coreos.com"
         - "/{{ cluster_name }}" #cluster name. default in group_vars/all.yml
       ignore_errors: True
       when: inventory_hostname == groups['etcd'][0]
