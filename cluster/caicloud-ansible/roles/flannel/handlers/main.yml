@@ -29,11 +29,11 @@
 
 - name: stop docker
   service: name=docker state=stopped
-  when: has_docker.rc|int != 2
+  when: '"docker0" in ansible_interfaces'
 
 - name: delete docker0
   command: ip link delete docker0
-  when: has_docker.rc|int != 2
+  when: '"docker0" in ansible_interfaces'
 
 - name: docker start service
   service: name=docker state=started

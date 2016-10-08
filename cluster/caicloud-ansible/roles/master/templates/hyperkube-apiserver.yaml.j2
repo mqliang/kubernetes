@@ -28,8 +28,8 @@ spec:
     - --service-node-port-range={{ service_node_port_range }}
     - --service-cluster-ip-range={{ kube_service_addresses }}
 {% if host_provider == "aliyun" or host_provider == "anchnet" %}
-    --cloud-provider={{ host_provider }}
-    --cloud-config={{ kube_config_dir }}/cloud-config
+    - --cloud-provider={{ host_provider }}
+    - --cloud-config={{ kube_config_dir }}/cloud-config
 {% endif %}
     - --admission-control={{ admission_controllers }}
     - --cors-allowed-origins=.*
