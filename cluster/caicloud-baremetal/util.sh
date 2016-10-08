@@ -92,7 +92,6 @@ function kube-up {
 
 # Delete a kubernetes cluster
 function kube-down {
-  ensure-ssh-agent
   create-inventory-file
   create-extra-vars-json-file
   clear-kubernetes-by-ansible

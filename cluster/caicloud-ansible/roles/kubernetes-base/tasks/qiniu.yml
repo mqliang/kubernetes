@@ -26,7 +26,7 @@
   delay: 5
 
 - name: Fetch caicloud kubernetes tar file
-  shell: ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -A {{ hostvars[inventory_hostname]['ansible_user'] }}@{{ hostvars[inventory_hostname]['internal_ip'] }} sudo SSH_AUTH_SOCK=\$SSH_AUTH_SOCK scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null {{ hostvars[groups['masters'][0]]['ansible_user'] }}@{{ hostvars[groups['masters'][0]]['ansible_host'] }}:{{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz {{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz
+  shell: ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -A {{ hostvars[inventory_hostname]['ansible_user'] }}@{{ hostvars[inventory_hostname]['ansible_host'] }} sudo SSH_AUTH_SOCK=\$SSH_AUTH_SOCK scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null {{ hostvars[groups['masters'][0]]['ansible_user'] }}@{{ hostvars[groups['masters'][0]]['internal_ip'] }}:{{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz {{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz
   when: kube_tarball.stat.exists == False and inventory_hostname not in groups['masters']
   delegate_to: localhost
   register: kube_tarball_copy
