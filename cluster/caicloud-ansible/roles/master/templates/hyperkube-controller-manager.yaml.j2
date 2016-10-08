@@ -21,8 +21,8 @@ spec:
     - --kubeconfig={{ kube_config_dir }}/controller-manager.kubeconfig
     - --cluster-name={{ cluster_name }}
 {% if host_provider == "aliyun" or host_provider == "anchnet" %}
-    --cloud-provider={{ host_provider }}
-    --cloud-config={{ kube_config_dir }}/cloud-config
+    - --cloud-provider={{ host_provider }}
+    - --cloud-config={{ kube_config_dir }}/cloud-config
 {% endif %}
     - --service-account-private-key-file={{ kube_cert_dir }}/server.key
     - --root-ca-file={{ kube_cert_dir }}/ca.crt
