@@ -80,6 +80,16 @@ USE_HYPERKUBE
     Default value is "true".
     Allowed value is "true" or "false".
     Hyperkube image version keep the same with `kube_caicloud_version`, which can be set with `CAICLOUD_K8S_CFG_STRING_KUBE_CAICLOUD_VERSION`.
+
+SETUP_INSTANCES
+    Setup instances to use ssh key authentication by default, namely: `SETUP_INSTANCES="YES"`. If you want to use an existing private key, you need to set: `SETUP_INSTANCES="NO"`.
+
+SSH_PRIVATE_KEY_FILE
+    Ssh private key file path, `$HOME/.ssh/id_rsa` by default.
+
+SSH_PUBLIC_KEY_FILE
+    Ssh public key file path, `$SSH_PRIVATE_KEY_FILE.pub` by default.
+
 ```
 
 **Note:**
