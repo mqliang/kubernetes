@@ -5,6 +5,9 @@
 - name: Install calico binaries from github
   include: upload.yml
 
+- name: Install ethtool
+  package: name=ethtool
+
 - name: Add calico systemd unit file
   template: src=calicoctl.service dest=/etc/systemd/system/calicoctl.service
   register: calicoctl_service

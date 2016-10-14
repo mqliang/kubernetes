@@ -144,6 +144,10 @@ kube_script_dir: "{{ kube_config_dir}}/scripts"
 # This is where all of the bearer tokens will be stored
 kube_token_dir: "{{ kube_config_dir }}/tokens"
 
+# This is where you can drop yaml/json files and the kubelet will run those
+# pods on startup.
+kube_manifest_dir: "{{ kube_config_dir }}/manifests"
+
 # The directory where binaries are stored on Ansible managed systems.
 # Editting this value will almost surely break something. Things like
 # the systemd scripts are hard coded to look in here.

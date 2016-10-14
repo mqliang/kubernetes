@@ -1,0 +1,13 @@
+---
+
+- name: Create kubernetes manifest directory
+  file: path={{ kube_manifest_dir }} state=directory
+
+- name: Copy calico network policy into manifest directory of master
+  template:
+  args:
+    src: "policy-controller.yaml"
+    dest: "{{ kube_manifest_dir }}"
+    mode: 0644
+    owner: root
+    group: root

@@ -4,10 +4,10 @@
 # These variables are not used in the deployment but the downloaded binaries
 # are stored under caicloud-ansible/roles/calico/files and will be used in deployment
 # PLEASE update the versions and urls here when update binaries!
-calicoctl_version: "v0.20.0"
+calicoctl_version: "v0.22.0"
 calicoctl_download_url: "https://github.com/projectcalico/calico-containers/releases/download/{{ calicoctl_version }}/calicoctl"
 
-calico_version: "v1.3.1"
+calico_version: "v1.4.1"
 calico_download_url: "https://github.com/projectcalico/calico-cni/releases/download/{{ calico_version }}/calico"
 calico_ipam_download_url: "https://github.com/projectcalico/calico-cni/releases/download/{{ calico_version }}/calico-ipam"
 
