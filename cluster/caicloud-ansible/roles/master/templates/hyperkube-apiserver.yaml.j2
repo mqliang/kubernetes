@@ -42,6 +42,7 @@ spec:
     - --tls-private-key-file={{ kube_cert_dir }}/server.key
     - --allow-privileged=true
     - --v={{ kube_log_level }}
+    - --runtime-config=extensions/v1beta1/networkpolicies
     ports:
     - containerPort: {{ kube_master_api_port }}
       hostPort: {{ kube_master_api_port }}

@@ -1,6 +1,7 @@
 ---
 # Main task for installing calico.
 #
+- include_vars: ../../kubernetes-base/defaults/main.yml
 
 #
 # Prepare installation.
@@ -17,10 +18,11 @@
   include: install.yml
   when: inventory_hostname in groups['masters'] + groups['nodes']
 
-# NOTE: No ACL support currently
-# - name: Install and configure calico policy-controller
-#   include: install-policy-controller.yml
-#   when: inventory_hostname in groups['masters']
+#
+# Put calico policy controller to master
+- name: Install and configure calico policy controller
+  include: install-policy-controller.yml
+  when: inventory_hostname in groups['masters']
 
 #
 # Enable and start calicoctl.
