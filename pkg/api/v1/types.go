@@ -284,10 +284,10 @@ type VolumeSource struct {
 	AzureDisk *AzureDiskVolumeSource `json:"azureDisk,omitempty" protobuf:"bytes,22,opt,name=azureDisk"`
 	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty" protobuf:"bytes,21,opt,name=anchnetPersistentDisk"`
+	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty" protobuf:"bytes,23,opt,name=anchnetPersistentDisk"`
 	// AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	AliyunPersistentDisk *AliyunPersistentDiskVolumeSource `json:"aliyunPersistentDisk,omitempty" protobuf:"bytes,22,opt,name=aliyunPersistentDisk"`
+	AliyunPersistentDisk *AliyunPersistentDiskVolumeSource `json:"aliyunPersistentDisk,omitempty" protobuf:"bytes,24,opt,name=aliyunPersistentDisk"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
@@ -356,10 +356,10 @@ type PersistentVolumeSource struct {
 	AzureDisk *AzureDiskVolumeSource `json:"azureDisk,omitempty" protobuf:"bytes,16,opt,name=azureDisk"`
 	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty" protobuf:"bytes,15,opt,name=anchnetPersistentDisk"`
+	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty" protobuf:"bytes,17,opt,name=anchnetPersistentDisk"`
 	// AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	AliyunPersistentDisk *AliyunPersistentDiskVolumeSource `json:"aliyunPersistentDisk,omitempty" protobuf:"bytes,16,opt,name=aliyunPersistentDisk"`
+	AliyunPersistentDisk *AliyunPersistentDiskVolumeSource `json:"aliyunPersistentDisk,omitempty" protobuf:"bytes,18,opt,name=aliyunPersistentDisk"`
 }
 
 // +genclient=true

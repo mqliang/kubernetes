@@ -51,6 +51,11 @@ func (plugin *anchnetPersistentDiskPlugin) NewAttacher() (volume.Attacher, error
 	}, nil
 }
 
+func (plugin *anchnetPersistentDiskPlugin) GetDeviceMountRefs(deviceMountPath string) ([]string, error) {
+	mounter := plugin.host.GetMounter()
+	return mount.GetMountRefs(mounter, deviceMountPath)
+}
+
 func (attacher *anchnetPersistentDiskAttacher) Attach(spec *volume.Spec, hostName string) (string, error) {
 	volumeSource, readOnly, err := getVolumeSource(spec)
 	if err != nil {
