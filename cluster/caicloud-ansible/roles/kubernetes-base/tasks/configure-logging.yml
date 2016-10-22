@@ -1,0 +1,52 @@
+---
+# Set docker daemon to use json-file logging driver,  
+# and let logs can be rolled over when reached max-size.
+
+# https://docs.google.com/document/d/1f8BxLCI87osPoDtZ9SCwuLr1ti1-t8Qys6oaB0G1lV4/edit
+- set_fact:
+    log_driver: "json-file"
+    max_size: "64m"
+    max_file: "2"
+
+- name: Ubuntu | Remove old log config for docker service
+  lineinfile:
+    dest: /etc/init/docker.conf
+    regexp: '(^\s*exec\s+.*)\s+--log-driver=.*\s+--log-opt\s+max-size=.*\s+--log-opt\s+max-file=[1-9]+(.*$)'
+    line: '\1\2'
+    state: present
+    backrefs: yes
+  when: ansible_distribution == "Ubuntu"
+
+- name: Ubuntu | Add new log config for docker service
+  lineinfile:
+    dest: /etc/init/docker.conf
+    regexp: '(^\s*exec\s+.*$)'
+    line: '\1 --log-driver={{ log_driver }} --log-opt max-size={{ max_size }} --log-opt max-file={{ max_file }}'
+    state: present
+    backrefs: yes
+  when: ansible_distribution == "Ubuntu"
+
+- name: CentOS | Remove old log config for docker service
+  lineinfile:
+    dest: /etc/systemd/system/docker.service
+    regexp: '(^\s*ExecStart=.*)\s+--log-driver=.*\s+--log-opt\s+max-size=.*\s+--log-opt\s+max-file=[1-9]+(.*$)'
+    line: '\1\2'
+    state: present
+    backrefs: yes
+  when: ansible_distribution == "CentOS"
+
+- name: CentOS | Add new log config for docker service
+  lineinfile:
+    dest: /etc/systemd/system/docker.service
+    regexp: '(^\s*ExecStart=.*$)'
+    line: '\1 --log-driver={{ log_driver }} --log-opt max-size={{ max_size }} --log-opt max-file={{ max_file }}'
+    state: present
+    backrefs: yes
+  when: ansible_distribution == "CentOS"
+
+- name: CentOS | reload systemd
+  command: systemctl --system daemon-reload
+  when: ansible_distribution == "CentOS"
+
+- name: Restart docker service
+  service: name=docker state=restarted
