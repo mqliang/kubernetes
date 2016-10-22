@@ -53,10 +53,12 @@ tarballs tagged with version v1.2.0+v1.0.1, assuming upstream kubernetes version
 
 ### Steps to rebase to upstream
 
+- Use Linux OS
 - Find the tag commit to rebase and checkout to caicloud master branch
   - Checkout to a new branch, e.g. `git checkout -b rebase-branch`
   - If we want to rebase to v1.3, then run `git log --grep "v1.3"` to find the commit
 - Run `git rebase --preserve-merges -i $COMMIT_ID` and resolve conflicts
+  - Delete all commits above `Add anchang cloudprovider` 
   - Use `git config --global rerere.enabled true` to reuse recorded resolution (this is a global configuration,
     so only need to run once)
   - Note as we've changed API types, we'll always get conflict with generated files: it is better to just
@@ -84,15 +86,20 @@ tarballs tagged with version v1.2.0+v1.0.1, assuming upstream kubernetes version
   - Run `rm -rf Godeps vendor` to clean all vendor directories
   - Run `./hack/godep-save.sh` to re-create vendor files, make sure required packages exist under GOPATH, e.g.
     "github.com/caicloud/anchnet-go".
+  - Don't forget to recover Godeps/LICENSE
 - Update `K8S_VERSION` in `hack/caicloud/common.sh`
 - Build and run basic tests
-  - Build code base: `hack/build-go.sh`
-  - Run unit test: `hack/test-go.sh`
+  - Build code base: `hack/build-go.sh`(or `make`)
+  - Run unit test: `hack/test-go.sh`(or `make test`)
     - To fix individual test, use `go test`, e.g. `godep go test ./pkg/controller/service`
-  - Run integration test: `hack/test-integration.sh`
+  - Run integration test: `hack/test-integration.sh`(or `make test-integration`)
+    - run `ulimit -n 4096` to improve open files limit of centos. `ulimit -a` can check limit num(default 1024 on centos).
   - Run end-to-end test
-    - e2e script located at `hack/caicloud/caicloud-e2e-test.sh`
-    - See `README.md` of individual cloudprovider for details
+    - run `make` to build binaries
+    - create a kubernetes cluster(at least 4 Nodes) // TODO: add a link to doc about how to create a caicluoud k8s cluster
+    - run `go run hack/e2e.go -v --test`; env `KUBERNETES_PROVIDER` can be set to caicloud-baremetal;`KUBE_MASTER_IP` and `KUBE_MASTER` must be set
+    - e2e test [HPA] is dependent on `heapster`
+    - See `hack/caicloud/caicloud-e2e-test.sh` and [End-to-End Testing in Kubernetes](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/e2e-tests.md) for details
 - If during rebase, new commits can be checked in to caicloud master; we need to rebase that to our current
   rebase branch as well. The workflow is:
   - Record commit id from where we checked out the rebase branch (new latest commit from caicloud master
