@@ -40,6 +40,7 @@ func GetAllFSTypesAsSet() sets.String {
 	fstypes := sets.NewString()
 	fstypes.Insert(
 		string(extensions.AnchnetPersistentDisk),
+		string(extensions.AliyunPersistentDisk),
 		string(extensions.HostPath),
 		string(extensions.AzureFile),
 		string(extensions.Flocker),
@@ -71,6 +72,8 @@ func GetVolumeFSType(v api.Volume) (extensions.FSType, error) {
 	switch {
 	case v.AnchnetPersistentDisk != nil:
 		return extensions.AnchnetPersistentDisk, nil
+	case v.AliyunPersistentDisk != nil:
+		return extensions.AliyunPersistentDisk, nil
 	case v.HostPath != nil:
 		return extensions.HostPath, nil
 	case v.EmptyDir != nil:

@@ -45,6 +45,7 @@ for i in `seq "${#PATTERNS[@]}"`; do
        --include \*.yaml.in \
        --include \*.yml \
        --include Dockerfile \
+       --include Makefile \
        --include \*.manifest \
        ${KUBE_ROOT}/test \
        ${KUBE_ROOT}/test/images \
@@ -55,6 +56,7 @@ for i in `seq "${#PATTERNS[@]}"`; do
        ${KUBE_ROOT}/contrib \
        ${KUBE_ROOT}/docs \
        ${KUBE_ROOT}/build \
+       ${KUBE_ROOT}/cmd \
        ${KUBE_ROOT}/test/e2e/testing-manifests |
     xargs perl -X -i -pe "${SUBSTITUTIONS[$index]}"
 done
@@ -83,3 +85,7 @@ fi
 perl -i -pe "s|google.com|baidu.com|g" \
      ${KUBE_ROOT}/test/e2e/networking.go \
      ${KUBE_ROOT}/test/e2e/dns.go
+
+# Change image in build/common.sh, which is not replaced above
+perl -i -pe "s|gcr.io/google_containers/debian-iptables-amd64|index.caicloud.io/caicloudgcr/google_containers_debian-iptables-amd64|g" \
+     ${KUBE_ROOT}/build/common.sh

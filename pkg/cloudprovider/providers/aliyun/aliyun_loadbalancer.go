@@ -29,10 +29,16 @@ import (
 
 var _ cloudprovider.LoadBalancer = (*Aliyun)(nil)
 
+func getLoadBalancerName(clusterName string, service *api.Service) string {
+	// Forcibly change to "clusterName-serviceName-serviceNamespace-serviceUID", for aliyun.
+	ret := fmt.Sprintf("%s-%s-%s-%s", clusterName, service.Name, service.Namespace, cloudprovider.GetLoadBalancerName(service))
+	return ret
+}
+
 // GetLoadBalancer returns whether the specified load balancer exists, and
 // if so, what its status is.
 func (aly *Aliyun) GetLoadBalancer(clusterName string, service *api.Service) (status *api.LoadBalancerStatus, exists bool, err error) {
-	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	loadBalancerName := getLoadBalancerName(clusterName, service)
 
 	loadbalancer, exists, err := aly.getLoadBalancerByName(loadBalancerName)
 	if err != nil {
@@ -79,7 +85,7 @@ func (aly *Aliyun) EnsureLoadBalancer(clusterName string, apiService *api.Servic
 		glog.Warning("Public IP cannot be specified for aliyun SLB")
 	}
 
-	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, apiService)
+	loadBalancerName := getLoadBalancerName(clusterName, apiService)
 
 	glog.V(2).Infof("Checking if aliyun load balancer already exists: %s", loadBalancerName)
 	_, exists, err := aly.GetLoadBalancer(clusterName, apiService)
@@ -171,7 +177,7 @@ func (aly *Aliyun) EnsureLoadBalancer(clusterName string, apiService *api.Servic
 
 // UpdateLoadBalancer updates hosts under the specified load balancer.
 func (aly *Aliyun) UpdateLoadBalancer(clusterName string, service *api.Service, hosts []string) error {
-	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	loadBalancerName := getLoadBalancerName(clusterName, service)
 	glog.V(4).Infof("UpdateLoadBalancer(%v, %v, %v)", clusterName, loadBalancerName, hosts)
 
 	loadbalancer, exists, err := aly.getLoadBalancerByName(loadBalancerName)
@@ -236,7 +242,7 @@ func (aly *Aliyun) UpdateLoadBalancer(clusterName string, service *api.Service, 
 // have multiple underlying components, meaning a Get could say that the LB
 // doesn't exist even if some part of it is still laying around.
 func (aly *Aliyun) EnsureLoadBalancerDeleted(clusterName string, service *api.Service) error {
-	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	loadBalancerName := getLoadBalancerName(clusterName, service)
 	glog.V(4).Infof("EnsureLoadBalancerDeleted(%v, %v)", clusterName, loadBalancerName)
 
 	loadbalancer, exists, err := aly.getLoadBalancerByName(loadBalancerName)

@@ -51,6 +51,11 @@ func (plugin *aliyunPersistentDiskPlugin) NewAttacher() (volume.Attacher, error)
 	}, nil
 }
 
+func (plugin *aliyunPersistentDiskPlugin) GetDeviceMountRefs(deviceMountPath string) ([]string, error) {
+	mounter := plugin.host.GetMounter()
+	return mount.GetMountRefs(mounter, deviceMountPath)
+}
+
 func (attacher *aliyunPersistentDiskAttacher) Attach(spec *volume.Spec, hostName string) (string, error) {
 	volumeSource, readOnly, err := getVolumeSource(spec)
 	if err != nil {

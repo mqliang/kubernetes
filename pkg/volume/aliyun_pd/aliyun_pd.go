@@ -188,6 +188,24 @@ func (plugin *aliyunPersistentDiskPlugin) newProvisionerInternal(options volume.
 	}, nil
 }
 
+func (plugin *aliyunPersistentDiskPlugin) ConstructVolumeSpec(volName, mountPath string) (*volume.Spec, error) {
+	mounter := plugin.host.GetMounter()
+	pluginDir := plugin.host.GetPluginDir(plugin.GetPluginName())
+	sourceName, err := mounter.GetDeviceNameFromMount(mountPath, pluginDir)
+	if err != nil {
+		return nil, err
+	}
+	aliVolume := &api.Volume{
+		Name: volName,
+		VolumeSource: api.VolumeSource{
+			AliyunPersistentDisk: &api.AliyunPersistentDiskVolumeSource{
+				VolumeID: sourceName,
+			},
+		},
+	}
+	return volume.NewSpecFromVolume(aliVolume), nil
+}
+
 // pdManager abstracts interface to PD operations.
 type pdManager interface {
 	CreateDisk(provisioner *aliyunPersistentDiskProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error)
