@@ -1,7 +1,7 @@
 ---
 
-- name: Check if relative parametes is validated
-  include: check-config.yml
+#- name: Check if relative parametes is validated
+#  include: check-config.yml
 
 - name: Create aliyun cloud-config file
   template: src="cloud-config.j2" dest="{{ cloud_config_dir }}/cloud-config"
