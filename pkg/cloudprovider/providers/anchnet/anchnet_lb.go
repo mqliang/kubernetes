@@ -33,10 +33,16 @@ import (
 //
 var _ cloudprovider.LoadBalancer = (*Anchnet)(nil)
 
+func getLoadBalancerName(clusterName string, service *api.Service) string {
+	// Forcibly change to "clusterName-serviceName-serviceNamespace-serviceUID", for anchnet.
+	ret := fmt.Sprintf("%s-%s-%s-%s", clusterName, service.Name, service.Namespace, cloudprovider.GetLoadBalancerName(service))
+	return ret
+}
+
 // GetLoadBalancer returns whether the specified load balancer exists,
 // and if so, what its status is. 'service' is read-only.
 func (an *Anchnet) GetLoadBalancer(clusterName string, service *api.Service) (status *api.LoadBalancerStatus, exists bool, err error) {
-	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	loadBalancerName := getLoadBalancerName(clusterName, service)
 	matchingLB, exists, err := an.searchLoadBalancer(loadBalancerName)
 	if err != nil {
 		return nil, false, err
@@ -76,7 +82,7 @@ func (an *Anchnet) EnsureLoadBalancer(clusterName string, service *api.Service, 
 	// func (an *Anchnet) EnsureLoadBalancer(
 	// 	name, region string, loadBalancerIP net.IP, ports []*api.ServicePort, hosts []string,
 	// 	serviceName types.NamespacedName, affinityType api.ServiceAffinity, annotations map[string]string) (*api.LoadBalancerStatus, error) {
-	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	loadBalancerName := getLoadBalancerName(clusterName, service)
 	glog.Infof("EnsureLoadBalancer(%v, %#+v, hosts)", clusterName, service, hosts)
 
 	if service.Spec.SessionAffinity != api.ServiceAffinityNone {
@@ -264,7 +270,7 @@ func (an *Anchnet) EnsureLoadBalancerDeleted(clusterName string, service *api.Se
 }
 
 func (an *Anchnet) EnsureLoadBalancerDeletedHelper(clusterName string, service *api.Service, preserveIP bool) error {
-	loadBalancerName := cloudprovider.GetLoadBalancerName(clusterName, service)
+	loadBalancerName := getLoadBalancerName(clusterName, service)
 	// Delete external ip and load balancer.
 	matchingLB, exists, err := an.searchLoadBalancer(loadBalancerName)
 	if err != nil {

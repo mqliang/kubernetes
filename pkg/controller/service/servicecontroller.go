@@ -468,7 +468,7 @@ func (s *ServiceController) needsUpdate(oldService *api.Service, newService *api
 }
 
 func (s *ServiceController) loadBalancerName(service *api.Service) string {
-	return cloudprovider.GetLoadBalancerName(s.clusterName, service)
+	return cloudprovider.GetLoadBalancerName(service)
 }
 
 func getPortsForLB(service *api.Service) ([]*api.ServicePort, error) {

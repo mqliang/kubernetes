@@ -95,7 +95,9 @@ for i in `seq "${#PATTERNS[@]}"`; do
        --include \*.yaml \
        --include \*.yaml.in \
        --include \*.yml \
+       --include \*.sh \
        --include Dockerfile \
+       --include Makefile \
        --include \*.manifest \
        ${KUBE_ROOT}/test \
        ${KUBE_ROOT}/test/images \
@@ -105,6 +107,7 @@ for i in `seq "${#PATTERNS[@]}"`; do
        ${KUBE_ROOT}/cluster/saltbase \
        ${KUBE_ROOT}/contrib \
        ${KUBE_ROOT}/docs \
+       ${KUBE_ROOT}/cmd \
        ${KUBE_ROOT}/build \
        ${KUBE_ROOT}/test/e2e/testing-manifests | sort -u |
     while read -r gcr_image ; do

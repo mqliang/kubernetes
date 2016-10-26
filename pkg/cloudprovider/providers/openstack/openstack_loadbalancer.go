@@ -1332,7 +1332,7 @@ func (lb *LbaasV1) EnsureLoadBalancer(clusterName string, apiService *api.Servic
 	if lbmethod == "" {
 		lbmethod = pools.LBMethodRoundRobin
 	}
-	name := cloudprovider.GetLoadBalancerName(clusterName, apiService)
+	name := cloudprovider.GetLoadBalancerName(apiService)
 	pool, err := pools.Create(lb.network, pools.CreateOpts{
 		Name:     name,
 		Protocol: pools.ProtocolTCP,

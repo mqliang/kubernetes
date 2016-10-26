@@ -875,6 +875,7 @@ type FSType string
 
 var (
 	AnchnetPersistentDisk FSType = "anchnetPersistentDisk"
+	AliyunPersistentDisk  FSType = "aliyunPersistentDisk"
 	AzureFile             FSType = "azureFile"
 	Flocker               FSType = "flocker"
 	FlexVolume            FSType = "flexVolume"
