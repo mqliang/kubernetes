@@ -147,7 +147,7 @@ spec:
     spec:
       containers:
       - name: master
-        image: gcr.io/google_containers/redis:e2e  # or just image: redis
+        image: index.caicloud.io/caicloudgcr/google_containers_redis:e2e  # or just image: redis
         resources:
           requests:
             cpu: 100m
@@ -402,7 +402,7 @@ spec:
     spec:
       containers:
       - name: slave
-        image: gcr.io/google_samples/gb-redisslave:v1
+        image: index.caicloud.io/caicloudgcr/google_samples_gb-redisslave:v1
         resources:
           requests:
             cpu: 100m
@@ -510,7 +510,7 @@ spec:
     spec:
       containers:
       - name: php-redis
-        image: gcr.io/google-samples/gb-frontend:v4
+        image: index.caicloud.io/caicloudgcr/google-samples_gb-frontend:v4
         resources:
           requests:
             cpu: 100m

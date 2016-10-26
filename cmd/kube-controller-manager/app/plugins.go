@@ -30,6 +30,7 @@ import (
 	// Volume plugins
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aliyun"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/anchnet"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
@@ -38,6 +39,7 @@ import (
 	utilconfig "k8s.io/kubernetes/pkg/util/config"
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/kubernetes/pkg/volume/aliyun_pd"
 	"k8s.io/kubernetes/pkg/volume/anchnet_pd"
 	"k8s.io/kubernetes/pkg/volume/aws_ebs"
 	"k8s.io/kubernetes/pkg/volume/azure_dd"
@@ -48,13 +50,6 @@ import (
 	"k8s.io/kubernetes/pkg/volume/host_path"
 	"k8s.io/kubernetes/pkg/volume/nfs"
 	"k8s.io/kubernetes/pkg/volume/vsphere_volume"
-<<<<<<< HEAD
-=======
-
-	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/cloudprovider/providers/aliyun"
-	"k8s.io/kubernetes/pkg/volume/aliyun_pd"
->>>>>>> 9258ebd... add aliyun disk driver
 )
 
 // ProbeAttachableVolumePlugins collects all volume plugins for the attach/
@@ -124,9 +119,9 @@ func ProbeControllerVolumePlugins(cloud cloudprovider.Interface, config componen
 			allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
 		case vsphere.ProviderName == cloud.ProviderName():
 			allPlugins = append(allPlugins, vsphere_volume.ProbeVolumePlugins()...)
-		case anchnet_pd.ProviderName == cloud.ProviderName():
+		case anchnet_cloud.ProviderName == cloud.ProviderName():
 			allPlugins = append(allPlugins, anchnet_pd.ProbeVolumePlugins()...)
-		case aliyun_pd.ProviderName == cloud.ProviderName():
+		case aliyun.ProviderName == cloud.ProviderName():
 			allPlugins = append(allPlugins, aliyun_pd.ProbeVolumePlugins()...)
 		}
 	}

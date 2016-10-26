@@ -248,3 +248,6 @@ Typical workflow for running ansible e2e tests:
 
 
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/cluster/caicloud-ansible/README.md?pixel)]()
+
+
+[![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/cluster/caicloud-baremetal/README.md?pixel)]()

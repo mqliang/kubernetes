@@ -40,6 +40,10 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_AWSElasticBlockStoreVolumeSource_To_v1_AWSElasticBlockStoreVolumeSource,
 		Convert_v1_Affinity_To_api_Affinity,
 		Convert_api_Affinity_To_v1_Affinity,
+		Convert_v1_AliyunPersistentDiskVolumeSource_To_api_AliyunPersistentDiskVolumeSource,
+		Convert_api_AliyunPersistentDiskVolumeSource_To_v1_AliyunPersistentDiskVolumeSource,
+		Convert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource,
+		Convert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource,
 		Convert_v1_AttachedVolume_To_api_AttachedVolume,
 		Convert_api_AttachedVolume_To_v1_AttachedVolume,
 		Convert_v1_AvoidPods_To_api_AvoidPods,
@@ -439,6 +443,54 @@ func autoConvert_api_Affinity_To_v1_Affinity(in *api.Affinity, out *Affinity, s 
 
 func Convert_api_Affinity_To_v1_Affinity(in *api.Affinity, out *Affinity, s conversion.Scope) error {
 	return autoConvert_api_Affinity_To_v1_Affinity(in, out, s)
+}
+
+func autoConvert_v1_AliyunPersistentDiskVolumeSource_To_api_AliyunPersistentDiskVolumeSource(in *AliyunPersistentDiskVolumeSource, out *api.AliyunPersistentDiskVolumeSource, s conversion.Scope) error {
+	out.VolumeID = in.VolumeID
+	out.FSType = in.FSType
+	out.Partition = int(in.Partition)
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func Convert_v1_AliyunPersistentDiskVolumeSource_To_api_AliyunPersistentDiskVolumeSource(in *AliyunPersistentDiskVolumeSource, out *api.AliyunPersistentDiskVolumeSource, s conversion.Scope) error {
+	return autoConvert_v1_AliyunPersistentDiskVolumeSource_To_api_AliyunPersistentDiskVolumeSource(in, out, s)
+}
+
+func autoConvert_api_AliyunPersistentDiskVolumeSource_To_v1_AliyunPersistentDiskVolumeSource(in *api.AliyunPersistentDiskVolumeSource, out *AliyunPersistentDiskVolumeSource, s conversion.Scope) error {
+	out.VolumeID = in.VolumeID
+	out.FSType = in.FSType
+	out.Partition = int32(in.Partition)
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func Convert_api_AliyunPersistentDiskVolumeSource_To_v1_AliyunPersistentDiskVolumeSource(in *api.AliyunPersistentDiskVolumeSource, out *AliyunPersistentDiskVolumeSource, s conversion.Scope) error {
+	return autoConvert_api_AliyunPersistentDiskVolumeSource_To_v1_AliyunPersistentDiskVolumeSource(in, out, s)
+}
+
+func autoConvert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource(in *AnchnetPersistentDiskVolumeSource, out *api.AnchnetPersistentDiskVolumeSource, s conversion.Scope) error {
+	out.VolumeID = in.VolumeID
+	out.FSType = in.FSType
+	out.Partition = int(in.Partition)
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func Convert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource(in *AnchnetPersistentDiskVolumeSource, out *api.AnchnetPersistentDiskVolumeSource, s conversion.Scope) error {
+	return autoConvert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource(in, out, s)
+}
+
+func autoConvert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource(in *api.AnchnetPersistentDiskVolumeSource, out *AnchnetPersistentDiskVolumeSource, s conversion.Scope) error {
+	out.VolumeID = in.VolumeID
+	out.FSType = in.FSType
+	out.Partition = int32(in.Partition)
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
+func Convert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource(in *api.AnchnetPersistentDiskVolumeSource, out *AnchnetPersistentDiskVolumeSource, s conversion.Scope) error {
+	return autoConvert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource(in, out, s)
 }
 
 func autoConvert_v1_AttachedVolume_To_api_AttachedVolume(in *AttachedVolume, out *api.AttachedVolume, s conversion.Scope) error {
@@ -4260,6 +4312,24 @@ func autoConvert_v1_PersistentVolumeSource_To_api_PersistentVolumeSource(in *Per
 	} else {
 		out.AzureDisk = nil
 	}
+	if in.AnchnetPersistentDisk != nil {
+		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(api.AnchnetPersistentDiskVolumeSource)
+		if err := Convert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
+	}
+	if in.AliyunPersistentDisk != nil {
+		in, out := &in.AliyunPersistentDisk, &out.AliyunPersistentDisk
+		*out = new(api.AliyunPersistentDiskVolumeSource)
+		if err := Convert_v1_AliyunPersistentDiskVolumeSource_To_api_AliyunPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AliyunPersistentDisk = nil
+	}
 	return nil
 }
 
@@ -4411,6 +4481,24 @@ func autoConvert_api_PersistentVolumeSource_To_v1_PersistentVolumeSource(in *api
 		}
 	} else {
 		out.AzureDisk = nil
+	}
+	if in.AnchnetPersistentDisk != nil {
+		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(AnchnetPersistentDiskVolumeSource)
+		if err := Convert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
+	}
+	if in.AliyunPersistentDisk != nil {
+		in, out := &in.AliyunPersistentDisk, &out.AliyunPersistentDisk
+		*out = new(AliyunPersistentDiskVolumeSource)
+		if err := Convert_api_AliyunPersistentDiskVolumeSource_To_v1_AliyunPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AliyunPersistentDisk = nil
 	}
 	return nil
 }
@@ -6871,6 +6959,24 @@ func autoConvert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.
 	} else {
 		out.AzureDisk = nil
 	}
+	if in.AnchnetPersistentDisk != nil {
+		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(api.AnchnetPersistentDiskVolumeSource)
+		if err := Convert_v1_AnchnetPersistentDiskVolumeSource_To_api_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
+	}
+	if in.AliyunPersistentDisk != nil {
+		in, out := &in.AliyunPersistentDisk, &out.AliyunPersistentDisk
+		*out = new(api.AliyunPersistentDiskVolumeSource)
+		if err := Convert_v1_AliyunPersistentDiskVolumeSource_To_api_AliyunPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AliyunPersistentDisk = nil
+	}
 	return nil
 }
 
@@ -6879,6 +6985,24 @@ func Convert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.Volu
 }
 
 func autoConvert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
+	if in.AnchnetPersistentDisk != nil {
+		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(AnchnetPersistentDiskVolumeSource)
+		if err := Convert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
+	}
+	if in.AliyunPersistentDisk != nil {
+		in, out := &in.AliyunPersistentDisk, &out.AliyunPersistentDisk
+		*out = new(AliyunPersistentDiskVolumeSource)
+		if err := Convert_api_AliyunPersistentDiskVolumeSource_To_v1_AliyunPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AliyunPersistentDisk = nil
+	}
 	if in.HostPath != nil {
 		in, out := &in.HostPath, &out.HostPath
 		*out = new(HostPathVolumeSource)

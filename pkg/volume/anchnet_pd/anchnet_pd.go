@@ -187,6 +187,24 @@ func (plugin *anchnetPersistentDiskPlugin) newProvisionerInternal(options volume
 	}, nil
 }
 
+func (plugin *anchnetPersistentDiskPlugin) ConstructVolumeSpec(volName, mountPath string) (*volume.Spec, error) {
+	mounter := plugin.host.GetMounter()
+	pluginDir := plugin.host.GetPluginDir(plugin.GetPluginName())
+	sourceName, err := mounter.GetDeviceNameFromMount(mountPath, pluginDir)
+	if err != nil {
+		return nil, err
+	}
+	anchnetVolume := &api.Volume{
+		Name: volName,
+		VolumeSource: api.VolumeSource{
+			AnchnetPersistentDisk: &api.AnchnetPersistentDiskVolumeSource{
+				VolumeID: sourceName,
+			},
+		},
+	}
+	return volume.NewSpecFromVolume(anchnetVolume), nil
+}
+
 // pdManager abstracts interface to PD operations.
 type pdManager interface {
 	// Creates a disk in anchnet.
