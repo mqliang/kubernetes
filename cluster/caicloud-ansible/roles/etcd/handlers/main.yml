@@ -16,3 +16,4 @@
 - name: restart etcd-server-events
   service: name=etcd-server-events state=restarted
   when: etcd_server_events_started.changed == false
+  

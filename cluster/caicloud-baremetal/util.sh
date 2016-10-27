@@ -73,11 +73,7 @@ function kube-up {
     setup-instances
   fi
 
-  find-kubectl-binary
-  # If cann't find kubectl binary, we need to fetch it from master node.
-  if [[ -z "${KUBECTL_PATH-}" ]]; then
-    fetch-kubectl-binary
-  fi
+  set-kubectl-path
 
   create-inventory-file
   create-extra-vars-json-file
