@@ -39,7 +39,7 @@
   file: path=/opt/cni/bin/calico state=touch owner=root group=root mode=0755
 
 - name: Put IPAM binary
-  command: cp -u "{{ ansible_temp_dir }}/calico" "/opt/cni/bin"
+  command: cp -u "{{ ansible_temp_dir }}/calico-ipam" "/opt/cni/bin"
 
 - name: Chmod IPAM binary
   file: path=/opt/cni/bin/calico-ipam state=touch owner=root group=root mode=0755

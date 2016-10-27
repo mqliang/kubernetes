@@ -1,12 +1,6 @@
 ---
 
-- name: Check if control machine is master or not
-  script: "ip-check.sh"
-  environment:
-    WAITING_CHECK_IP: "{{ hostvars[groups['masters'][0]]['ansible_host'] }}"
-  register: check_output
-
 # If the control machine is not the master, then do tasks in cm.yml.
 - name: Do tasks for the control machine
   include: cm.yml
-  when: "'NO' in check_output.stdout"
+  when: control_machine_is_master == "NO"

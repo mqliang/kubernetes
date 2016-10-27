@@ -12,6 +12,11 @@
 #   /etc/systemd/system/$name; which also loads its configs from /etc/kubernetes/.
 
 #
+# Set docker container log rotation.
+- name: Set docker container log rotation
+  include: configure-logging.yml
+
+#
 # Make sure directories exist.
 
 - name: Create kubernetes config directory

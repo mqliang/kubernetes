@@ -28,6 +28,9 @@
 # - name: Write kube-system limitrange resource
 #   copy: src="limitrange.yaml" dest="{{ kube_config_dir }}/addons/limitrange.yaml"
 
+- name: Write third party resource
+  copy: src="thirdpartyresource.yaml" dest="{{ kube_config_dir }}/addons/thirdpartyresource.yaml"
+
 - include: dns.yml
   when: dns_setup
 
@@ -36,6 +39,9 @@
 
 - include: cluster-logging.yml
   when: cluster_logging
+
+- include: kubepush.yml
+  when: kube_push
 
 - name: Install required packages and addon scripts
   include: generic-install.yml

@@ -32,6 +32,9 @@ kube_dash: true
 # Turn to false to disable DNS configuration.
 dns_setup: true
 
+# Turn to false to disable kubepush
+kube_push: true
+
 # Number of dns replicas.
 dns_replicas: 1
 
@@ -141,6 +144,10 @@ kube_script_dir: "{{ kube_config_dir}}/scripts"
 # This is where all of the bearer tokens will be stored
 kube_token_dir: "{{ kube_config_dir }}/tokens"
 
+# This is where you can drop yaml/json files and the kubelet will run those
+# pods on startup.
+kube_manifest_dir: "{{ kube_config_dir }}/manifests"
+
 # The directory where binaries are stored on Ansible managed systems.
 # Editting this value will almost surely break something. Things like
 # the systemd scripts are hard coded to look in here.
@@ -161,6 +168,7 @@ monitoring_image_influxdb: "index.caicloud.io/caicloud/influxdb:1.0.0-beta2"
 monitoring_image_grafana: "index.caicloud.io/caicloud/monitoring-grafana:v3.1.0-withfields"
 monitoring_image_watcher: "index.caicloud.io/caicloud/monitoring-watcher:v1.0.0-rc2"
 monitoring_image_server: "index.caicloud.io/caicloud/monitoring-server:v1.0.0-rc2"
+kubepush_image_kubepush: "index.caicloud.io/caicloud/kubepush:v0.0.1"
 
 # Main ports for etcd.
 etcd_client_port: 2379

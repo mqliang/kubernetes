@@ -37,12 +37,16 @@ AUTOMATICALLY_INSTALL_TOOLS=${AUTOMATICALLY_INSTALL_TOOLS-"YES"}
 ANSIBLE_VERSION=${ANSIBLE_VERSION-"2.1.0.0"}
 
 # Ansible environment variable prefix.
+# Used by create-extra-vars-json-file-common function.
 K8S_STRING_PREFIX="CAICLOUD_K8S_CFG_STRING_"
 K8S_NUMBER_PREFIX="CAICLOUD_K8S_CFG_NUMBER_"
 
 # For the option --hostname-override
+# Used by create-inventory-file in caicloud/common.sh
 MASTER_NAME_PREFIX=${MASTER_NAME_PREFIX-"kube-master-"}
 NODE_NAME_PREFIX=${NODE_NAME_PREFIX-"kube-node-"}
+
+CLUSTER_NAME=${CLUSTER_NAME-"kube-default"}
 
 DNS_HOST_NAME=${DNS_HOST_NAME-"caicloudstack"}
 
@@ -79,6 +83,10 @@ function calculate-default {
     CAICLOUD_K8S_CFG_STRING_DNS_HOST_NAME=${DNS_HOST_NAME}
   fi
 
+  if [[ ! -z "${CLUSTER_NAME-}" ]]; then
+    CAICLOUD_K8S_CFG_STRING_CLUSTER_NAME=${CLUSTER_NAME}
+  fi
+
   if [[ ! -z "${BASE_DOMAIN_NAME-}" ]]; then
     CAICLOUD_K8S_CFG_STRING_BASE_DOMAIN_NAME=${BASE_DOMAIN_NAME}
   fi
@@ -86,10 +94,6 @@ function calculate-default {
   if [[ ! -z "${USER_CERT_DIR-}" ]]; then
     # Remove the last '/'
     CAICLOUD_K8S_CFG_STRING_USER_CERT_DIR=${USER_CERT_DIR%/}
-  fi
-
-  if [[ -z "${CAICLOUD_K8S_CFG_STRING_CLUSTER_NAME-}" ]]; then
-    CAICLOUD_K8S_CFG_STRING_CLUSTER_NAME="kube-default"
   fi
 
   if [[ ! -z "${LOAD_BALANCER_VIP-}" ]]; then
@@ -103,16 +107,12 @@ function calculate-default {
 
 calculate-default
 
-# Telling ansible to fetch kubectl from master.
-# Need to run before create-extra-vars-json-file function.
-function fetch-kubectl-binary {
-  CAICLOUD_K8S_CFG_NUMBER_FETCH_KUBECTL_BINARY=1
-
+function set-kubectl-path {
   if [[ -z "${CAICLOUD_K8S_CFG_STRING_BIN_DIR-}" ]]; then
     # Needed to match with "{{ bin_dir }} of ansible"
     export KUBECTL_PATH="/usr/bin/kubectl"
   else
-    # Ansible will fetch kubectl binary to bin_dir from master
+    # Install kubectl to CAICLOUD_K8S_CFG_STRING_BIN_DIR
     export KUBECTL_PATH="${CAICLOUD_K8S_CFG_STRING_BIN_DIR}/kubectl"
   fi
 }

@@ -76,6 +76,9 @@ start_addon /etc/kubernetes/addons/quota.yaml 100 10 "${SYSTEM_NAMESPACE}" &
 # Create the limitrange for kube-system.
 # start_addon /etc/kubernetes/addons/limitrange.yaml 100 10 "${SYSTEM_NAMESPACE}" &
 
+# Create kubepush thirdpartyresource for kube-system.
+start_addon /etc/kubernetes/addons/thirdpartyresource.yaml 100 10 "${SYSTEM_NAMESPACE}" &
+
 # Wait for the default service account to be created in the kube-system namespace.
 token_found=""
 while [ -z "${token_found}" ]; do
