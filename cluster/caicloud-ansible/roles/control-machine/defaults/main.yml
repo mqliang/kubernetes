@@ -1,8 +1,3 @@
 ---
 
-#
-# DO NOT CHANGE section
-#
-
-# The directory where kubectl binaries are stored on both master and control machine.
-bin_dir: /usr/bin
+control_machine_is_master: "NO"

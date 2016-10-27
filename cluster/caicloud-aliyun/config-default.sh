@@ -45,10 +45,12 @@ ALIYUN_STRING_PREFIX="CAICLOUD_ALIYUN_CFG_STRING_"
 ALIYUN_NUMBER_PREFIX="CAICLOUD_ALIYUN_CFG_NUMBER_"
 
 # Ansible kubernetes environment variable prefix.
+# Used by create-extra-vars-json-file-common in caicloud/common.sh.
 K8S_STRING_PREFIX="CAICLOUD_K8S_CFG_STRING_"
 K8S_NUMBER_PREFIX="CAICLOUD_K8S_CFG_NUMBER_"
 
-# For aliyun instances hostname and the option --hostname-override
+# For aliyun instances hostname and the option --hostname-override.
+# Used by create-inventory-file function in caicloud/common.sh.
 MASTER_NAME_PREFIX=${MASTER_NAME_PREFIX-"kube-master-"}
 NODE_NAME_PREFIX=${NODE_NAME_PREFIX-"kube-node-"}
 
@@ -70,6 +72,8 @@ CLOUD_CONFIG_DIR="/var/run"
 # Assumed vars:
 #   ACCESS_KEY_ID
 #   ACCESS_KEY_SECRET
+#
+# Note: aliyun-instance-prelogue-common should be called before create-inventory-file.
 function aliyun-instance-prelogue-common {
   if [[ ! -z "${CLUSTER_NAME-}" ]]; then
     CAICLOUD_ALIYUN_CFG_STRING_SECURITY_GROUP_NAME=${CLUSTER_NAME}
@@ -242,22 +246,15 @@ function aliyun-instance-epilogue {
     CAICLOUD_K8S_CFG_STRING_USER_CERT_DIR=${USER_CERT_DIR%/}
   fi
 
-  # Now only support single master
-  # Todo: support multi-master
-  CAICLOUD_K8S_CFG_STRING_KUBE_MASTER_IP=${MASTER_EXTERNAL_SSH_INFO#*@}
   CAICLOUD_K8S_CFG_STRING_CLOUD_CONFIG_DIR=${CLOUD_CONFIG_DIR}
 }
 
-# Telling ansible to fetch kubectl from master.
-# Need to run before create-extra-vars-json-file function.
-function fetch-kubectl-binary {
-  CAICLOUD_K8S_CFG_NUMBER_FETCH_KUBECTL_BINARY=1
-
+function set-kubectl-path {
   if [[ -z "${CAICLOUD_K8S_CFG_STRING_BIN_DIR-}" ]]; then
     # Needed to match with "{{ bin_dir }} of ansible"
     export KUBECTL_PATH="/usr/bin/kubectl"
   else
-    # Ansible will fetch kubectl binary to bin_dir from master
+    # Install kubectl to CAICLOUD_K8S_CFG_STRING_BIN_DIR
     export KUBECTL_PATH="${CAICLOUD_K8S_CFG_STRING_BIN_DIR}/kubectl"
   fi
 }

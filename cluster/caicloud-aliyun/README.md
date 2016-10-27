@@ -101,6 +101,15 @@ For example, default value of `host_provider` variable is `"vagrant"`, if we wan
 export CAICLOUD_K8S_CFG_STRING_HOST_PROVIDER="aliyun"
 ```
 
+**Note:**
+
+The machine on which we deploy kubernetes cluster is “Control Machine”. By default, control machine is not one of masters. If control machine is just one of masters, then we should set:
+```
+export CAICLOUD_K8S_CFG_STRING_CONTROL_MACHINE_IS_MASTER="YES"
+```
+
+Because we will fetch kubectl binary from master0 and add the mapping of master ip and domain into /etc/hosts on the control machine. Then we will access the kubernetes cluster by https://caicloudstack.caicloudprivatetest.com or https://caicloudstack.caicloudapp.com.
+
 ## Bring up kubernete cluster on aliyun instances
 
 Now, to bring up kubernete cluster, simply run:

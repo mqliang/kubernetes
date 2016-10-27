@@ -1,0 +1,16 @@
+---
+# Install kubepush addon.
+
+- name: Kubepush | Mare sure kubepush direcotry exists
+  file: path={{ kube_addons_dir }}/kubepush state=directory
+
+- name: Kubepush | Write kubepush template from converted saltfiles
+  template:
+  args:
+    src: "kubepush/{{ item }}.j2"
+    dest: "{{ kube_addons_dir }}/kubepush/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - kubepush-daemonset.yaml

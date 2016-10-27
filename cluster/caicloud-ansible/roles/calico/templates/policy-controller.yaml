@@ -1,0 +1,45 @@
+# Place this manifest in the kubelet config directory 
+# on each of your Kubernetes master nodes.  The 
+# pod will automatically be created by the kubelet.
+apiVersion: v1
+kind: Pod 
+metadata:
+  name: calico-policy-controller
+  namespace: kube-system 
+  labels:
+    version: "latest"
+    projectcalico.org/app: "policy-controller"
+spec:
+  hostNetwork: true
+  containers:
+    # The Calico policy controller.
+    - name: policy-controller 
+      image: index.caicloud.io/caicloud/kube-policy-controller:v0.3.0
+      imagePullPolicy: IfNotPresent 
+      env:
+        # Modify ETCD_ENDPOINTS to match your etcd cluster.
+        - name: ETCD_ENDPOINTS
+          value: "{{ etcd_endpoints }}"
+        - name: K8S_API
+          value: "http://127.0.0.1:{{ kube_master_insecure_port }}"
+        - name: CONFIGURE_ETC_HOSTS
+          value: "true"
+        - name: LEADER_ELECTION
+          value: "true"
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+    - name: leader-elector
+      image: index.caicloud.io/caicloudgcr/leader-elector:0.4
+      imagePullPolicy: IfNotPresent
+      args:
+        - "--election=calico-policy-election"
+        - "--http=127.0.0.1:4040"
+      ports:
+        - containerPort: 4040
+          protocol: TCP
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"

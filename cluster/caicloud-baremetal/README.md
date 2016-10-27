@@ -67,6 +67,9 @@ BASE_DOMAIN_NAME
 USER_CERT_DIR.
     User certificates directory, including ca.crt, master.crt, master.key. Required: BASE_DOMAIN_NAME.
 
+CLUSTER_NAME
+    Default value is "kube-default".
+
 MASTER_NAME_PREFIX
     For the option of --hostname-override on masters.
     Default value is "kube-master-".
@@ -94,13 +97,12 @@ SSH_PUBLIC_KEY_FILE
 
 **Note:**
 
-If deploying a caicloud stack in **private cloud environment** and control machine is not master, then we need to set:
-
+The machine on which we deploy kubernetes cluster is “Control Machine”. By default, control machine is not one of masters. If control machine is just one of masters, then we should set:
 ```
-DNS_HOST_NAME="caicloudstack"
+export CAICLOUD_K8S_CFG_STRING_CONTROL_MACHINE_IS_MASTER="YES"
 ```
 
-Because in that case, we will add the mapping of master ip and domain into /etc/hosts on the control machine. Then we will access the kubernetes cluster by https://caicloudstack.caicloudprivatetest.com or https://caicloudstack.caicloudapp.com.
+Because we will fetch kubectl binary from master0 and add the mapping of master ip and domain into /etc/hosts on the control machine. Then we will access the kubernetes cluster by https://caicloudstack.caicloudprivatetest.com or https://caicloudstack.caicloudapp.com.
 
 If deploying a special version of caicloud stack, then we need to set:
 

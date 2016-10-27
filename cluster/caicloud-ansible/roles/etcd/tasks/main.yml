@@ -29,16 +29,12 @@
   with_items:
     - ""
     - "-events"
-  notify:
-    - restart etcd
 
 - name: Create upstart script for upstart based distribution
   template: src=etcd-server{{ item }}.upstart.j2 dest=/etc/init/etcd-server{{ item }}.conf
   with_items:
     - ""
     - "-events"
-  notify:
-    - restart etcd
   when: kubernetes_use_upstart
 
 - name: Write etcd systemd unit file for systemd based distribution
@@ -46,9 +42,6 @@
   with_items:
     - ""
     - "-events"
-  notify:
-    - reload systemd
-    - restart etcd
   when: not kubernetes_use_upstart
 
 #
@@ -67,7 +60,11 @@
 - name: Start etcd-server
   service: name=etcd-server state=started
   register: etcd_server_started
+  notify:
+    - restart etcd-server
 
 - name: Start etcd-server-events
   service: name=etcd-server-events state=started
   register: etcd_server_events_started
+  notify:
+    - restart etcd-server-events

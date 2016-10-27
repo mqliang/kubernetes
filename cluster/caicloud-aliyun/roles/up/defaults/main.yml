@@ -3,7 +3,7 @@
 # Supported OS Distro:
 #   ubuntu1404_64_40G_cloudinit_20160427.raw
 #   centos7u2_64_40G_cloudinit_20160520.raw
-image_id: "centos7u2_64_40G_cloudinit_20160520.raw"
+image_id: "centos7u2_64_40G_cloudinit_20160728.raw"
 
 # Please refer to: https://help.aliyun.com/document_detail/25685.html?spm=5176.doc25499.2.5.3KNSGn
 master_instance_type: "ecs.s2.small"
