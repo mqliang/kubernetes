@@ -43,6 +43,9 @@
 - include: kubepush.yml
   when: kube_push
 
+- include: ingress.yml
+  when: cluster_ingress
+
 - name: Install required packages and addon scripts
   include: generic-install.yml
 
