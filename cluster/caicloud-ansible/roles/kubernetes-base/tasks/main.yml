@@ -13,8 +13,22 @@
 
 #
 # Set docker container log rotation.
+
 - name: Set docker container log rotation
   include: configure-logging.yml
+
+#
+# Disable swap.
+
+- name: Turn off swap
+  command: swapoff -a
+  failed_when: false
+
+- name: Disable swap permanently
+  replace:
+    dest: /etc/fstab
+    regexp: '(^[^#].*\s+swap\s+.*$)'
+    replace: '#\1'
 
 #
 # Make sure directories exist.
