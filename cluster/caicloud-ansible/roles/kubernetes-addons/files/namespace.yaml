@@ -4,3 +4,4 @@ metadata:
   name: kube-system
   labels:
     kubernetes-admin.caicloud.io/type: partition
+    kubernetes-admin.caicloud.io/partition: kube-system
