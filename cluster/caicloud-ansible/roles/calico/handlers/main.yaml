@@ -1,6 +1,6 @@
 ---
 
-- name: restart calico node
+- name: restart calicoctl
   service: name=calicoctl state=restarted
 
 - name: reload systemd
