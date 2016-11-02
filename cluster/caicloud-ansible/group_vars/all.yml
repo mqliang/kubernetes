@@ -35,6 +35,9 @@ dns_setup: true
 # Turn to false to disable kubepush
 kube_push: true
 
+# Turn to false to disable ingress
+cluster_ingress: true
+
 # Number of dns replicas.
 dns_replicas: 1
 
@@ -169,6 +172,9 @@ monitoring_image_grafana: "index.caicloud.io/caicloud/monitoring-grafana:v3.1.0-
 monitoring_image_watcher: "index.caicloud.io/caicloud/monitoring-watcher:v1.0.0-rc2"
 monitoring_image_server: "index.caicloud.io/caicloud/monitoring-server:v1.0.0-rc2"
 kubepush_image_kubepush: "index.caicloud.io/caicloud/kubepush:v0.0.1"
+ingress_keepalivd_image: "index.caicloud.io/caicloud/ingress-keepalived-vip:v0.0.1"
+ingress_nginx_image: "index.caicloud.io/caicloud/nginx-ingress-controller:v0.0.1"
+ingress_loadbalancer_controller_image: "index.caicloud.io/caicloud/loadbalancer-controller:v0.0.1"
 
 # Main ports for etcd.
 etcd_client_port: 2379

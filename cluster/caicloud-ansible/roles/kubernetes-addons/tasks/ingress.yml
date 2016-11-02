@@ -1,0 +1,16 @@
+---
+# Install ingress-loadbalancer-controller addon.
+
+- name: Ingress | Mare sure ingress direcotry exists
+  file: path={{ kube_addons_dir }}/ingress state=directory
+
+- name: Ingress | Write ingress-lb-controller template from converted saltfiles
+  template:
+  args:
+    src: "ingress/{{ item }}.j2"
+    dest: "{{ kube_addons_dir }}/ingress/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - ingress-lb-rc.yaml
