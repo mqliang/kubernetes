@@ -29,6 +29,10 @@
 - name: CentOS | Install GPG key
   template: src="yum-docker.repo" dest="/etc/yum.repos.d/docker.repo"
 
+- name: Finds incomplete or aborted yum transactions on a system and attempts to complete them
+  command: yum-complete-transaction --cleanup-only
+  failed_when: False
+
 - name: CentOS | Install specific version of docker engine
   yum: name={{ item }}
   with_items:
