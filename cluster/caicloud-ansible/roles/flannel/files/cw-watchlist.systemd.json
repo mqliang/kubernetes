@@ -1,0 +1,3 @@
+[
+    {"watchFile": "/var/run/flannel/subnet.env", "command": "systemctl restart docker"}
+]

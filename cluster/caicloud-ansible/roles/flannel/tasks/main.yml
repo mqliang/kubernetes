@@ -46,6 +46,10 @@
   notify:
     restart docker
 
+- name: Install and configure conf-watcher
+  include: conf-watcher.yml
+  when: inventory_hostname in groups['masters'] + groups['nodes']
+
 - name: wait for flannel subnet.env
   wait_for:
     path: /run/flannel/subnet.env
