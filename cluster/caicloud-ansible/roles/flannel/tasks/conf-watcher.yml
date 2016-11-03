@@ -1,0 +1,71 @@
+---
+# In vxlan type, because of network problem, flannel may be failed to renew
+# lease between renewMargin (subnetTTL = 24 * time.Hour, renewMargin = time.Hour), 
+# then subnet is removed from etcd. 
+# After that, when network is ok, flanneld can be successful to access 
+# etcd server again, and get annother subnet, but docker is failed to restart.
+# So we use conf-watcher to watcher subnet.env of flannel, when subnet.env is 
+# changed, then conf-watcher will restart docker.
+#
+# Issue: https://github.com/caicloud/caicloud-kubernetes/issues/662
+
+- name: Create watchlist directory
+  file: path={{ cw_watchlist_dir }} state=directory
+
+- name: Ubuntu | Copy watchlist file to watchlist directory
+  copy: src=cw-watchlist.upstart.json dest={{ cw_watchlist_dir }}/cw-watchlist.json
+  when: kubernetes_use_upstart
+
+- name: CentOS | Copy watchlist file to watchlist directory
+  copy: src=cw-watchlist.systemd.json dest={{ cw_watchlist_dir }}/cw-watchlist.json
+  when: not kubernetes_use_upstart
+
+- name: Check if cw tar file exists
+  stat: path="{{ ansible_temp_dir }}/conf-watcher-{{ cw_version }}-linux-amd64.tar.gz"
+  register: cw_tarball
+
+- name: Download cw tar file
+  get_url:
+    url: "{{ cw_download_url }}"
+    dest: "{{ ansible_temp_dir }}"
+    validate_certs: False
+  environment:
+    http_proxy: "{{ http_proxy|default('') }}"
+    https_proxy: "{{ https_proxy|default('') }}"
+    no_proxy: "{{ no_proxy|default('') }}"
+  when: cw_tarball.stat.exists == False
+  register: cw_tarball_download
+  until: cw_tarball_download|success
+  retries: 10
+  delay: 5
+
+- name: Extract cw tar file
+  unarchive:
+    src: "{{ ansible_temp_dir }}/conf-watcher-{{ cw_version }}-linux-amd64.tar.gz"
+    dest: /usr/local
+    copy: no
+
+- name: Create symlinks
+  file:
+    src: "/usr/local/conf-watcher-{{ cw_version }}/conf-watcher"
+    dest: "{{ bin_dir }}/conf-watcher"
+    state: link
+    force: yes
+
+- name: Add conf-watcher upstart file
+  template: src=conf-watcher.conf.j2 dest=/etc/init/conf-watcher.conf
+  when: kubernetes_use_upstart
+
+- name: Add conf-watcher systemd unit file
+  template: src=conf-watcher.service.j2 dest=/etc/systemd/system/conf-watcher.service
+  when: not kubernetes_use_upstart
+
+- name: Reload systemd
+  command: "{{ item }}"
+  with_items:
+    - systemctl enable conf-watcher
+    - systemctl --system daemon-reload
+  when: not kubernetes_use_upstart
+
+- name: Start conf-watcher
+  service: name=conf-watcher state=started
