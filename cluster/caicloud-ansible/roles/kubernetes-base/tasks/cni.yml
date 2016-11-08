@@ -1,0 +1,43 @@
+---
+# Download cni binaries and install in /opt/cni/bin/.
+
+- name: Create directory for cni tarball
+  file: path="{{ kube_releases_directory }}" state=directory
+
+- name: Check if tar file exists
+  stat: path="{{ kube_releases_directory }}/{{ kube_cni_download_file }}"
+  register: kube_cni_tarball
+
+- name: Download cni tar file
+  get_url:
+    url: "{{ kube_cni_download_url }}"
+    dest: "{{ kube_releases_directory }}"
+    validate_certs: False
+    timeout: 30
+  environment:
+    http_proxy: "{{ http_proxy|default('') }}"
+    https_proxy: "{{ https_proxy|default('') }}"
+    no_proxy: "{{ no_proxy|default('') }}"
+  when: kube_cni_tarball.stat.exists == False and inventory_hostname in groups['masters']
+  register: kube_cni_tarball_download
+  until: kube_cni_tarball_download|success
+  retries: 10
+  delay: 5
+
+- name: Fetch cni tar file
+  shell: ssh -tt -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -A {{ hostvars[inventory_hostname]['ansible_user'] }}@{{ hostvars[inventory_hostname]['ansible_host'] }} sudo SSH_AUTH_SOCK=\$SSH_AUTH_SOCK scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null {{ hostvars[groups['masters'][0]]['ansible_user'] }}@{{ hostvars[groups['masters'][0]]['internal_ip'] }}:{{ kube_releases_directory }}/{{ kube_cni_download_file }} {{ kube_releases_directory }}/{{ kube_cni_download_file }}
+  when: kube_cni_tarball.stat.exists == False and inventory_hostname not in groups['masters']
+  delegate_to: localhost
+  register: kube_cni_tarball_copy
+  until: kube_cni_tarball_copy|success
+  retries: 5
+  delay: 3
+
+- name: Create cni binary directory
+  file: path=/opt/cni/bin/ state=directory owner=root group=root mode=0755
+
+- name: Extract tar file
+  unarchive:
+    src: "{{ kube_releases_directory }}/{{ kube_cni_download_file }}"
+    dest: /opt/cni/
+    copy: no

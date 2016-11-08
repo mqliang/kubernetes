@@ -21,8 +21,9 @@
 - name: Write kube-system namespace resource
   copy: src="namespace.yaml" dest="{{ kube_config_dir }}/addons/namespace.yaml"
 
-- name: Write kube-system quota resource
-  template: src="quota.yaml.j2" dest="{{ kube_config_dir }}/addons/quota.yaml"
+# Disable quota.
+# - name: Write kube-system quota resource
+#   template: src="quota.yaml.j2" dest="{{ kube_config_dir }}/addons/quota.yaml"
 
 # Disable limitrange.
 # - name: Write kube-system limitrange resource

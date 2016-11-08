@@ -321,7 +321,7 @@ BASE_DOMAIN_NAME=${BASE_DOMAIN_NAME:-"caicloudapp.com"}
 ADMISSION_CONTROL=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,HostPathDeny
 
 # The infra container used for every Pod.
-POD_INFRA_CONTAINER="index.caicloud.io/caicloudgcr/google_containers_pause:1.0"
+POD_INFRA_CONTAINER="index.caicloud.io/caicloudgcr/google_containers_pause-amd64:3.0"
 
 # Namespace used to create cluster wide services, e.g. logging, dns, etc.
 # The name is from upstream and shouldn't be changed.
@@ -333,23 +333,22 @@ DOCKER_OPTS=""
 
 APT_MIRRORS_DOCKER=${APT_MIRRORS_DOCKER:-"http://get.caicloud.io/docker"}
 
-DNS_IMAGE_ETCD=${DNS_IMAGE_ETCD:-"index.caicloud.io/caicloudgcr/google_containers_etcd-amd64:2.2.1"}
-DNS_IMAGE_KUBE2SKY=${DNS_IMAGE_KUBE2SKY:-"index.caicloud.io/caicloudgcr/google_containers_kube2sky:1.14"}
-DNS_IMAGE_SKYDNS=${DNS_IMAGE_SKYDNS:-"index.caicloud.io/caicloudgcr/google_containers_skydns:2015-10-13-8c72f8c"}
-DNS_IMAGE_HEALTHZ=${DNS_IMAGE_HEALTHZ:-"index.caicloud.io/caicloudgcr/google_containers_exechealthz:1.0"}
+DNS_IMAGE_KUBEDNS=${DNS_IMAGE_KUBEDNS:-"index.caicloud.io/caicloudgcr/google_containers_kubedns-amd64:1.8"}
+DNS_IMAGE_DNSMASQ=${DNS_IMAGE_DNSMASQ:-"index.caicloud.io/caicloudgcr/google_containers_kube-dnsmasq-amd64:1.4"}
+DNS_IMAGE_HEALTHZ=${DNS_IMAGE_HEALTHZ:-"index.caicloud.io/caicloudgcr/google_containers_exechealthz-amd64:1.2"}
 
-ELASTICSEARCH_IMAGE_ELASTICSEARCH=${ELASTICSEARCH_IMAGE_ELASTICSEARCH:-"index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.8.2"}
+ELASTICSEARCH_IMAGE_ELASTICSEARCH=${ELASTICSEARCH_IMAGE_ELASTICSEARCH:-"index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.9"}
 ELASTICSEARCH_IMAGE_ESCRON=${ELASTICSEARCH_IMAGE_ESCRON:-"index.caicloud.io/caicloud/es-cron:v0.1.2"}
 
-HEAPSTER_IMAGE_HEAPSTER=${HEAPSTER_IMAGE_HEAPSTER:-"index.caicloud.io/caicloud/heapster:v1.2.0-v0.0.2"}
+HEAPSTER_IMAGE_HEAPSTER=${HEAPSTER_IMAGE_HEAPSTER:-"index.caicloud.io/caicloud/heapster:v1.2.0-v0.0.3"}
 MONITORING_IMAGE_INFLUXDB=${MONITORING_IMAGE_INFLUXDB:-"index.caicloud.io/caicloud/influxdb:1.0.0-beta2"}
 MONITORING_IMAGE_GRAFANA=${MONITORING_IMAGE_GRAFANA:-"index.caicloud.io/caicloud/monitoring-grafana:v3.1.0-withfields"}
-MONITORING_IMAGE_WATCHER=${MONITORING_IMAGE_WATCHER:-"index.caicloud.io/caicloud/monitoring-watcher:v1.0.0-rc2"}
-MONITORING_IMAGE_SERVER=${MONITORING_IMAGE_SERVER:-"index.caicloud.io/caicloud/monitoring-server:v1.0.0-rc2"}
+MONITORING_IMAGE_WATCHER=${MONITORING_IMAGE_WATCHER:-"index.caicloud.io/caicloud/monitoring-watcher:v1.0.1"}
+MONITORING_IMAGE_SERVER=${MONITORING_IMAGE_SERVER:-"index.caicloud.io/caicloud/monitoring-server:v1.0.1"}
 
 REGISTRY_IMAGE=${REGISTRY_IMAGE:-"index.caicloud.io/registry:2.2"}
 
-FLUENTD_ELASTICSEARCH_IMAGE=${FLUENTD_ELASTICSEARCH_IMAGE:-"index.caicloud.io/caicloudgcr/google_containers_fluentd-elasticsearch:1.15"}
+FLUENTD_ELASTICSEARCH_IMAGE=${FLUENTD_ELASTICSEARCH_IMAGE:-"index.caicloud.io/caicloudgcr/google_containers_fluentd-elasticsearch:1.19"}
 MASTER_NGINX_IMAGE=${MASTER_NGINX_IMAGE:-"index.caicloud.io/caicloud/nginx:1.9.4"}
 REGISTRY_PROXY_IMAGE=${REGISTRY_PROXY_IMAGE:-"index.caicloud.io/caicloudgcr/google_containers_kube-registry-proxy:0.3"}
 

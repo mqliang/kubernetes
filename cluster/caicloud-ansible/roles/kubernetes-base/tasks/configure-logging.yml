@@ -26,9 +26,28 @@
     backrefs: yes
   when: ansible_distribution == "Ubuntu"
 
+- name: CentOS | Check which file to use
+  stat: path=/etc/systemd/system/docker.service
+  register: systemd_docker_conf
+
+- name: CentOS | Check which file to use
+  stat: path=/usr/lib/systemd/system/docker.service
+  register: lib_systemd_docker_conf
+
+- name: CentOS | Choose which file to use
+  set_fact:
+    docker_conf_file: /etc/systemd/system/docker.service
+  when: systemd_docker_conf.stat.exists
+
+- name: CentOS | Choose which file to use
+  set_fact:
+    docker_conf_file: /usr/lib/systemd/system/docker.service
+  when: systemd_docker_conf.stat.exists == False and lib_systemd_docker_conf.stat.exists == True
+
+# fails when docker_conf_file is not defined
 - name: CentOS | Remove old log config for docker service
   lineinfile:
-    dest: /etc/systemd/system/docker.service
+    dest: "{{ docker_conf_file }}"
     regexp: '(^\s*ExecStart=.*)\s+--log-driver=.*\s+--log-opt\s+max-size=.*\s+--log-opt\s+max-file=[1-9]+(.*$)'
     line: '\1\2'
     state: present
@@ -37,7 +56,7 @@
 
 - name: CentOS | Add new log config for docker service
   lineinfile:
-    dest: /etc/systemd/system/docker.service
+    dest: "{{ docker_conf_file }}"
     regexp: '(^\s*ExecStart=.*$)'
     line: '\1 --log-driver={{ log_driver }} --log-opt max-size={{ max_size }} --log-opt max-file={{ max_file }}'
     state: present

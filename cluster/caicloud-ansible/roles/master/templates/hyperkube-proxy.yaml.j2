@@ -8,6 +8,7 @@ spec:
   containers:
   - name: kube-proxy
     image: index.caicloud.io/caicloud/hyperkube:{{ hyperkube_version }}
+    imagePullPolicy: Always
     resources:
       requests:
         cpu: 100m
@@ -19,6 +20,7 @@ spec:
     - --proxy-mode=iptables
     - --master=https://{{ hostvars[inventory_hostname]['internal_ip'] }}:{{ kube_master_api_port }}
     - --kubeconfig={{ kube_config_dir }}/proxy.kubeconfig
+    - --hostname-override={{ inventory_hostname }}
     - --v={{ kube_log_level }}
     securityContext:
       privileged: true

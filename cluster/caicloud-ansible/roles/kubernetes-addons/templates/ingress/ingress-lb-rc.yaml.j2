@@ -16,14 +16,14 @@ spec:
     kubernetes-admin.caicloud.io/type: application
     kubernetes-admin.caicloud.io/application: ingress-loadbalancer-controller
   template:
-   metadata:
-    labels:
-     k8s-app: ingress-loadbalancer-controller
-     kubernetes.io/cluster-service: "true"
-     kubernetes-admin.caicloud.io/type: application
-     kubernetes-admin.caicloud.io/application: ingress-loadbalancer-controller
-   spec:
-    containers:
+    metadata:
+      labels:
+        k8s-app: ingress-loadbalancer-controller
+        kubernetes.io/cluster-service: "true"
+        kubernetes-admin.caicloud.io/type: application
+        kubernetes-admin.caicloud.io/application: ingress-loadbalancer-controller
+    spec:
+      containers:
       - image: {{ ingress_loadbalancer_controller_image }}
         imagePullPolicy: "Always"
         name: "loadbalancer-claim-controller"
@@ -35,7 +35,7 @@ spec:
             cpu: 100m
             memory: 100Mi
         env:
-           - name: INGRESS_KEEPALIVED_IMAGE
-             value: {{ ingress_keepalivd_image }}
-           - name: INGRESS_NGINX_IMAGE
-             value: {{ ingress_nginx_image }}
+        - name: INGRESS_KEEPALIVED_IMAGE
+          value: {{ ingress_keepalived_image }}
+        - name: INGRESS_NGINX_IMAGE
+          value: {{ ingress_nginx_image }}

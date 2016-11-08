@@ -5,6 +5,11 @@ kube_download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"
 kube_download_file: "caicloud-kube-{{ kube_version }}.tar.gz"
 kube_download_url: "{{ kube_download_url_base }}/{{ kube_download_file }}"
 
+# CNI network plugins binaries used by kubernetes.
+# From cluster/saltbase/salt/cni/init.sls.
+kube_cni_download_file: "cni-07a8a28637e97b22eb8dfe710eeae1344f69d16e.tar.gz"
+kube_cni_download_url: "{{ kube_download_url_base }}/{{ kube_cni_download_file }}"
+
 #
 # DO NOT CHANGE section
 #

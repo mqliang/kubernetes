@@ -17,11 +17,11 @@ defaults
         option  httplog
         option  dontlognull
         retries 3
-        timeout connect 5000ms
-        timeout client 50000ms
-        timeout server 50000ms
-        timeout check 50000ms
-        timeout queue 50000ms
+        timeout connect 50000ms
+        timeout client 600000ms
+        timeout server 600000ms
+        timeout check 600000ms
+        timeout queue 600000ms
         #errorfile 400 /etc/haproxy/errors/400.http
         #errorfile 403 /etc/haproxy/errors/403.http
         #errorfile 408 /etc/haproxy/errors/408.http

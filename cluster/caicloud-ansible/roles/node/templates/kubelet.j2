@@ -2,7 +2,7 @@
 # kubernetes kubelet (node) config
 
 # The address for the info server to serve on (set to 0.0.0.0 or "" for all interfaces)
-KUBELET_ADDRESS="--address=0.0.0.0"
+KUBELET_ADDRESS="--address={{ hostvars[inventory_hostname]['internal_ip'] }}"
 
 # The port for the info server to serve on
 # KUBELET_PORT="--port=10250"
@@ -11,7 +11,8 @@ KUBELET_ADDRESS="--address=0.0.0.0"
 KUBELET_HOSTNAME="--hostname-override={{ inventory_hostname }}"
 
 # Location of the api-server
-KUBELET_API_SERVER="--api-servers={{ kube_apiserver_endpoint }}"
+# Flag --api-servers has been deprecated, Use --kubeconfig instead.
+# KUBELET_API_SERVER="--api-servers={{ kube_apiserver_endpoint }}"
 
 {% set kubelet_options = [] -%}
 {% if dns_setup -%}
@@ -31,4 +32,4 @@ KUBELET_API_SERVER="--api-servers={{ kube_apiserver_endpoint }}"
 {{ kubelet_options.append('--enable-controller-attach-detach=true')|default('', true) -}}
 {% endif -%}
 
-KUBELET_ARGS="--kubeconfig={{ kube_config_dir }}/kubelet.kubeconfig --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['internal_ip'] }} {{ kubelet_options|join(' ') }}"
+KUBELET_ARGS="--require-kubeconfig --kubeconfig={{ kube_config_dir }}/kubelet.kubeconfig --pod-manifest-path={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['internal_ip'] }} {{ kubelet_options|join(' ') }}"

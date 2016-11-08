@@ -50,14 +50,6 @@
     priority: "{{ 100 - (groups['masters'].index(inventory_hostname) | int) * 3 }}"
   when: use_keepalived
 
-- name: Support ip_vs for keepalived | CentOS
-  script: "ipvs/load-ipvs-centos.sh"
-  when: use_keepalived and (ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux')
-
-- name: Support ip_vs for keepalived | Ubuntu
-  script: "ipvs/load-ipvs-ubuntu.sh"
-  when: use_keepalived and (ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu')
-
 - name: Copy master haproxy pod config
   template: src=haproxy.cfg.j2 dest={{ haproxy_config_dir }}/haproxy.cfg
 
