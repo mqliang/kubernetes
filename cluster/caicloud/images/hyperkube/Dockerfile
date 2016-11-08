@@ -14,7 +14,7 @@
 
 FROM BASEIMAGE
 
-RUN apk add --update iptables ethtool ca-certificates file util-linux socat curl \
+RUN apk add --update iptables ethtool ca-certificates file util-linux socat curl conntrack-tools \
 	&& rm -rf /var/cache/apk/*
 
 ADD nsenter /nsenter

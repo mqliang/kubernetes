@@ -1,7 +1,7 @@
 ---
 
-- name: restart calicoctl
-  service: name=calicoctl state=restarted
-
 - name: reload systemd
   command: systemctl --system daemon-reload
+
+- name: restart calicoctl
+  service: name=calicoctl state=restarted

@@ -8,6 +8,7 @@ spec:
   containers:
   - name: kube-controller-manager
     image: index.caicloud.io/caicloud/hyperkube:{{ hyperkube_version }}
+    imagePullPolicy: Always
     resources:
       requests:
         cpu: 200m

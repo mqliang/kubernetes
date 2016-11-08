@@ -57,6 +57,37 @@
   with_items:
     - "expect"
     - "rsync"
+    - "conntrack"
+
+# Needed by kubelet/cadvisor
+- name: Enable cpuacct on CentOS
+  lineinfile:
+    dest: /etc/systemd/system.conf
+    regexp: '^#?\s*DefaultCPUAccounting=.*$'
+    line: 'DefaultCPUAccounting=yes'
+    state: present
+  when: ansible_distribution == "CentOS"
+
+- name: Enable memacct on CentOS
+  lineinfile:
+    dest: /etc/systemd/system.conf
+    regexp: '^#?\s*DefaultMemoryAccounting=.*$'
+    line: 'DefaultMemoryAccounting=yes'
+    state: present
+  when: ansible_distribution == "CentOS"
+
+- name: Reexec daemon on CentOS
+  command: systemctl daemon-reexec
+  when: ansible_distribution == "CentOS"
+
+# Needed by ha master and ingress
+- name: Support ip_vs for keepalived | CentOS
+  script: "ipvs/load-ipvs-centos.sh"
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: Support ip_vs for keepalived | Ubuntu
+  script: "ipvs/load-ipvs-ubuntu.sh"
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
 #
 # Misc preparations for bringing up cluster.
@@ -72,6 +103,10 @@
 
 - name: Download and extract tar file from qiniu for all hosts
   include: qiniu.yml
+
+- name: Install common CNI network plugins
+  include: cni.yml
+  when: network_plugins_cni
 
 - name: Generate certs (or use ca-signed certs) and tokens
   include: secrets.yml

@@ -48,9 +48,8 @@ function deploy-addons {
   local -r skydns_svc_file="${KUBE_ROOT}/cluster/caicloud/addons/dns/skydns-svc.yaml.in"
   sed -e "s/{{ pillar\['dns_replicas'\] }}/${DNS_REPLICAS}/g;\
           s/{{ pillar\['dns_domain'\] }}/${DNS_DOMAIN}/g;\
-          s|{{ pillar\['dns_image_etcd'\] }}|${DNS_IMAGE_ETCD}|g;\
-          s|{{ pillar\['dns_image_kube2sky'\] }}|${DNS_IMAGE_KUBE2SKY}|g;\
-          s|{{ pillar\['dns_image_skydns'\] }}|${DNS_IMAGE_SKYDNS}|g;\
+          s|{{ pillar\['dns_image_kubedns'\] }}|${DNS_IMAGE_KUBEDNS}|g;\
+          s|{{ pillar\['dns_image_dnsmasq'\] }}|${DNS_IMAGE_DNSMASQ}|g;\
           s|{{ pillar\['dns_image_healthz'\] }}|${DNS_IMAGE_HEALTHZ}|g" ${skydns_rc_file} > ${KUBE_TEMP}/skydns-rc.yaml
   sed -e "s/{{ pillar\['dns_server'\] }}/${DNS_SERVER_IP}/g" ${skydns_svc_file} > ${KUBE_TEMP}/skydns-svc.yaml
 
