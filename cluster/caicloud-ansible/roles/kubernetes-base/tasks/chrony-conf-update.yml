@@ -1,0 +1,44 @@
+---
+# Update chrony config file
+#
+# Assumed vars:
+#   chrony_config_file
+
+- name: Remove the former time servers
+  command: "sed -i '/^server/d' {{ chrony_config_file }}"
+
+- name: Add time servers
+  lineinfile:
+    dest: "{{ chrony_config_file }}"
+    regexp: "^server {{ item }}"
+    line: "server {{ item }}"
+    insertbefore: BOF
+  with_items:
+    - "3.uk.pool.ntp.org iburst"
+    - "2.uk.pool.ntp.org iburst"
+    - "1.uk.pool.ntp.org iburst"
+    - "0.uk.pool.ntp.org iburst"
+    - "3.asia.pool.ntp.org iburst"
+    - "2.asia.pool.ntp.org iburst"
+    - "1.asia.pool.ntp.org iburst"
+    - "0.asia.pool.ntp.org iburst"
+
+- name: Add local time server
+  lineinfile:
+    dest: "{{ chrony_config_file }}"
+    regexp: "^server {{ hostvars[item]['internal_ip'] }}"
+    line: "server {{ hostvars[item]['internal_ip'] }} iburst prefer"
+    insertbefore: BOF
+  with_items: "{{ groups['masters'] | shuffle }}"
+  when: inventory_hostname in groups['nodes']
+
+- name: Allow NTP client access
+  lineinfile:
+    dest: "{{ chrony_config_file }}"
+    regexp: "^allow {{ item }}"
+    line: "allow {{ item }}"
+    insertbefore: EOF
+  with_items:
+    - "10/8"
+    - "192.168/16"
+    - "172.16/12"
