@@ -1,0 +1,34 @@
+---
+# Install and config chrony service
+
+#
+# Install chrony package
+
+- name: Install chrony
+  package: name=chrony
+
+#
+# Update the config file of the chrony service
+
+- name: Ubuntu | Update the chrony config file
+  include: chrony-conf-update.yml
+  vars:
+    chrony_config_file: "/etc/chrony/chrony.conf"
+  when: ansible_distribution == "Ubuntu"
+
+- name: CentOS | Update the chrony config file
+  include: chrony-conf-update.yml
+  vars:
+    chrony_config_file: "/etc/chrony.conf"
+  when: ansible_distribution == "CentOS"
+
+#
+# Restart the chrony service
+
+- name: Ubuntu | Restart the chrony service
+  service: name=chrony state=restarted
+  when: ansible_distribution == "Ubuntu"
+
+- name: CentOS | Restart the chrony service
+  service: name=chronyd state=restarted
+  when: ansible_distribution == "CentOS"

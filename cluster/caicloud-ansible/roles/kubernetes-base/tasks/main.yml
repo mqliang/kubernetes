@@ -12,6 +12,21 @@
 #   /etc/systemd/system/$name; which also loads its configs from /etc/kubernetes/.
 
 #
+# Config time zone
+
+- name: Update time zoneinfo
+  command: "{{ item }}"
+  with_items:
+    - rm -f /etc/localtime
+    - cp -f /usr/share/zoneinfo/{{ time_zoneinfo }} /etc/localtime
+
+#
+# Setup chrony for time synchronization
+
+- name: Setup chrony
+  include: chrony.yml
+
+#
 # Set docker container log rotation.
 
 - name: Set docker container log rotation
