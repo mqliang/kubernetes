@@ -71,6 +71,9 @@ const (
 
 	// default TTL used for service records
 	defaultTTL = 30
+
+	// With this annotation, reverse dns records from pod's ip to pod's fqdn will be added
+	caicloudAnnotationKey = "caicloud.io/reverse-dns-required"
 )
 
 type KubeDNS struct {
@@ -86,6 +89,9 @@ type KubeDNS struct {
 
 	// A cache that contains all the services in the system.
 	servicesStore kcache.Store
+
+	// A cache that contains all the pods in the system.
+	podsStore kcache.Store
 
 	// stores DNS records for the domain.
 	// A Records and SRV Records for (regular) services and headless Services.
@@ -115,6 +121,9 @@ type KubeDNS struct {
 
 	// serviceController invokes registered callbacks when services change.
 	serviceController *kcache.Controller
+
+	// podController invokes registered callbacks when services change.
+	podController *kcache.Controller
 
 	// Map of federation names that the cluster in which this kube-dns is running belongs to, to
 	// the corresponding domain names.
@@ -147,12 +156,14 @@ func NewKubeDNS(client clientset.Interface, domain string, federations map[strin
 	}
 	kd.setEndpointsStore()
 	kd.setServicesStore()
+	kd.setPodsStore()
 	return kd, nil
 }
 
 func (kd *KubeDNS) Start() {
 	go kd.endpointsController.Run(wait.NeverStop)
 	go kd.serviceController.Run(wait.NeverStop)
+	go kd.podController.Run(wait.NeverStop)
 	// Wait synchronously for the Kubernetes service and add a DNS record for it.
 	// This ensures that the Start function returns only after having received Service objects
 	// from APIServer.
@@ -229,12 +240,112 @@ func (kd *KubeDNS) setEndpointsStore() {
 	)
 }
 
+func (kd *KubeDNS) setPodsStore() {
+	// Returns a cache.ListWatch that gets all changes to pods.
+	kd.podsStore, kd.podController = kcache.NewInformer(
+		&kcache.ListWatch{
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				return kd.kubeClient.Core().Pods(kapi.NamespaceAll).List(options)
+			},
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				return kd.kubeClient.Core().Pods(kapi.NamespaceAll).Watch(options)
+			},
+		},
+		&kapi.Pod{},
+		resyncPeriod,
+		kcache.ResourceEventHandlerFuncs{
+			AddFunc:    kd.newPod,
+			DeleteFunc: kd.removePod,
+			UpdateFunc: kd.updatePod,
+		},
+	)
+}
+
 func assertIsService(obj interface{}) (*kapi.Service, bool) {
 	if service, ok := obj.(*kapi.Service); ok {
 		return service, ok
 	} else {
 		glog.Errorf("Type assertion failed! Expected 'Service', got %T", service)
 		return nil, ok
+	}
+}
+
+func assertIsPod(obj interface{}) (*kapi.Pod, bool) {
+	if pod, ok := obj.(*kapi.Pod); ok {
+		return pod, ok
+	} else {
+		glog.Errorf("Type assertion failed! Expected 'Pod', got %T", pod)
+		return nil, ok
+	}
+}
+
+func (kd *KubeDNS) newPod(obj interface{}) {
+	if pod, ok := assertIsPod(obj); ok {
+		if pod.ObjectMeta.Annotations[caicloudAnnotationKey] == "true" {
+			glog.V(1).Infof("add a reverse record for the new pod %s", pod.Name)
+			if pod.Status.PodIP != "" {
+				// We assume the pod's name is the same as its service.
+				host := kd.getPodFQDN(pod)
+				reverseRecord, _ := getSkyMsg(host, 0)
+
+				glog.V(1).Infof("Should add new dns record %v\n", reverseRecord)
+				kd.cacheLock.Lock()
+				kd.reverseRecordMap[pod.Status.PodIP] = reverseRecord
+				kd.cacheLock.Unlock()
+			}
+		}
+
+	}
+}
+
+func (kd *KubeDNS) removePod(obj interface{}) {
+	if pod, ok := assertIsPod(obj); ok {
+		if pod.ObjectMeta.Annotations[caicloudAnnotationKey] == "true" {
+			if pod.Status.PodIP != "" {
+				glog.V(1).Infof("remove a reverse record for the pod %v ip: %v", pod.Name, pod.Status.PodIP)
+				kd.cacheLock.Lock()
+				delete(kd.reverseRecordMap, pod.Status.PodIP)
+				kd.cacheLock.Unlock()
+			}
+		}
+	}
+}
+
+func (kd *KubeDNS) updatePod(oldObj, newObj interface{}) {
+	oldPod, ok1 := assertIsPod(oldObj)
+	newPod, ok2 := assertIsPod(newObj)
+	if ok1 && ok2 {
+		shouldDeleteOldDns := false
+		shouldAddNewDns := false
+
+		if oldPod.ObjectMeta.Annotations[caicloudAnnotationKey] == "true" {
+			if newPod.ObjectMeta.Annotations[caicloudAnnotationKey] == "true" {
+				// Do nothing if both pods have the same ip
+				if newPod.Status.PodIP != oldPod.Status.PodIP {
+					shouldDeleteOldDns = true
+					shouldAddNewDns = true
+				}
+			} else {
+				// The new pod does not have the annotation, so delete the old dns record.
+				shouldDeleteOldDns = true
+			}
+		} else if newPod.ObjectMeta.Annotations[caicloudAnnotationKey] == "true" {
+			// Add a dns record when only the new one has the annotation
+			shouldAddNewDns = true		
+		}
+
+		if shouldAddNewDns || shouldDeleteOldDns {
+			kd.cacheLock.Lock()
+			if shouldDeleteOldDns {
+	 			delete(kd.reverseRecordMap, oldPod.Status.PodIP)
+			}
+			if shouldAddNewDns && newPod.Status.PodIP != "" {
+					host := kd.getPodFQDN(newPod)
+					reverseRecord, _ := getSkyMsg(host, 0)
+					kd.reverseRecordMap[newPod.Status.PodIP] = reverseRecord
+			}
+			kd.cacheLock.Unlock()
+		}
 	}
 }
 
@@ -846,6 +957,19 @@ func (kd *KubeDNS) getClusterZoneAndRegion() (string, string, error) {
 		return "", "", fmt.Errorf("unknown cluster region")
 	}
 	return zone, region, nil
+}
+
+// Assume the pod has the same name as its corresponding service! Otherwise this CANNOT work!
+func (kd *KubeDNS) getPodFQDN(pod *kapi.Pod) string {
+	var hostname string
+	if pod.Spec.Hostname != "" {
+		hostname = pod.Spec.Hostname
+	} else if pod.Annotations["pod.beta.kubernetes.io/hostname"] != "" {
+		hostname = pod.Annotations["pod.beta.kubernetes.io/hostname"]
+	} else {
+		hostname = pod.Name
+	}
+	return strings.Join([]string{hostname, pod.Namespace, serviceSubdomain, kd.domain}, ".")
 }
 
 func (kd *KubeDNS) getServiceFQDN(service *kapi.Service) string {
