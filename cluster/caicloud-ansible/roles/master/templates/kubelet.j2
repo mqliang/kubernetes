@@ -11,8 +11,12 @@ KUBELET_ADDRESS="--address={{ hostvars[inventory_hostname]['internal_ip'] }}"
 KUBELET_HOSTNAME="--hostname-override={{ inventory_hostname }}"
 
 # location of the api-server
-# Flag --api-servers has been deprecated, Use --kubeconfig instead.
-# KUBELET_API_SERVER="--api-servers=http://localhost:{{ kube_master_insecure_port }}"
+# Flag --api-servers has been deprecated on 1.4, Use --kubeconfig instead.
+{% if kube_base_version | version_compare('v1.4.0', '>=') %}
+KUBELET_API_SERVER=""
+{% else %}
+KUBELET_API_SERVER="--api-servers={{ kube_apiserver_endpoint }}"
+{% endif %}
 
 {% set kubelet_options = [] -%}
 {% if dns_setup -%}
@@ -33,4 +37,8 @@ KUBELET_HOSTNAME="--hostname-override={{ inventory_hostname }}"
 {% endif -%}
 
 # Add your own!
+{% if kube_base_version | version_compare('v1.4.0', '>=') %}
 KUBELET_ARGS="--require-kubeconfig --kubeconfig={{ kube_config_dir }}/kubelet.kubeconfig --register-schedulable=false --pod-manifest-path={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['internal_ip'] }} {{ kubelet_options|join(' ') }}"
+{% else %}
+KUBELET_ARGS="--kubeconfig={{ kube_config_dir }}/kubelet.kubeconfig --register-schedulable=false --config={{ kube_manifest_dir }} --pod-infra-container-image={{ pod_infra_container_image }} --node-ip={{ hostvars[inventory_hostname]['internal_ip'] }} {{ kubelet_options|join(' ') }}"
+{% endif %}
