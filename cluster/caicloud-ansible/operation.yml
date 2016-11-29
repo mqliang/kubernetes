@@ -1,0 +1,48 @@
+---
+# This playbook upgrade/downgrade kubernetes cluster on caicloud supported platforms.
+
+- name: Precheck for loadbalancer
+  hosts:
+    - masters
+    - nodes
+    - localhost
+  become: yes
+  roles:
+    - loadbalancer
+  tags:
+    - loadbalancer
+
+- name: Upgrade/downgrade masters
+  hosts: masters
+  become: yes
+  roles:
+    - master
+  tags:
+    - masters
+
+- name: Upgrade/downgrade nodes
+  hosts: nodes
+  become: yes
+  roles:
+    - node
+  tags:
+    - nodes
+
+- name: Record operation log
+  hosts:
+    - masters
+    - nodes
+  become: yes
+  roles:
+    - epilogue
+  tags:
+    - epilogue
+
+# Because after updated to new version, we need the new kubectl binary.
+- name: Fetch kubectl and kubeconfig
+  hosts:
+    - localhost
+  roles:
+    - control-machine
+  tags:
+    - control-machine

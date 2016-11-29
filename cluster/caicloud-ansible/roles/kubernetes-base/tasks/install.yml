@@ -1,0 +1,139 @@
+---
+# Base kubernetes tasks for all masters/nodes, including:
+#  - create various directories (see defaults/main.yml)
+#  - write global config file
+#  - download and link all kubernetes binaries
+#  - generate certs and tokens
+#
+# Notes about configurations:
+# - For upstart, components' configurations are located at /etc/default/$name; which
+#   loads its configs from /etc/kubernetes/ directory.
+# - For systemd, components' configurations are written directly in unit files, i.e.
+#   /etc/systemd/system/$name; which also loads its configs from /etc/kubernetes/.
+
+#
+# Config time zone
+
+- name: Update time zoneinfo
+  command: "{{ item }}"
+  with_items:
+    - rm -f /etc/localtime
+    - cp -f /usr/share/zoneinfo/{{ time_zoneinfo }} /etc/localtime
+
+#
+# Setup chrony for time synchronization
+
+- name: Setup chrony
+  include: chrony.yml
+
+#
+# Set docker container log rotation.
+
+- name: Set docker container log rotation
+  include: configure-logging.yml
+
+#
+# Disable swap.
+
+- name: Turn off swap
+  command: swapoff -a
+  failed_when: false
+
+- name: Disable swap permanently
+  replace:
+    dest: /etc/fstab
+    regexp: '(^[^#].*\s+swap\s+.*$)'
+    replace: '#\1'
+
+#
+# Make sure directories exist.
+
+- name: Create directories
+  file: path={{ item }} state=directory
+  with_items:
+    - "{{ kube_config_dir }}"
+    - "{{ kube_config_temp_dir }}"
+    - "{{ kube_script_dir }}"
+    - "{{ kube_manifest_dir }}"
+    - "{{ bin_dir }}"
+    - "{{ kubelet_working_dir }}"
+    - "{{ dir_extra_vars_stored }}"
+
+#
+# Install expect, rsync and conntrack.
+
+- name: Install expect and rsync
+  package: name={{ item }} state=present
+  with_items:
+    - "expect"
+    - "rsync"
+    - "conntrack"
+
+#
+# Save important parameters when kube-up, and may be used when upgrading.
+
+- name: Check if extra vars directory exists in localhost
+  stat: path={{ local_dir_extra_vars_json_stored }}
+  register: dir_evs
+  delegate_to: localhost
+  run_once: true
+  when: inventory_hostname in groups['masters']
+
+- name: Save important parameters when kube-up
+  synchronize: src={{ local_dir_extra_vars_json_stored }} dest={{ dir_extra_vars_stored }}
+  when: inventory_hostname in groups['masters'] and dir_evs.stat.exists and dir_evs.stat.isdir
+
+#
+# Needed by kubelet/cadvisor.
+
+- name: Enable cpuacct on CentOS
+  lineinfile:
+    dest: /etc/systemd/system.conf
+    regexp: '^#?\s*DefaultCPUAccounting=.*$'
+    line: 'DefaultCPUAccounting=yes'
+    state: present
+  when: ansible_distribution == "CentOS"
+
+- name: Enable memacct on CentOS
+  lineinfile:
+    dest: /etc/systemd/system.conf
+    regexp: '^#?\s*DefaultMemoryAccounting=.*$'
+    line: 'DefaultMemoryAccounting=yes'
+    state: present
+  when: ansible_distribution == "CentOS"
+
+- name: Reexec daemon on CentOS
+  command: systemctl daemon-reexec
+  when: ansible_distribution == "CentOS"
+
+#
+# Needed by ha master and ingress.
+
+- name: Support ip_vs for keepalived | CentOS
+  script: "ipvs/load-ipvs-centos.sh"
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: Support ip_vs for keepalived | Ubuntu
+  script: "ipvs/load-ipvs-ubuntu.sh"
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+#
+# Misc preparations for bringing up cluster.
+
+- name: Copy cloud-config to {{ kube_config_dir }}
+  copy: src={{ cloud_config_dir }}/cloud-config dest={{ kube_config_dir }}/cloud-config
+  when: host_provider == "aliyun" or host_provider == "anchnet"
+
+- name: Write the global config file for all components
+  template: src=config.j2 dest={{ kube_config_dir }}/config
+  notify:
+    - restart daemons
+
+- name: Download and extract tar file from qiniu for all hosts
+  include: qiniu.yml
+
+- name: Generate certs (or use ca-signed certs) and tokens
+  include: secrets.yml
+
+- name: Send docker config.json to all instances to pull image
+  copy: src=docker-config.json dest={{ kubelet_working_dir }}/config.json

@@ -209,3 +209,15 @@ load_balancer_default_vip: "192.168.205.253"
 kube_master_api_port: "6443"
 kube_scheduler_port: "10251"
 kube_controller_port: "10252"
+
+# K8S cluster operations:
+#   OP_INSTALL
+#   OP_UNINSTALL
+#   OP_UPGRADE
+#   OP_DOWNGRADE
+k8s_op: ""
+
+# Directory where extra vars json files are stored in localhost
+local_dir_extra_vars_json_stored: "/tmp/.ansible/extra-vars"
+# Directory where extra vars json files will be copied to remote machines
+dir_extra_vars_stored: "{{ kube_config_dir }}/.ansible"

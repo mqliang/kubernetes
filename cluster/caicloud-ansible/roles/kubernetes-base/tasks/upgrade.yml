@@ -1,0 +1,34 @@
+---
+# Stop services, backup the current version, and download the new version.
+
+- name: Stop kubelet services
+  service: name=kubelet state=stopped
+
+- name: Stop other services on master
+  service: name={{ item }} state=stopped
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    - kube-proxy
+  when: not use_hyperkube and inventory_hostname in groups['masters']
+
+- name: Stop other services on node
+  service: name={{ item }} state=stopped
+  with_items:
+    - kube-proxy
+  when: not use_hyperkube and inventory_hostname in groups['nodes']
+
+- name: Backup the current version
+  include: backup.yml
+  vars:
+    backup_dir: "{{ upgrade_backup_dir }}"
+
+#
+# Place ca certificate everywhere.
+
+- name: Set kube_ca_cert
+  include: get_ca_cert.yml
+
+- name: Download and extract tar file from qiniu for all hosts
+  include: qiniu.yml

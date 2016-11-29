@@ -57,3 +57,8 @@ kube_password: ""
 cloud_config_dir: "/var/run"
 
 time_zoneinfo: "Asia/Shanghai"
+
+# Directory to store binaries, init scripts, yaml files before upgrading.
+upgrade_backup_dir: "{{ kube_config_dir }}/.backup"
+# Directory to store binaries, init scripts, yaml files before downgrading.
+downgrade_backup_dir: "/tmp/k8s_downgrade_backup"

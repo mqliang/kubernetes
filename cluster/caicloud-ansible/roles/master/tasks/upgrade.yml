@@ -1,0 +1,10 @@
+---
+# Upgrade master components.
+
+#
+# Upgrade all components.
+
+- name: Install k8s components on master
+  include: install_components.yml
+  vars:
+    sleep_seconds: 30

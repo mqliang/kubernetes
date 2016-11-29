@@ -1,0 +1,19 @@
+---
+# Backup for centos service
+
+# Assumed vars:
+#   backup_service_name
+#   backup_dir
+
+- name: Create directories for {{ backup_service_name }}
+  file: path={{ item }} state=directory
+  with_items:
+    - "{{ backup_dir }}/{{ backup_service_name }}/bin"
+    - "{{ backup_dir }}/{{ backup_service_name }}/etc_systemd_system"
+
+- name: Save files of {{ backup_service_name }} service
+  command: "{{ item }}"
+  with_items:
+    - "cp -f {{ kube_config_dir }}/{{ backup_service_name }} {{ backup_dir }}/etc_kubernetes"
+    - "cp -fL {{ bin_dir }}/{{ backup_service_name }} {{ backup_dir }}/{{ backup_service_name }}/bin"
+    - "cp -f /etc/systemd/system/{{ backup_service_name }}.service {{ backup_dir }}/{{ backup_service_name }}/etc_systemd_system"

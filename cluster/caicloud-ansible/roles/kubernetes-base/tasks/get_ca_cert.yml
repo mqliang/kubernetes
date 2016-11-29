@@ -1,0 +1,13 @@
+---
+# Set kube_ca_cert variable.
+
+- name: Read back the CA certificate
+  slurp:
+    src: "{{ kube_cert_dir }}/ca.crt"
+  register: ca_cert
+  run_once: true
+  delegate_to: "{{ groups['resourceservers'][0] }}"
+
+- name: Register the CA certificate as a fact so it can be used later
+  set_fact:
+    kube_ca_cert: "{{ ca_cert.content|b64decode }}"

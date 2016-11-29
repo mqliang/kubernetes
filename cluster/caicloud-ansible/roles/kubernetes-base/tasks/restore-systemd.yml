@@ -1,0 +1,20 @@
+---
+# Restore for centos service
+
+# Assumed vars:
+#   restore_service_name
+#   backup_dir
+
+- name: Restore files of {{ restore_service_name }} service
+  command: "{{ item }}"
+  with_items:
+    - "cp -f {{ backup_dir }}/etc_kubernetes/{{ restore_service_name }} {{ kube_config_dir }}"
+    - "cp -f {{ backup_dir }}/{{ restore_service_name }}/bin/{{ restore_service_name }} /usr/local/caicloud-kube"
+    - "cp -f {{ backup_dir }}/{{ restore_service_name }}/etc_systemd_system/{{ restore_service_name }}.service /etc/systemd/system/"
+
+- name: Create symlinks for {{ restore_service_name }}
+  file:
+    src: "/usr/local/caicloud-kube/{{ restore_service_name }}"
+    dest: "{{ bin_dir }}/{{ restore_service_name }}"
+    state: link
+    force: yes

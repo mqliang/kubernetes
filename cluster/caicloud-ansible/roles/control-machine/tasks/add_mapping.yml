@@ -1,0 +1,28 @@
+---
+# Mapping domain name to ip in /etc/hosts.
+
+- set_fact:
+    mapping_domain_to_ip: True
+
+- name: Check if mapping domain name to ip
+  set_fact:
+    mapping_domain_to_ip: false
+  when: host_provider == "anchnet" or host_provider == "aliyun"
+
+- name: Set default base domain name
+  set_fact:
+    domain_name: "{{ caicloud_private_test_domain }}"
+  when: mapping_domain_to_ip
+
+- name: Set user defined domain name
+  set_fact:
+    domain_name: "{{ base_domain_name }}"
+  when: mapping_domain_to_ip and (base_domain_name is defined)
+
+- name: Update /etc/hosts | Remove wrong hosts
+  shell: newhosts=`mktemp` && sed -e '/{{ dns_host_name }}.{{ domain_name }}/d' /etc/hosts > $newhosts && cp $newhosts /etc/hosts && rm $newhosts
+  when: mapping_domain_to_ip
+
+- name: Update /etc/hosts for mapping domain name to ip
+  shell: echo "{{ kube_apiserver_endpoint_ip }} {{ dns_host_name }}.{{ domain_name }}" >> /etc/hosts
+  when: mapping_domain_to_ip

@@ -146,6 +146,45 @@ Example:
 MASTER_SSH_INFO="vagrant:vagrant@192.168.205.10,vagrant:vagrant@192.168.205.11" NODE_SSH_INFO="vagrant:vagrant@192.168.205.12" KUBERNETES_PROVIDER=caicloud-baremetal CAICLOUD_K8S_CFG_STRING_HOST_PROVIDER="vagrant" ./cluster/kube-up.sh
 ```
 
+## K8S cluster upgrade/downgrade
+
+We must set the following environment variables:
+
+```
+MASTER_SSH_INFO
+    The master node ssh information in the format of "username:password@ip_address1,username:password@ip_address2".
+    Ha master is enabled when multi-master is set.
+
+OP_MASTER_SSH_INFO/OP_NODE_SSH_INFO
+    The ssh information in the format of "username:password@ip_address1,username:password@ip_address2".
+    The masters/nodes need to be upgrading.
+```
+
+Example for upgrading:
+
+```
+MASTER_SSH_INFO="vagrant:vagrant@192.168.205.10,vagrant:vagrant@192.168.205.11" KUBERNETES_PROVIDER=caicloud-baremetal OP_MASTER_SSH_INFO="vagrant:vagrant@192.168.205.10" OP_NODE_SSH_INFO="vagrant:vagrant@192.168.205.12" CAICLOUD_K8S_CFG_STRING_HOST_PROVIDER="other" CAICLOUD_K8S_CFG_STRING_KUBE_CAICLOUD_VERSION="v0.10.2" ./cluster/kube-upgrade.sh
+```
+
+We will upgrade the nodes: `192.168.205.10` and `192.168.205.12`.
+
+Example for downgrading:
+
+```
+KUBERNETES_PROVIDER=caicloud-baremetal OP_MASTER_SSH_INFO="vagrant:vagrant@192.168.205.10" OP_NODE_SSH_INFO="vagrant:vagrant@192.168.205.12" ./cluster/kube-downgrade.sh
+```
+
+We will downgrade the nodes `192.168.205.10` and `192.168.205.12`.
+
+**Note:**
+
+1. In private cloud, if the mapping of server domain (for example: test.caicloudprivatetest.com) to ip is not added into dns, then we need to add it into `/etc/hosts` first.
+2. For upgrading/downgrading, we should choose the the correct version by the following variables:
+```
+CAICLOUD_K8S_CFG_STRING_KUBE_BASE_VERSION
+CAICLOUD_K8S_CFG_STRING_KUBE_CAICLOUD_VERSION
+```
+
 ## Change default configurations
 
 We can change the default configurations of the kubernetes cluster by environment variables. If not seting these environment variables, It will use the default values. For details, please refer to [README-ANSIBLE](../caicloud-ansible/README-ANSIBLE.md).

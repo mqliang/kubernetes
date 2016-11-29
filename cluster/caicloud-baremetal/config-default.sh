@@ -116,3 +116,30 @@ function set-kubectl-path {
     export KUBECTL_PATH="${CAICLOUD_K8S_CFG_STRING_BIN_DIR}/kubectl"
   fi
 }
+
+function set-k8s-op-install {
+  CAICLOUD_K8S_CFG_STRING_K8S_OP="OP_INSTALL"
+}
+
+function set-k8s-op-uninstall {
+  CAICLOUD_K8S_CFG_STRING_K8S_OP="OP_UNINSTALL"
+}
+
+function set-k8s-op-upgrade {
+  CAICLOUD_K8S_CFG_STRING_K8S_OP="OP_UPGRADE"
+}
+
+function set-k8s-op-downgrade {
+  CAICLOUD_K8S_CFG_STRING_K8S_OP="OP_DOWNGRADE"
+}
+
+function op-fetch-kubectl {
+  if [[ "${CAICLOUD_K8S_CFG_STRING_CONTROL_MACHINE_IS_MASTER:-NO}" == "NO" ]]; then
+    if [[ `which kubectl 1>/dev/null 2>&1; echo $?` -ne 0 ]]; then
+      fetch-kubectl-binary
+    else
+      export KUBECTL_PATH=`which kubectl`
+    fi
+    fetch-kubeconfig-from-master
+  fi
+}

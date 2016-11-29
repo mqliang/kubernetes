@@ -19,8 +19,8 @@ spec:
     - proxy
     - --proxy-mode=iptables
     - --master={{ kube_apiserver_endpoint }}
-    - --kubeconfig={{ kube_config_dir }}/proxy.kubeconfig
     - --hostname-override={{ inventory_hostname }}
+    - --kubeconfig={{ kube_config_dir }}/kube-proxy.kubeconfig
     - --v={{ kube_log_level }}
     securityContext:
       privileged: true

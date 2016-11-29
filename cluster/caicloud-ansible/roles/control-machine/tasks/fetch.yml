@@ -1,0 +1,44 @@
+---
+# Fetch kubectl and kubeconfig from a random master.
+
+- set_fact:
+    fetch_kubectl_binary: False
+    random_master: "{{ groups['resourceservers'] | random }}"
+
+- name: Create kubeconfig file directory
+  file: path={{ ansible_env.HOME }}/.kube state=directory
+
+- name: Set kubeconfig name for control machine according to uid and cid
+  set_fact:
+    kubeconfig_name: "config_{{ cluster_name }}"
+
+- name: Fetch kubeconfig for kubectl from master
+  fetch: src={{ cm_kubectl_kubeconfig }} dest={{ ansible_env.HOME }}/.kube/{{ kubeconfig_name }} flat=yes
+  delegate_to: "{{ random_master }}"
+
+- name: Remove .kube/config in {{ ansible_env.HOME }} directory
+  file: path={{ ansible_env.HOME }}/.kube/config state=absent
+  changed_when: false
+
+- name: Create .kube/config soft link in {{ ansible_env.HOME }} directory
+  file: path={{ ansible_env.HOME }}/.kube/config src={{ ansible_env.HOME }}/.kube/{{ kubeconfig_name }} state=link
+
+- name: Check if kubectl exists
+  command: which kubectl
+  register: check_res
+  failed_when: False
+- set_fact:
+    fetch_kubectl_binary: True
+  when: check_res.rc == 1
+- set_fact:
+    fetch_kubectl_binary: True
+  when: check_res.rc == 0 and check_res.stdout != "{{ bin_dir }}/kubectl"
+
+- name: Fetch kubectl binary from master
+  fetch: src={{ bin_dir }}/kubectl dest={{ bin_dir }}/kubectl flat=yes
+  delegate_to: "{{ random_master }}"
+  when: fetch_kubectl_binary
+
+- name: Chmod kubectl binary with mode 0755
+  file: path={{ bin_dir }}/kubectl owner=root group=root mode=0755
+  when: fetch_kubectl_binary

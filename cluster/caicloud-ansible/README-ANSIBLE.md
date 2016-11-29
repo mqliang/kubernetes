@@ -41,7 +41,7 @@ Change to that directory and run `vagrant up` will bring up three machines to te
 
 After going through the setup, run the following command:
 
-`ansible-playbook -v -i cluster/caicloud-ansible/inventory.xxxx --extra-vars "@cluster/caicloud-ansible/extra_vars.json" cluster/caicloud-ansible/cluster.yml`
+`ansible-playbook -v -i cluster/caicloud-ansible/.ansible/inventory.xxxx --extra-vars "@cluster/caicloud-ansible/.ansible/extra_vars.json" cluster/caicloud-ansible/cluster.yml`
 
 This will work on Ubuntu and CentOS.
 

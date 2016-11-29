@@ -1,0 +1,68 @@
+---
+# Restore services
+
+#
+# Check if the node can be downgraded
+
+- name: Check if backup directory exists
+  stat: path={{ upgrade_backup_dir }}
+  register: dir_ubd
+  failed_when: dir_ubd.stat.exists == False
+
+#
+# Backup the current services
+
+- name: Backup the current version
+  include: backup.yml
+  vars:
+    backup_dir: "{{ downgrade_backup_dir }}"
+
+#
+# Stop services
+
+- name: Stop kubelet services
+  service: name=kubelet state=stopped
+
+- name: Stop other services on master
+  service: name={{ item }} state=stopped
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    - kube-proxy
+  when: not use_hyperkube and inventory_hostname in groups['masters']
+
+- name: Stop other services on node
+  service: name={{ item }} state=stopped
+  with_items:
+    - kube-proxy
+  when: not use_hyperkube and inventory_hostname in groups['nodes']
+
+#
+# Restore services
+
+- name: Restore services
+  include: restore.yml
+  vars:
+    backup_dir: "{{ upgrade_backup_dir }}"
+
+#
+# Start services
+
+- name: Start kubelet services
+  service: name=kubelet state=started
+
+- name: Start other services on master
+  service: name={{ item }} state=started
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    - kube-proxy
+  when: not use_hyperkube and inventory_hostname in groups['masters']
+
+- name: Start other services on node
+  service: name={{ item }} state=started
+  with_items:
+    - kube-proxy
+  when: not use_hyperkube and inventory_hostname in groups['nodes']

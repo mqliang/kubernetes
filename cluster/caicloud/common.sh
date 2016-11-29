@@ -1526,9 +1526,13 @@ function create-inventory-file {
     NODE_EXTERNAL_SSH_INFO=${NODE_INTERNAL_SSH_INFO}
   fi
 
-  inventory_file=$KUBE_CURRENT/inventory
-  # Set master roles
-  echo "[masters]" > $inventory_file
+  if [[ ! -d "$KUBE_CURRENT/.ansible" ]]; then
+    mkdir -p $KUBE_CURRENT/.ansible
+  fi
+
+  inventory_file=$KUBE_CURRENT/.ansible/inventory
+  # Set resource servers
+  echo "[resourceservers]" > $inventory_file
   IFS=',' read -ra external_ssh_info <<< "${MASTER_EXTERNAL_SSH_INFO}"
   IFS=',' read -ra internal_ssh_info <<< "${MASTER_INTERNAL_SSH_INFO}"
   if [[ ! -z "${MASTER_INSTACE_ID_INFO-}" ]]; then
@@ -1537,7 +1541,7 @@ function create-inventory-file {
   for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
     j=$((i+1))
     if [[ ! -z "${MASTER_INSTACE_ID_INFO-}" ]]; then
-      hostname_in_ventory="${instance_id_info[i]}"
+      hostname_in_ventory="${instance_id_info[${i}]}"
     else
       hostname_in_ventory="${MASTER_NAME_PREFIX}${j}"
     fi
@@ -1548,13 +1552,29 @@ function create-inventory-file {
   done
   echo "" >> $inventory_file
 
+  # Set master roles
+  echo "[masters]" >> $inventory_file
+  # It's the same with masters
+  for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
+    j=$((i+1))
+    if [[ ! -z "${MASTER_INSTACE_ID_INFO-}" ]]; then
+      hostname_in_ventory="${instance_id_info[${i}]}"
+    else
+      hostname_in_ventory="${MASTER_NAME_PREFIX}${j}"
+    fi
+    IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
+    IFS=':@' read -ra i_ssh_info <<< "${internal_ssh_info[$i]}"
+    echo "${hostname_in_ventory} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
+  done
+  echo "" >> $inventory_file
+
   # Set etcd roles
   echo "[etcd]" >> $inventory_file
   # It's the same with masters
   for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
     j=$((i+1))
     if [[ ! -z "${MASTER_INSTACE_ID_INFO-}" ]]; then
-      hostname_in_ventory="${instance_id_info[i]}"
+      hostname_in_ventory="${instance_id_info[${i}]}"
     else
       hostname_in_ventory="${MASTER_NAME_PREFIX}${j}"
     fi
@@ -1575,7 +1595,7 @@ function create-inventory-file {
   for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
     j=$((i+1))
     if [[ ! -z "${NODE_INSTACE_ID_INFO-}" ]]; then
-      hostname_in_ventory="${instance_id_info[i]}"
+      hostname_in_ventory="${instance_id_info[${i}]}"
     else
       hostname_in_ventory="${NODE_NAME_PREFIX}${j}"
     fi
@@ -1584,6 +1604,322 @@ function create-inventory-file {
     echo "${hostname_in_ventory} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> $inventory_file
   done
   echo "" >> $inventory_file
+}
+
+# Create inventory file for specail option: upgrade/downgrade
+#
+# Assumed vars:
+#   KUBE_CURRENT
+#   MASTER_INTERNAL_SSH_INFO
+#   OP_MASTER_SSH_INFO
+#   OP_NODE_SSH_INFO
+#
+# Optional vars:
+#   MASTER_EXTERNAL_SSH_INFO
+function op-create-inventory-file {
+  if [[ -z "${MASTER_EXTERNAL_SSH_INFO-}" ]]; then
+    MASTER_EXTERNAL_SSH_INFO=${MASTER_INTERNAL_SSH_INFO}
+  fi
+  if [[ ! -d "${KUBE_CURRENT}/.ansible" ]]; then
+    mkdir -p ${KUBE_CURRENT}/.ansible
+  fi
+
+  nodes_info_file="${KUBE_CURRENT}/.ansible/nodes-info"
+  op_inventory_file="${KUBE_CURRENT}/.ansible/op-inventory"
+
+  if [[ -f "${op_inventory_file}" ]]; then
+    rm -f ${op_inventory_file}
+  fi
+
+  kubectl get nodes -o go-template='{{range .items}}{{print "inventory_hostname="}}{{.metadata.name}}{{print " "}}{{range .status.addresses}}{{.type}}{{print "="}}{{.address}}{{print " "}}{{end}}{{print "\n"}}{{end}}' > ${nodes_info_file}
+  if [[ $? -ne 0 ]]; then
+    log "${color_red}=== Error getting nodes info by 'kubectl get nodes' ===${color_norm}"
+    exit 1
+  fi
+
+  # Set resource servers
+  echo "[resourceservers]" > ${op_inventory_file}
+  IFS=',' read -ra external_ssh_info <<< "${MASTER_EXTERNAL_SSH_INFO}"
+  IFS=',' read -ra internal_ssh_info <<< "${MASTER_INTERNAL_SSH_INFO}"
+  if [[ ! -z "${MASTER_INSTACE_ID_INFO-}" ]]; then
+    IFS=',' read -ra instance_id_info <<< "${MASTER_INSTACE_ID_INFO}"
+  fi
+  for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
+    j=$((i+1))
+    if [[ ! -z "${MASTER_INSTACE_ID_INFO-}" ]]; then
+      hostname_in_ventory="${instance_id_info[${i}]}"
+    else
+      hostname_in_ventory="${MASTER_NAME_PREFIX}${j}"
+    fi
+    IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
+    IFS=':@' read -ra i_ssh_info <<< "${internal_ssh_info[$i]}"
+    # External ip is used by ansible, but internal ip is used by kubernetes components
+    echo "${hostname_in_ventory} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> ${op_inventory_file}
+  done
+  echo "" >> ${op_inventory_file}
+
+  # Set etcd servers
+  echo "[etcd]" >> ${op_inventory_file}
+  for (( i = 0; i < ${#external_ssh_info[*]}; i++ )); do
+    j=$((i+1))
+    if [[ ! -z "${MASTER_INSTACE_ID_INFO-}" ]]; then
+      hostname_in_ventory="${instance_id_info[${i}]}"
+    else
+      hostname_in_ventory="${MASTER_NAME_PREFIX}${j}"
+    fi
+    IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[$i]}"
+    IFS=':@' read -ra i_ssh_info <<< "${internal_ssh_info[$i]}"
+    # External ip is used by ansible, but internal ip is used by kubernetes components
+    echo "${hostname_in_ventory} ansible_host=${e_ssh_info[2]} ansible_user=${e_ssh_info[0]} ansible_ssh_pass=${e_ssh_info[1]} internal_ip=${i_ssh_info[2]}" >> ${op_inventory_file}
+  done
+  echo "" >> ${op_inventory_file}
+
+  echo "[masters]" >> ${op_inventory_file}
+  if [[ "${OP_MASTER_SSH_INFO-}" != "" ]]; then
+    op-append-inventory-file "${OP_MASTER_SSH_INFO}" "${nodes_info_file}" "${op_inventory_file}"
+  else
+    echo "" >> ${op_inventory_file}
+  fi
+
+  echo "[nodes]" >> ${op_inventory_file}
+  if [[ "${OP_NODE_SSH_INFO-}" != "" ]]; then
+    op-append-inventory-file "${OP_NODE_SSH_INFO}" "${nodes_info_file}" "${op_inventory_file}"
+  else
+    echo "" >> ${op_inventory_file}
+  fi
+}
+
+# Input:
+#   $1 ssh info
+#   $2 path of the nodes-info file
+#   $3 path of the op-inventory file
+function op-append-inventory-file {
+  ssh_info=${1}
+  file_nodes_info=${2}
+  file_op_inventory=${3}
+
+  IFS=',' read -ra nodes_array <<< "${ssh_info}"
+  for (( i = 0; i < ${#nodes_array[*]}; i++ )); do
+    IFS=':@' read -ra node_info <<< "${nodes_array[$i]}"
+    found=`sed -n "/${node_info[2]}/p" ${file_nodes_info}`
+    if [[ "${found}" == "" ]]; then
+      log "${color_red}=== Cann't find ${node_info[2]} ===${color_norm}"
+      exit 1
+    fi
+
+    # Get inventory name
+    tmpstr=${found#*=}
+    inventory_hostname=`echo ${tmpstr} | awk '{print $1}'`
+    tmpstr=${tmpstr#*\ }
+
+    lip=""
+    iip=""
+    eip=""
+    while [[ "${tmpstr}" != "" ]]; do
+      ip_name=`echo ${tmpstr%%=*} | awk '{print $1}'`
+      tmpstr=${tmpstr#*=}
+      tmpip=`echo ${tmpstr} | awk '{print $1}'`
+      tmpstr=${tmpstr#*\ }
+      if [[ "${ip_name}" == "LegacyHostIP" ]]; then
+        lip=${tmpip}
+      elif [[ "${ip_name}" == "InternalIP" ]]; then
+        iip=${tmpip}
+      elif [[ "${ip_name}" == "ExternalIP" ]]; then
+        eip=${tmpip}
+      fi
+    done
+
+    if [[ ${eip} == "" ]]; then
+      if [[ ${iip} == "" ]]; then
+        eip=${lip}
+        iip=${lip}
+      else
+        eip=${iip}
+      fi
+    else
+      if [[ ${iip} == "" ]]; then
+        iip=${eip}
+      fi
+    fi
+    
+    echo "${inventory_hostname} ansible_host=${eip} ansible_user=${node_info[0]} ansible_ssh_pass=${node_info[1]} internal_ip=${iip}" >> ${file_op_inventory}
+    echo "" >> ${file_op_inventory}
+  done
+}
+
+# This function is a wrapper of setup-instance to setup a list of 
+# for instances specail option: upgrade/downgrade.
+#
+# Assumed vars:
+#   MASTER_INTERNAL_SSH_INFO
+#   OP_NODE_SSH_INFO
+#
+# Optional vars:
+#   MASTER_EXTERNAL_SSH_INFO
+function op-setup-instances {
+  if [[ -z "${MASTER_EXTERNAL_SSH_INFO-}" ]]; then
+    MASTER_EXTERNAL_SSH_INFO=${MASTER_INTERNAL_SSH_INFO}
+  fi
+
+  local op_instance_ssh_external=${MASTER_EXTERNAL_SSH_INFO}
+  if [[ ! -z "${op_instance_ssh_external}" ]]; then
+    if [[ ! -z "${OP_NODE_SSH_INFO-}" ]]; then
+      op_instance_ssh_external="${op_instance_ssh_external},${OP_NODE_SSH_INFO}"
+    fi
+  else
+    op_instance_ssh_external=${OP_NODE_SSH_INFO}
+  fi
+  IFS=',' read -ra instance_ssh_info <<< "${op_instance_ssh_external}"
+  for (( i = 0; i < ${#instance_ssh_info[*]}; i++ )); do
+    IFS=':@' read -ra ssh_info <<< "${instance_ssh_info[$i]}"
+    setup-instance "${ssh_info[2]}" "${ssh_info[0]}" "${ssh_info[1]}"
+  done
+}
+
+# Assumed vars:
+#   KUBE_CURRENT
+#
+# Vars set:
+#   HOSTNAME_FROM_INVENTORY_FILE
+function get-hostname-from-op-inventory {
+  get-hostname-from-inventory-file "${KUBE_CURRENT}/.ansible/op-inventory"
+}
+
+# Get inventory_hostname from inventory file
+#
+# Input:
+#   $1 inventory file
+#
+# Vars set:
+#   HOSTNAME_FROM_INVENTORY_FILE
+function get-hostname-from-inventory-file {
+  inventory_file=${1}
+  tmp_dir="/tmp/$$"
+  mkdir -p ${tmp_dir}
+  trap-add 'rm -rf "${tmp_dir}"' EXIT
+
+  inventory_1="${tmp_dir}/tmp_inventory_1"
+  inventory_2="${tmp_dir}/tmp_inventory_2"
+  result_file="${tmp_dir}/result"
+  HOSTNAME_FROM_INVENTORY=""
+
+  cp ${inventory_file} ${inventory_1}
+  sed -i '/^\[/i####' ${inventory_1}
+  echo "####" >> ${inventory_1}
+  sed -i '/^$/d' ${inventory_1}
+
+  sed -n -e '/\[masters\]/, /^####$/p' -e '/\[nodes\]/, /^####$/p' ${inventory_1} > ${inventory_2}
+  sed -i -e '/^####$/d' -e '/^\[/d' ${inventory_2}
+
+  result=`cat ${inventory_2} | awk 'BEGIN{ORS=","} { print $1 }'`
+  if [[ "${result}" != "" ]]; then
+    HOSTNAME_FROM_INVENTORY_FILE=${result%,}
+  fi
+}
+
+# scp files to given instance, e.g.
+#  scp-to-instance "root:password@43.254.54.58" "file1" "~/destdir"
+#
+# Input:
+#   $1 ssh info, e.g. root:password@43.254.54.58
+#   $2 files to copy on remote machine
+#   $3 destination directory
+#   $4 Optional timeout
+function scp-from-instance-expect {
+  IFS=':@' read -ra ssh_info <<< "${1}"
+  SSH_OPTS="-oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oLogLevel=quiet"
+  timeout=${4:-"-1"}
+  expect <<EOF
+set timeout ${timeout}
+spawn scp -r ${SSH_OPTS} ${ssh_info[0]}@${ssh_info[2]}:${2} ${3}
+expect {
+  "*?assword:" {
+    send -- "${ssh_info[1]}\r"
+    exp_continue
+  }
+  "?ommand failed" {exit 1}
+  "lost connection" { exit 1 }
+  eof {}
+}
+EOF
+}
+
+# Fetch kubectl from the random master
+#
+# Assumed vars:
+#   MASTER_INTERNAL_SSH_INFO
+#
+# Optional vars:
+#   MASTER_EXTERNAL_SSH_INFO
+function fetch-kubectl-binary {
+  if [[ -z "${MASTER_EXTERNAL_SSH_INFO-}" ]]; then
+    MASTER_EXTERNAL_SSH_INFO=${MASTER_INTERNAL_SSH_INFO}
+  fi
+
+  command-exec-and-retry "fetch-kubectl-from-random-master ${MASTER_EXTERNAL_SSH_INFO}" 3 "false"
+}
+
+function fetch-kubectl-from-random-master {
+  m_ssh_info=${1}
+  IFS=',' read -ra ssh_info_array <<< "${m_ssh_info}"
+  if [[ ${#ssh_info_array[*]} -gt 1 ]]; then
+    # Get random master
+    index=`echo $(( RANDOM % ${#ssh_info_array[*]} ))`
+    master_info=${ssh_info_array[$index]}
+  else
+    master_info=${ssh_info_array[0]}
+  fi
+
+  scp-from-instance-expect "${master_info}" "/usr/bin/kubectl" "/usr/bin"
+}
+
+# Fetch kubeconfig from the random master
+#
+# Assumed vars:
+#   MASTER_INTERNAL_SSH_INFO
+#
+# Optional vars:
+#   MASTER_EXTERNAL_SSH_INFO
+function fetch-kubeconfig-from-master {
+  if [[ -z "${MASTER_EXTERNAL_SSH_INFO-}" ]]; then
+    MASTER_EXTERNAL_SSH_INFO=${MASTER_INTERNAL_SSH_INFO}
+  fi
+
+  command-exec-and-retry "fetch-kubeconfig-from-random-master ${MASTER_EXTERNAL_SSH_INFO}" 3 "false"
+}
+
+function fetch-kubeconfig-from-random-master {
+  m_ssh_info=${1}
+  IFS=',' read -ra ssh_info_array <<< "${m_ssh_info}"
+  if [[ ${#ssh_info_array[*]} -gt 1 ]]; then
+    # Get random master
+    index=`echo $(( RANDOM % ${#ssh_info_array[*]} ))`
+    master_info=${ssh_info_array[$index]}
+  else
+    master_info=${ssh_info_array[0]}
+  fi
+
+  mkdir -p $HOME/.kube
+  scp-from-instance-expect "${master_info}" "/etc/kubernetes/kubectl.kubeconfig"  "$HOME/.kube/config"
+}
+
+# Assumed:
+#   kubectl is in $PATH
+#
+# Input:
+#   $1: Server Version or Client Version
+#
+# Output:
+#   current caicloud version
+function get-kubectl-version {
+  result=`kubectl version | grep "$1" | awk -F ',' '{print $3}' | sed 's/ *GitVersion://' | sed 's/"//g'; \
+    if [[ "${PIPESTATUS[@]}" != "0 0 0 0 0" ]]; then \
+      echo "Failed to get current caicloud version"; \
+      exit 1; \
+    fi`
+  # Check the return code of the five commands
+
+  echo "${result#*+}"
 }
 
 # -----------------------------------------------------------------------------
@@ -1600,7 +1936,10 @@ function create-inventory-file {
 #   K8S_NUMBER_PREFIX
 # -----------------------------------------------------------------------------
 function create-extra-vars-json-file {
-  create-extra-vars-json-file-common ${KUBE_CURRENT}/extra_vars.json ${K8S_STRING_PREFIX} ${K8S_NUMBER_PREFIX}
+  if [[ ! -d "$KUBE_CURRENT/.ansible" ]]; then
+    mkdir -p $KUBE_CURRENT/.ansible
+  fi
+  create-extra-vars-json-file-common ${KUBE_CURRENT}/.ansible/extra_vars.json ${K8S_STRING_PREFIX} ${K8S_NUMBER_PREFIX}
 }
 
 # Input:
@@ -1644,18 +1983,54 @@ function create-extra-vars-json-file-common {
   echo "}" >> ${extra_vars_file}
 }
 
+# Save important parameters when kube-up
+#
+# Assumed vars:
+#   KUBE_CURRENT
+#   KUBE_ROOT
+function save-extra-vars-json-file {
+  save_dir="/tmp/.ansible/extra-vars"
+
+  if [[ ! -d "$save_dir" ]]; then
+    mkdir -p $save_dir
+  fi
+
+  if [[ -f "$KUBE_CURRENT/.ansible/extra_vars.json" ]]; then
+    cp -f $KUBE_CURRENT/.ansible/extra_vars.json $save_dir
+  fi
+
+  if [[ -f "$KUBE_CURRENT/.extra_vars.aliyun.json" ]]; then
+    temp_file="$KUBE_CURRENT/.ansible/extra_vars.aliyun.json.temp"
+    cp -f $KUBE_CURRENT/.ansible/extra_vars.aliyun.json $temp_file
+    # Remove sensitive information
+    sed -i -e "/access_key_id/d" \
+      -e "/access_key_secret/d" $temp_file
+    cp -f $temp_file $save_dir
+    rm -f $temp_file
+  fi
+}
+
 # Assumed vars:
 #   KUBE_CURRENT
 #   KUBE_ROOT
 function start-kubernetes-by-ansible {
-  ansible-playbook -v -i $KUBE_CURRENT/inventory --extra-vars "@$KUBE_CURRENT/extra_vars.json" $KUBE_ROOT/cluster/caicloud-ansible/cluster.yml
+  ansible-playbook -v -i $KUBE_CURRENT/.ansible/inventory --extra-vars "@$KUBE_CURRENT/.ansible/extra_vars.json" $KUBE_ROOT/cluster/caicloud-ansible/cluster.yml
 }
 
 # Assumed vars:
 #   KUBE_CURRENT
 #   KUBE_ROOT
 function clear-kubernetes-by-ansible {
-  ansible-playbook -v -i $KUBE_CURRENT/inventory --extra-vars "@$KUBE_CURRENT/extra_vars.json" $KUBE_ROOT/cluster/caicloud-ansible/playbooks/adhoc/uninstall.yml
+  ansible-playbook -v -i $KUBE_CURRENT/.ansible/inventory --extra-vars "@$KUBE_CURRENT/.ansible/extra_vars.json" $KUBE_ROOT/cluster/caicloud-ansible/playbooks/adhoc/uninstall.yml
+}
+
+# Do upgrading/downgrading
+#
+# Assumed vars:
+#   KUBE_CURRENT
+#   KUBE_ROOT
+function do-op-by-ansible {
+  ansible-playbook -v -i $KUBE_CURRENT/.ansible/op-inventory --extra-vars "@$KUBE_CURRENT/.ansible/extra_vars.json" $KUBE_ROOT/cluster/caicloud-ansible/operation.yml
 }
 
 # Install ansible.
@@ -1697,4 +2072,68 @@ function install-ntpdate {
   elif [[ ${os_distro} == "centos" ]]; then
     sudo yum install -y ntpdate
   fi
+}
+
+# Compare two strings in dot separated version format: X.Y.Z, A.B.C.D
+# For example:
+#   1            1            =
+#   2.1          2.2          <
+#   3.0.4.10     3.0.4.2      >
+#   4.08         4.08.01      <
+#   3.2.1.9.8144 3.2          >
+#   3.2          3.2.1.9.8144 <
+#   1.2          2.1          <
+#   2.1          1.2          >
+#   5.6.7        5.6.7        =
+#   1.01.1       1.1.1        =
+#   1.1.1        1.01.1       =
+#   1            1.0          =
+#   1.0          1            =
+#   1.0.2.0      1.0.2        =
+#   1..0         1.0          =
+#   1.0          1..0         =
+#
+# Input:
+#   $1: version_1
+#   $2: version_2
+#
+# Output:
+#   0: version_1 == version_2
+#   1: version_1 > version_2
+#   2: version_1 < version_2
+function version_compare () {
+  if [[ $1 == $2 ]]; then
+    echo "0"
+    return
+  fi
+
+  local IFS=.
+  local i ver1=($1) ver2=($2)
+
+  # Fill empty fields in ver1 with zeros
+  for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
+    ver1[i]=0
+  done
+
+  for ((i=0; i<${#ver1[@]}; i++)); do
+    if [[ -z ${ver2[i]} ]]; then
+      # Fill empty fields in ver2 with zeros
+      ver2[i]=0
+    fi
+
+    # version_1 > version_2
+    if ((10#${ver1[i]} > 10#${ver2[i]})); then
+      echo "1"
+      return
+    fi
+
+    # version_1 < version_2
+    if ((10#${ver1[i]} < 10#${ver2[i]})); then
+      echo "2"
+      return
+    fi
+  done
+
+  # version_1 == version_2
+  echo "0"
 }

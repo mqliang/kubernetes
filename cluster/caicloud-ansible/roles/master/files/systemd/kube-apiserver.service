@@ -7,7 +7,7 @@ After=etcd-server-events.service
 
 [Service]
 EnvironmentFile=-/etc/kubernetes/config
-EnvironmentFile=-/etc/kubernetes/apiserver
+EnvironmentFile=-/etc/kubernetes/kube-apiserver
 User=kube
 ExecStart=/usr/bin/kube-apiserver \
 	    $KUBE_LOGTOSTDERR \

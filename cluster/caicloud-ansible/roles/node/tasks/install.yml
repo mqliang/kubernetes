@@ -1,0 +1,18 @@
+---
+# Install kubernetes node.
+
+#
+# Prepare installation.
+
+- name: Set selinux permissive because tokens and selinux does not work together
+  selinux: state=permissive policy={{ ansible_selinux.type }}
+  when: ansible_selinux is defined and ansible_selinux.status == "enabled"
+
+- name: Make sure manifest directory exists
+  file: path={{ kube_manifest_dir }} state=directory
+
+#
+# Install all components.
+
+- name: Install k8s components on node
+  include: install_components.yml
