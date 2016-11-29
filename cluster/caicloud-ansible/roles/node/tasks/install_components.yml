@@ -1,0 +1,87 @@
+---
+# Install kubelet, kube-proxy.
+
+#
+# Find tokens for master and nodes instances.
+
+- name: Get the node token values
+  slurp:
+    src: "{{ kube_token_dir }}/{{ item }}-{{ inventory_hostname }}.token"
+  with_items:
+    - "system:kubelet"
+    - "system:proxy"
+  register: tokens
+  run_once: true
+  delegate_to: "{{ groups['resourceservers'][0] }}"
+
+- name: Set token facts
+  set_fact:
+    kubelet_token: "{{ tokens.results[0].content|b64decode }}"
+    proxy_token: "{{ tokens.results[1].content|b64decode }}"
+
+#
+# Install init scripts for all components.
+
+- name: Install node config files for upstart-based distribution
+  include: upstart-service.yml
+  when: kubernetes_use_upstart
+
+- name: Install node config files for systemd-based distribution
+  include: systemd-service.yml
+  when: not kubernetes_use_upstart
+
+- name: Write the delay-node-services target for systemd
+  template: src=delay-node-services.target.j2 dest=/etc/systemd/system/delay-node-services.target mode=0644
+  when: not kubernetes_use_upstart
+
+- name: Enable delay-node-services for systemd
+  service: name=delay-node-services.target enabled=yes
+  when: not kubernetes_use_upstart
+
+#
+# Install kubelet.
+
+- name: Write the config files for kubelet
+  template: src=kubelet.j2 dest={{ kube_config_dir }}/kubelet
+  notify:
+    - restart kubelet
+
+- name: Write the kubecfg (auth) file for kubelet
+  template: src=kubelet.kubeconfig.j2 dest={{ kube_config_dir }}/kubelet.kubeconfig
+  notify:
+    - restart kubelet
+
+- name: Start kubelet
+  service: name=kubelet enabled=yes state=started
+  register: node_kubelet_started
+
+#
+# Install kube-proxy.
+
+- name: Write the config files for proxy
+  template: src=kube-proxy.j2 dest={{ kube_config_dir }}/kube-proxy
+  notify:
+    - restart proxy
+  when: not use_hyperkube
+
+- name: Write the kubecfg (auth) file for kube-proxy
+  template: src=kube-proxy.kubeconfig.j2 dest={{ kube_config_dir }}/kube-proxy.kubeconfig
+  notify:
+    - restart proxy
+  when: not use_hyperkube
+
+- name: Start proxy
+  service: name=kube-proxy enabled=yes state=started
+  register: proxy_started
+  when: not use_hyperkube
+
+#
+# Install kube-proxy use hyperkube.
+
+- name: Write the kubecfg (auth) file for kube-proxy
+  template: src=kube-proxy.kubeconfig.j2 dest={{ kube_config_dir }}/kube-proxy.kubeconfig
+  when: use_hyperkube
+
+- name: Write kube-proxy manifest
+  template: src=hyperkube-proxy.yaml.j2 dest={{ kube_manifest_dir }}/hyperkube-proxy.yaml
+  when: use_hyperkube

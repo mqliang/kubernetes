@@ -1,0 +1,258 @@
+---
+# Install kubelet, kube-apiserver, kube-controller-manager, kube-scheduler, kube-proxy.
+
+# Assumed vars:
+#   sleep_seconds
+
+# This is necessary since it affects the default 'kubernetes' service; without
+# which, 'kubernetes' service will have endpoint of interface eth0.
+- name: Set apiserver bind address
+  set_fact:
+    kube_apiserver_bind_address: "{{ internal_ip }}"
+
+#
+# Find tokens for master and nodes instances.
+
+- name: Get the master token values
+  slurp:
+    src: "{{ kube_token_dir }}/{{ item }}-{{ inventory_hostname }}.token"
+  with_items:
+    - "system:controller_manager"
+    - "system:scheduler"
+    - "system:kubectl"
+    - "system:kubelet"
+    - "system:proxy"
+  register: tokens
+  run_once: true
+  delegate_to: "{{ groups['resourceservers'][0] }}"
+
+- name: Set token facts
+  set_fact:
+    controller_manager_token: "{{ tokens.results[0].content|b64decode }}"
+    scheduler_token: "{{ tokens.results[1].content|b64decode }}"
+    kubectl_token: "{{ tokens.results[2].content|b64decode }}"
+    kubelet_token: "{{ tokens.results[3].content|b64decode }}"
+    proxy_token: "{{ tokens.results[4].content|b64decode }}"
+
+- name: Ensure that a token auth file exists (addons may populate it)
+  file: path={{ kube_token_dir }}/known_tokens.csv state=touch
+  changed_when: false
+
+- name: Ensure that a basic auth file exists
+  file: path={{ kube_token_dir }}/basic-auth.csv state=touch
+  changed_when: false
+
+- name: Ensure that a abac policy file exists
+  file: path={{ kube_token_dir }}/abac.json state=touch
+  changed_when: false
+
+#
+# Configure kubectl.
+
+- name: Write the kubecfg (auth) file for kubectl
+  template: src=kubectl.kubeconfig.j2 dest={{ kube_config_dir }}/kubectl.kubeconfig
+
+#
+# Install init scripts for all components.
+
+- name: Install master config files for upstart-based distribution
+  include: upstart-service.yml
+  when: kubernetes_use_upstart
+
+- name: Install master config files for systemd-based distribution
+  include: systemd-service.yml
+  when: not kubernetes_use_upstart
+
+- name: Write the delay-master-services target for systemd
+  template: src=delay-master-services.target.j2 dest=/etc/systemd/system/delay-master-services.target mode=0644
+  when: not kubernetes_use_upstart
+
+- name: Reload systemd daemon
+  command: systemctl --system daemon-reload
+  when: not (ansible_distribution == "Ubuntu" and ansible_distribution_major_version|int < 15)
+
+- name: Enable delay-master-services for systemd
+  service: name=delay-master-services.target enabled=yes
+  when: not kubernetes_use_upstart
+
+###############################################################################
+##### If not use hyperkube
+###############################################################################
+
+#
+# Install api server.
+
+- name: Write the config file for the api server
+  template: src=kube-apiserver.j2 dest={{ kube_config_dir }}/kube-apiserver
+  notify:
+    - restart apiserver
+  when: not use_hyperkube
+
+# Add net_bind capability to kube-apiserver; otherwise it won't be able to bind
+# priviledged ports. Also, adding capability to /usr/bin/kube-apiserver is illegal
+# since it is a symlink: we must add it to the real binary.
+- name: Add cap_net_bind_service to kube-apiserver for systemd
+  capabilities:
+    path: /usr/local/caicloud-kube/kube-apiserver
+    capability: cap_net_bind_service=ep
+    state: present
+  when: not kubernetes_use_upstart and not use_hyperkube
+
+- name: Start apiserver
+  service: name=kube-apiserver enabled=yes state=started
+  register: apiserver_started
+  when: not use_hyperkube
+
+#
+# Install controller-manager.
+
+- name: Write the config file for the controller-manager
+  template: src=kube-controller-manager.j2 dest={{ kube_config_dir }}/kube-controller-manager
+  notify:
+    - restart controller-manager
+  when: not use_hyperkube
+
+- name: Write the kubecfg (auth) file for controller-manager
+  template: src=kube-controller-manager.kubeconfig.j2 dest={{ kube_config_dir }}/kube-controller-manager.kubeconfig
+  notify:
+    - restart controller-manager
+  when: not use_hyperkube
+
+- name: Start controller-manager
+  service: name=kube-controller-manager enabled=yes state=started
+  register: controller_manager_started
+  when: not use_hyperkube
+
+#
+# Install scheduler.
+
+- name: Write the config file for the scheduler
+  template: src=kube-scheduler.j2 dest={{ kube_config_dir }}/kube-scheduler
+  notify:
+    - restart scheduler
+  when: not use_hyperkube
+
+- name: Write the kubecfg (auth) file for scheduler
+  template: src=kube-scheduler.kubeconfig.j2 dest={{ kube_config_dir }}/kube-scheduler.kubeconfig
+  notify:
+    - restart scheduler
+  when: not use_hyperkube
+
+- name: Start scheduler
+  service: name=kube-scheduler enabled=yes state=started
+  register: scheduler_started
+  when: not use_hyperkube
+
+#
+# Install master kubelet.
+
+- name: Write the config files for kubelet
+  template: src=kubelet.j2 dest={{ kube_config_dir }}/kubelet
+  notify:
+    - restart kubelet
+
+- name: Write the kubecfg (auth) file for kubelet
+  template: src=kubelet.kubeconfig.j2 dest={{ kube_config_dir }}/kubelet.kubeconfig
+  notify:
+    - restart kubelet
+
+- name: Start kubelet
+  service: name=kubelet enabled=yes state=started
+  register: master_kubelet_started
+
+#
+# Install master kube-proxy.
+
+- name: Write the config files for proxy
+  template: src=kube-proxy.j2 dest={{ kube_config_dir }}/kube-proxy
+  notify:
+    - restart proxy
+  when: not use_hyperkube
+
+- name: Write the kubecfg (auth) file for kube-proxy
+  template: src=kube-proxy.kubeconfig.j2 dest={{ kube_config_dir }}/kube-proxy.kubeconfig
+  notify:
+    - restart proxy
+  when: not use_hyperkube
+
+- name: Start proxy
+  service: name=kube-proxy enabled=yes state=started
+  register: proxy_started
+  when: not use_hyperkube
+
+###############################################################################
+##### Else use hyperkube
+###############################################################################
+
+#
+# Install api server use hyperkube.
+
+- name: Write kube-apiserver manifest
+  template:
+    src: hyperkube-apiserver.yaml.j2
+    dest: "{{ kube_manifest_dir }}/hyperkube-apiserver.yaml"
+    mode: 0644
+    owner: root
+    group: root
+  when: use_hyperkube
+
+- name: Sleep for a new apiserver
+  command: sleep {{ sleep_seconds }}
+
+- name: wait for the apiserver to be running
+  uri: url=http://{{ kube_apiserver_insecure_bind_address }}:{{ kube_apiserver_insecure_bind_port }}/healthz
+  register: result
+  until: result.status == 200
+  retries: 15
+  delay: 20
+  when: use_hyperkube
+
+# Create kube-system namespace
+- name: copy 'kube-system' namespace manifest
+  copy: src=namespace.yaml dest={{ kube_config_dir }}/kube-system-ns.yaml
+  run_once: true
+  when: inventory_hostname == groups['resourceservers'][0] and use_hyperkube
+
+- name: Create 'kube-system' namespace
+  command: "{{ bin_dir }}/kubectl apply -f {{ kube_config_dir }}/kube-system-ns.yaml"
+  changed_when: False
+  when: inventory_hostname == groups['resourceservers'][0] and use_hyperkube
+
+#
+# Install controller-manager use hyperkube.
+
+- name: Write the kubecfg (auth) file for controller-manager
+  template: src=kube-controller-manager.kubeconfig.j2 dest={{ kube_config_dir }}/kube-controller-manager.kubeconfig
+  when: use_hyperkube
+
+- name: Write kube-controller-manager manifest
+  template:
+    src: hyperkube-controller-manager.yaml.j2
+    dest: "{{ kube_manifest_dir }}/hyperkube-controller-manager.yaml"
+  notify: wait for kube-controller-manager
+  when: use_hyperkube
+
+#
+# Install scheduler use hyperkube.
+
+- name: Write the kubecfg (auth) file for scheduler
+  template: src=kube-scheduler.kubeconfig.j2 dest={{ kube_config_dir }}/kube-scheduler.kubeconfig
+  when: use_hyperkube
+
+- name: Write kube-scheduler manifest
+  template:
+    src: hyperkube-scheduler.yaml.j2
+    dest: "{{ kube_manifest_dir }}/hyperkube-scheduler.yaml"
+  notify: wait for kube-scheduler
+  when: use_hyperkube
+
+#
+# Install kube-proxy use hyperkube.
+
+- name: Write the kubecfg (auth) file for kube-proxy
+  template: src=kube-proxy.kubeconfig.j2 dest={{ kube_config_dir }}/kube-proxy.kubeconfig
+  when: use_hyperkube
+
+- name: Write kube-proxy manifest
+  template: src=hyperkube-proxy.yaml.j2 dest={{ kube_manifest_dir }}/hyperkube-proxy.yaml
+  when: use_hyperkube

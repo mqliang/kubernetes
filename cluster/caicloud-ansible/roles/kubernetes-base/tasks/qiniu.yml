@@ -1,33 +1,43 @@
 ---
 # Download kubernetes binaries and link it to `bin_dir`.
-# TODO: Download in master and copy to nodes.
+
+- name: Download kubernetes tar files on resource servers
+  include: download_resources.yml
+  run_once: True
+
+- name: Choose a random resource server
+  set_fact:
+    random_resource_server: "{{ groups['resourceservers'] | random }}"
+    fetch_flag: False
 
 - name: Create directory for current Kubernetes release
   file: path="{{ kube_current_release_directory }}" state=directory
 
-- name: Check if tar file exists
+- name: Check if tar files exists on current node
   stat: path="{{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz"
   register: kube_tarball
 
-- name: Download caicloud kubernetes tar file
-  get_url:
-    url: "{{ kube_download_url }}"
-    dest: "{{ kube_current_release_directory }}"
-    validate_certs: False
-    timeout: 30
-  environment:
-    http_proxy: "{{ http_proxy|default('') }}"
-    https_proxy: "{{ https_proxy|default('') }}"
-    no_proxy: "{{ no_proxy|default('') }}"
-  when: kube_tarball.stat.exists == False and inventory_hostname in groups['masters']
-  register: kube_tarball_download
-  until: kube_tarball_download|success
-  retries: 10
-  delay: 5
+- set_fact:
+    fetch_flag: True
+  when: kube_tarball.stat.exists == False
 
-- name: Fetch caicloud kubernetes tar file
-  shell: ssh -tt -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -A {{ hostvars[inventory_hostname]['ansible_user'] }}@{{ hostvars[inventory_hostname]['ansible_host'] }} sudo SSH_AUTH_SOCK=\$SSH_AUTH_SOCK scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null {{ hostvars[groups['masters'][0]]['ansible_user'] }}@{{ hostvars[groups['masters'][0]]['internal_ip'] }}:{{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz {{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz
-  when: kube_tarball.stat.exists == False and inventory_hostname not in groups['masters']
+# If tar files don't exist on masters, then fail.
+- fail: msg="Check if kubernetes tar files exist on {{ inventory_hostname }}"
+  when: inventory_hostname in groups['masters'] and fetch_flag
+
+# For supporting deployment with public key, we need to use 'SSH agent forwarding'
+# SSH agent forwarding can be used to make deploying to a server simple.
+# It allows you to use your local SSH keys instead of leaving keys
+# (without passphrases!) sitting on your server.
+# Instead of putting an ssh key on a remote computer, log into the computer
+# with ssh -A. This forwards the connection to your ssh agent to the remote
+# computer. When you run ssh on the remote computer to log into an other
+# server, the login can happen using the ssh agent on your local computer
+# using the key on your local computer. All the login related computation
+# with the ssh private key happens on your local system.
+- name: Fetch caicloud kubernetes tar files
+  shell: ssh -tt -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -A {{ hostvars[inventory_hostname]['ansible_user'] }}@{{ hostvars[inventory_hostname]['ansible_host'] }} sudo SSH_AUTH_SOCK=\$SSH_AUTH_SOCK scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null {{ hostvars[random_resource_server]['ansible_user'] }}@{{ hostvars[random_resource_server]['internal_ip'] }}:{{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz {{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz
+  when: inventory_hostname in groups['nodes'] and kube_tarball.stat.exists == False
   delegate_to: localhost
   register: kube_tarball_copy
   until: kube_tarball_copy|success

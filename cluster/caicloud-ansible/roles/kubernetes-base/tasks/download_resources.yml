@@ -1,0 +1,29 @@
+---
+# Download resources for resources servers.
+
+#
+# Download kubernetes tar files.
+
+- name: Create directory for kubernetes tar files
+  file: path="{{ kube_current_release_directory }}" state=directory
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['resourceservers'] }}"
+
+- name: Download kubernetes tar files on resource servers
+  include: download_kube_tar.yml
+  delegate_to: "{{ item }}"
+#  async: 1800
+#  poll: 0
+#  register: download_outputs
+  with_items:
+    - "{{ groups['resourceservers'] }}"
+
+#- name: Wait kubernetes tar files on resource servers to be ready
+#  async_status: jid={{ item.ansible_job_id }}
+#  register: task_result
+#  until: task_result.finished
+#  retries: 60
+#  delay: 30
+#  failed_when: task_result.rc != 0
+#  with_items: download_outputs.results

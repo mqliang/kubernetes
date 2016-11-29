@@ -1,36 +1,21 @@
 ---
-# Tasks for installing runtime dependencies
+# Install runtime dependencies and record operation log.
 
-- include_vars: ../../kubernetes-base/defaults/main.yml
+#
+# Install runtime dependencies.
 
-- name: Install kubernetes runtime dependencies
-  package:
-    name: "{{ item }}"
-    state: latest
-  with_items:
-    - socat
-    - tar
-    - git
+- name: Install runtime dependencies
+  include: install_runtime.yml
+  when: k8s_op == "OP_INSTALL"
 
-- name: Send nsenter to all instances
-  copy: src=nsenter dest={{ bin_dir }}/nsenter owner=root group=root mode=0755 force=no
+#
+# Record operation log.
 
-- name: Logging | Copy upstart fluentd pod into manifest directory of each kubelet
-  template:
-  args:
-    src: "fluentd-es-upstart.yaml"
-    dest: "{{ kube_manifest_dir }}"
-    mode: 0644
-    owner: root
-    group: root
-  when: cluster_logging and kubernetes_use_upstart
+- name: Make sure log directory exists
+  file: path={{ kube_config_dir }}/log state=directory
 
-- name: Logging | Copy systemd fluentd pod into manifest directory of each kubelet
-  template:
-  args:
-    src: "fluentd-es-systemd.yaml"
-    dest: "{{ kube_manifest_dir }}"
-    mode: 0644
-    owner: root
-    group: root
-  when: cluster_logging and not kubernetes_use_upstart
+- name: Make sure operation log file exists
+  file: path={{ kube_config_dir }}/log/operation state=touch
+
+- name: Record operation log
+  lineinfile: dest={{ kube_config_dir }}/log/operation line="[{{ ansible_date_time.date }} {{ ansible_date_time.time }}] operation '{{ k8s_op }}', version '{{ kube_base_version }}+{{ kube_caicloud_version }}'" insertafter=EOF state=present

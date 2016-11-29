@@ -1,0 +1,92 @@
+---
+# Restore services
+#
+# Assumed vars:
+#   backup_dir
+
+#
+# Restore kubelet service
+
+- name: Ubuntu | Restore kubelet service
+  include: restore-upstart.yml
+  vars:
+    restore_service_name: "kubelet"
+  when: ansible_distribution == "Ubuntu"
+
+- name: CentOS | Restore kubelet service
+  include: restore-systemd.yml
+  vars:
+    restore_service_name: "kubelet"
+  when: ansible_distribution == "CentOS"
+
+#
+# Restore other services
+
+- name: Ubuntu | Restore other services on master
+  include: restore-upstart.yml
+  vars:
+    restore_service_name: "{{ item }}"
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    - kube-proxy
+  when: ansible_distribution == "Ubuntu" and not use_hyperkube and inventory_hostname in groups['masters']
+
+- name: CentOS | Restore other services on master
+  include: restore-systemd.yml
+  vars:
+    restore_service_name: "{{ item }}"
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+    - kube-proxy
+  when: ansible_distribution == "CentOS" and not use_hyperkube and inventory_hostname in groups['masters']
+
+- name: Ubuntu | Restore other services on node
+  include: restore-upstart.yml
+  vars:
+    restore_service_name: "{{ item }}"
+  with_items:
+    - kube-proxy
+  when: ansible_distribution == "Ubuntu" and not use_hyperkube and inventory_hostname in groups['nodes']
+
+- name: CentOS | Restore other services on node
+  include: restore-systemd.yml
+  vars:
+    restore_service_name: "{{ item }}"
+  with_items:
+    - kube-proxy
+  when: ansible_distribution == "CentOS" and not use_hyperkube and inventory_hostname in groups['nodes']
+
+#
+# Restore manifest files for use_hyperkube
+
+- name: Restore manifest files on master
+  command: "cp -f {{ backup_dir }}/manifests/{{ item }}.yaml {{ kube_config_dir }}/manifests"
+  with_items:
+    - hyperkube-apiserver
+    - hyperkube-controller-manager
+    - hyperkube-scheduler
+    - hyperkube-proxy
+  when: use_hyperkube and inventory_hostname in groups['masters']
+
+- name: Restore manifest files on node
+  command: "cp -f {{ backup_dir }}/manifests/{{ item }}.yaml {{ kube_config_dir }}/manifests"
+  with_items:
+    - hyperkube-proxy
+  when: use_hyperkube and inventory_hostname in groups['nodes']
+
+#
+# Restore kubectl
+
+- name: Restore kubectl
+  command: "cp -f {{ backup_dir }}/kubectl/bin/kubectl /usr/local/caicloud-kube/kubectl"
+
+- name: Create symlinks for kubectl
+  file:
+    src: "/usr/local/caicloud-kube/kubectl"
+    dest: "{{ bin_dir }}/kubectl"
+    state: link
+    force: yes

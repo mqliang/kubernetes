@@ -1,0 +1,55 @@
+---
+# Install kubernetes master.
+
+#
+# Prepare for installation.
+
+- name: Determine which certificates to use
+  set_fact:
+    certs_selector: caicloudprivatetest
+
+- set_fact:
+    certs_selector: caicloudapp
+  when: host_provider == 'anchnet' or host_provider == 'aliyun'
+
+- set_fact:
+    certs_selector: user
+  when: user_cert_dir is defined
+
+- name: Build master /etc/hosts file
+  lineinfile: dest=/etc/hosts regexp='.*{{ item }}$' line="{{ hostvars[item]['internal_ip'] }} {{ item }}" state=present
+  with_items:
+    - "{{ groups['masters'] }}"
+    - "{{ groups['nodes'] }}"
+
+- name: Create caicloudapp certs directory
+  file:
+    path={{ caicloudapp_cert_dir }}
+    state=directory
+    mode=o-rwx
+    group={{ kube_cert_group }}
+
+- name: Create master nginx config directory
+  file:
+    path={{ master_nginx_conf_dir }}
+    state=directory
+
+#
+# Install all components.
+
+- name: Install k8s components on master
+  include: install_components.yml
+  vars:
+    sleep_seconds: 0
+
+#
+# Set up loadbalancer.
+
+- name: Set up loadbalancer
+  include: loadbalancer.yml
+
+#
+# Create kubeconfig.
+
+- name: Create kubeconfig for control machine
+  include: gen_cmkubeconfig.yml

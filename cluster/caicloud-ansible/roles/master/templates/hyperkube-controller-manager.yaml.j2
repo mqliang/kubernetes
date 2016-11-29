@@ -19,7 +19,7 @@ spec:
     - controller-manager
     - --leader-elect=true
     - --master=https://{{ inventory_hostname }}:{{ kube_master_api_port }}
-    - --kubeconfig={{ kube_config_dir }}/controller-manager.kubeconfig
+    - --kubeconfig={{ kube_config_dir }}/kube-controller-manager.kubeconfig
     - --cluster-name={{ cluster_name }}
 {% if host_provider == "aliyun" or host_provider == "anchnet" %}
     - --cloud-provider={{ host_provider }}

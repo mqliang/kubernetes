@@ -1,0 +1,62 @@
+---
+# Precheck for loadbalancer
+
+- name: Determine use loadbalancer or not | Set default to false
+  set_fact:
+    use_load_balancer: false
+
+- name: Use loadbalancer on muti masters with vagrant provider
+  set_fact:
+    use_load_balancer: true
+    load_balancer_vip: "{{ load_balancer_default_vip }}"
+  when: host_provider == "vagrant" and (groups['resourceservers'] | count) > 1 and (load_balancer_vip is not defined)
+
+- name: Determine use loadbalancer or not
+  set_fact:
+    use_load_balancer: true
+  when: (groups['resourceservers'] | count) > 1 and ( load_balancer_vip is defined )
+
+- name: Determine use external loadbalancer or not | Set default to false
+  set_fact:
+    use_external_load_balancer: false
+
+- name: Determine use external loadbalancer or not
+  set_fact:
+    use_external_load_balancer: true
+  when: host_provider == "anchnet" or host_provider == "aliyun"
+
+- name: Determine use keepalived or not | Set default to false
+  set_fact:
+    use_keepalived: false
+
+- name: Determine use keepalived or not
+  set_fact:
+    use_keepalived: true
+  when: use_load_balancer and not use_external_load_balancer
+
+- name: Fails when use bad loadbalancer configure
+  debug: var=[]
+  failed_when: (load_balancer_vip is defined and (groups['resourceservers'] | count) < 2) or
+               (load_balancer_vip is not defined and (groups['resourceservers'] | count) > 1)
+
+- set_fact: 
+    first_master_iip:  "{{ hostvars[groups['resourceservers'][0]]['internal_ip'] }}"
+    first_master_eip:  "{{ hostvars[groups['resourceservers'][0]]['ansible_host'] }}"
+
+- name: Set kube apiserver endpoint
+  set_fact:
+    kube_apiserver_endpoint: |-
+      {% if use_load_balancer -%}
+        https://{{ load_balancer_vip }}:{{ load_balancer_port }}
+      {%- else -%}
+        https://{{ first_master_iip }}:{{ kube_master_api_port }}
+      {%- endif %}
+
+- name: Set kube apiserver endpoint eip
+  set_fact:
+    kube_apiserver_endpoint_ip: |-
+      {% if use_load_balancer -%}
+        {{ load_balancer_vip }}
+      {%- else -%}
+        {{ first_master_eip }}
+      {%- endif %}

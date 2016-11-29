@@ -1,0 +1,8 @@
+---
+# Upgrade node components.
+
+#
+# Upgrade all components.
+
+- name: Install k8s components on node
+  include: install_components.yml

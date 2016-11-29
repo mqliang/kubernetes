@@ -20,7 +20,7 @@ spec:
     - --leader-elect=true
     - --master=https://{{ inventory_hostname }}:{{ kube_master_api_port }}
     - --v={{ kube_log_level }}
-    - --kubeconfig={{ kube_config_dir }}/scheduler.kubeconfig
+    - --kubeconfig={{ kube_config_dir }}/kube-scheduler.kubeconfig
     - --port={{ kube_scheduler_port }}
     livenessProbe:
       httpGet:

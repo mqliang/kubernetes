@@ -1,0 +1,36 @@
+---
+# Tasks for installing runtime dependencies
+
+- include_vars: ../../kubernetes-base/defaults/main.yml
+
+- name: Install kubernetes runtime dependencies
+  package:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - socat
+    - tar
+    - git
+
+- name: Send nsenter to all instances
+  copy: src=nsenter dest={{ bin_dir }}/nsenter owner=root group=root mode=0755 force=no
+
+- name: Logging | Copy upstart fluentd pod into manifest directory of each kubelet
+  template:
+  args:
+    src: "fluentd-es-upstart.yaml"
+    dest: "{{ kube_manifest_dir }}"
+    mode: 0644
+    owner: root
+    group: root
+  when: cluster_logging and kubernetes_use_upstart
+
+- name: Logging | Copy systemd fluentd pod into manifest directory of each kubelet
+  template:
+  args:
+    src: "fluentd-es-systemd.yaml"
+    dest: "{{ kube_manifest_dir }}"
+    mode: 0644
+    owner: root
+    group: root
+  when: cluster_logging and not kubernetes_use_upstart

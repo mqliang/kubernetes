@@ -1,0 +1,22 @@
+---
+# Download kubernetes tar files.
+
+- name: Check if kube tar files exists
+  stat: path="{{ kube_current_release_directory }}/caicloud-kube-{{ kube_version }}.tar.gz"
+  register: tarball
+
+- name: Download caicloud kubernetes tar files on resource servers
+  get_url:
+    url: "{{ kube_download_url }}"
+    dest: "{{ kube_current_release_directory }}"
+    validate_certs: False
+    timeout: 30
+  environment:
+    http_proxy: "{{ http_proxy|default('') }}"
+    https_proxy: "{{ https_proxy|default('') }}"
+    no_proxy: "{{ no_proxy|default('') }}"
+  register: remote_kube_tarball_download
+  until: remote_kube_tarball_download|success
+  retries: 10
+  delay: 5
+  when: tarball.stat.exists == False

@@ -40,28 +40,44 @@ function verify-prereqs {
     needed_binaries=("expect" "ansible" "ansible-playbook" "sshpass" "netaddr")
     for binary in ${needed_binaries[@]}; do
       if [[ `eval which ${binary}` == "" ]]; then
-        log "Can't find ${binary} binary in PATH, please fix and retry."
+        log "${color_red}Can't find ${binary} binary in PATH, please fix and retry.${color_norm}"
         exit 1
       fi
     done
   fi
 
-  # Make sure we have set MASTER_SSH_INFO and NODE_SSH_INFO
+  # Make sure we have set MASTER_SSH_INFO
   if [[ "$MASTER_SSH_INFO" == "" ]]; then
-    log "MASTER_SSH_INFO is not been set."
+    log "${color_red}MASTER_SSH_INFO is not been set.${color_norm}"
     exit 1
   fi
-  if [[ "$NODE_SSH_INFO" == "" ]]; then
-    log "NODE_SSH_INFO is not been set."
-    exit 1
-  fi
+
+  mkdir -p ${KUBE_CURRENT}/.ansible
 }
 
-# Instantiate a kubernetes cluster
+# Verify cluster prerequisites for upgrade/downgrade.
+function op-verify-prereqs {
+  if [[ "${OP_MASTER_SSH_INFO-}" == "" ]] && [[ "${OP_NODE_SSH_INFO-}" == "" ]]; then
+    log "${color_red}OP_MASTER_SSH_INFO or OP_NODE_SSH_INFO is not been set.${color_norm}"
+    exit 1
+  fi
+
+  op-fetch-kubectl
+}
+
+# Instantiate a kubernetes cluster.
 function kube-up {
+  # Make sure we have set NODE_SSH_INFO
+  if [[ "$NODE_SSH_INFO" == "" ]]; then
+    log "${color_red}NODE_SSH_INFO is not been set.${color_norm}"
+    exit 1
+  fi
+
   # Print all environment and local variables at this point.
   log "+++++ Running kube-up with variables ..."
   set -o posix; set
+
+  set-k8s-op-install
 
   # Make sure we have:
   #  1. a staging area
@@ -77,20 +93,92 @@ function kube-up {
 
   create-inventory-file
   create-extra-vars-json-file
+  save-extra-vars-json-file
 
   start-kubernetes-by-ansible
   ret=$?
   if [[ $ret -ne 0 ]]; then
-    echo "Failed to start kubernetes by ansible." >&2
+    log "${color_red}Failed to start kubernetes by ansible.${color_norm}"
     exit $ret
   fi
 }
 
-# Delete a kubernetes cluster
+# Delete a kubernetes cluster.
 function kube-down {
+  # Make sure we have set NODE_SSH_INFO
+  if [[ "$NODE_SSH_INFO" == "" ]]; then
+    log "NODE_SSH_INFO is not been set."
+    exit 1
+  fi
+
+  set-k8s-op-uninstall
   create-inventory-file
   create-extra-vars-json-file
   clear-kubernetes-by-ansible
+}
+
+# Compare the version to check if it can upgrade.
+function can-upgrade {
+  if [[ "${CAICLOUD_K8S_CFG_STRING_KUBE_CAICLOUD_VERSION-}" == "" ]]; then
+    log "${color_red}You need to choose the right version for upgrading by 'CAICLOUD_K8S_CFG_STRING_KUBE_CAICLOUD_VERSION'${color_norm}"
+    log "${color_red}Optionally, you can change the base image version by 'CAICLOUD_K8S_CFG_STRING_KUBE_BASE_VERSION'${color_norm}"
+    exit 1
+  fi
+  
+  current_caicloud_version=`get-kubectl-version "Server Version"`
+
+  res_comp=`version_compare ${CAICLOUD_K8S_CFG_STRING_KUBE_CAICLOUD_VERSION#v} ${current_caicloud_version#v}`
+
+  if [[ ${res_comp} -eq 1 ]]; then
+    log "${color_green}Current version: ${current_caicloud_version}, prepare to upgrade to the new version: ${CAICLOUD_K8S_CFG_STRING_KUBE_CAICLOUD_VERSION}${color_norm}"
+  else
+    log "${color_red}Current version: ${current_caicloud_version}, couldn't upgrade to version ${CAICLOUD_K8S_CFG_STRING_KUBE_CAICLOUD_VERSION}${color_norm}"
+    exit 1
+  fi
+}
+
+# Upgrade kubernetes nodes.
+function kube-upgrade {
+  can-upgrade
+  set-k8s-op-upgrade
+
+  ensure-ssh-agent
+  if [[ "${SETUP_INSTANCES-}" == "YES" ]]; then
+    op-setup-instances
+  fi
+
+  op-create-inventory-file
+  create-extra-vars-json-file
+  do-op-by-ansible
+  ret=$?
+  if [[ $ret -ne 0 ]]; then
+    log "${color_red}Failed to upgrade nodes by ansible.${color_norm}"
+    exit $ret
+  fi
+}
+
+# Downgrade kubernetes nodes.
+function kube-downgrade {
+  set-k8s-op-downgrade
+  op-create-inventory-file
+  create-extra-vars-json-file
+  do-op-by-ansible
+  ret=$?
+  if [[ $ret -ne 0 ]]; then
+    log "${color_red}Failed to downgrade nodes by ansible.${color_norm}"
+    exit $ret
+  fi
+}
+
+
+# Validate nodes after upgraded.
+function validate-nodes {
+  get-hostname-from-op-inventory
+  
+  IFS=',' read -ra nodes_array <<< "${HOSTNAME_FROM_INVENTORY_FILE}"
+  for (( i = 0; i < ${#nodes_array[*]}; i++ )); do
+    ${KUBE_ROOT}/cluster/validate-node.sh "${nodes_array[$i]}"
+  done
 }
 
 # Find master to work with.

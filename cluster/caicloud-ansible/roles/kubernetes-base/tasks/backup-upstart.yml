@@ -1,0 +1,21 @@
+---
+# Backup for ubuntu service
+
+# Assumed vars:
+#   backup_service_name
+#   backup_dir
+
+- name: Create directories for {{ backup_service_name }}
+  file: path={{ item }} state=directory
+  with_items:
+    - "{{ backup_dir }}/{{ backup_service_name }}/bin"
+    - "{{ backup_dir }}/{{ backup_service_name }}/etc_init"
+    - "{{ backup_dir }}/{{ backup_service_name }}/etc_default"
+
+- name: Save files of {{ backup_service_name }} service
+  command: "{{ item }}"
+  with_items:
+    - "cp -f {{ kube_config_dir }}/{{ backup_service_name }} {{ backup_dir }}/etc_kubernetes"
+    - "cp -fL {{ bin_dir }}/{{ backup_service_name }} {{ backup_dir }}/{{ backup_service_name }}/bin"
+    - "cp -f /etc/init/{{ backup_service_name }}.conf {{ backup_dir }}/kubelet/etc_init"
+    - "cp -f /etc/default/{{ backup_service_name }} {{ backup_dir }}/kubelet/etc_default"
