@@ -33,6 +33,12 @@ import (
 
 const (
 	ProviderName = "aliyun"
+
+	// ecsDefaultEndpoint is the default API endpoint of ECS services
+	ecsDefaultEndpoint = "https://ecs.aliyuncs.com"
+	// slbDefaultEndpoint is the default API endpoint of SLB services
+	slbDefaultEndpoint = "https://slb.aliyuncs.com"
+
 	// TTL for API call cache.
 	cacheTTL = 3 * time.Hour
 )
@@ -46,6 +52,11 @@ type LoadBalancerOpts struct {
 	Bandwidth int `json:"bandwidth"`
 }
 
+type ApiEndpoints struct {
+	EcsEndpoint string `json:"ecsEndpoint"`
+	SlbEndpoint string `json:"slbEndpoint"`
+}
+
 type Config struct {
 	Global struct {
 		AccessKeyID     string `json:"accessKeyID"`
@@ -54,6 +65,7 @@ type Config struct {
 		ZoneID          string `json:"zoneID"`
 	}
 	LoadBalancer LoadBalancerOpts
+	Endpoints    ApiEndpoints
 }
 
 // A single Kubernetes cluster can run in multiple zones,
@@ -113,8 +125,17 @@ func newAliyun(config Config) (cloudprovider.Interface, error) {
 		return nil, fmt.Errorf("Invalid fields in config file")
 	}
 
-	ecsClient := ecs.NewClient(config.Global.AccessKeyID, config.Global.AccessKeySecret)
-	slbClient := slb.NewClient(config.Global.AccessKeyID, config.Global.AccessKeySecret)
+	ecsEndpoint := ecsDefaultEndpoint
+	if config.Endpoints.EcsEndpoint != "" {
+		ecsEndpoint = config.Endpoints.EcsEndpoint
+	}
+	ecsClient := ecs.NewClientWithEndpoint(ecsEndpoint, config.Global.AccessKeyID, config.Global.AccessKeySecret)
+
+	slbEndpoint := slbDefaultEndpoint
+	if config.Endpoints.SlbEndpoint != "" {
+		slbEndpoint = config.Endpoints.SlbEndpoint
+	}
+	slbClient := slb.NewClientWithEndpoint(slbEndpoint, config.Global.AccessKeyID, config.Global.AccessKeySecret)
 
 	if config.LoadBalancer.AddressType == "" {
 		config.LoadBalancer.AddressType = slb.InternetAddressType

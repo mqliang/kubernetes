@@ -1,0 +1,22 @@
+{
+	"ImportPath": "k8s.io/kubernetes/cluster",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v66",
+	"Packages": [
+		"github.com/denverdino/aliyungo/slb"
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/denverdino/aliyungo/common",
+			"Rev": "afedced274aa9a7fcdd47ac97018f0f8db4e5de2"
+		},
+		{
+			"ImportPath": "github.com/denverdino/aliyungo/slb",
+			"Rev": "afedced274aa9a7fcdd47ac97018f0f8db4e5de2"
+		},
+		{
+			"ImportPath": "github.com/denverdino/aliyungo/util",
+			"Rev": "afedced274aa9a7fcdd47ac97018f0f8db4e5de2"
+		}
+	]
+}
