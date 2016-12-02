@@ -158,7 +158,9 @@ kube_config_dir: "/etc/kubernetes"
 kube_config_temp_dir: "{{ kube_config_dir }}/temp"
 
 # Kubeconfig for kubectl on the control machine.
+# Using kubectl_kubeconfig may be better cause kubectl_kubeconfig use ip instead of domain name.
 cm_kubectl_kubeconfig: "{{ kube_config_dir }}/kubectl.cmkubeconfig"
+kubectl_kubeconfig: "{{ kube_config_dir }}/kubectl.kubeconfig"
 
 # The directory to store all addon yaml files.
 kube_addons_dir: "{{ kube_config_dir }}/addons"
@@ -173,6 +175,9 @@ kube_token_dir: "{{ kube_config_dir }}/tokens"
 # This is where you can drop yaml/json files and the kubelet will run those
 # pods on startup.
 kube_manifest_dir: "{{ kube_config_dir }}/manifests"
+
+# This is the group that the cert creation scripts chgrp the cert files to.
+kube_cert_group: "kube-cert"
 
 # The directory where binaries are stored on Ansible managed systems.
 # Editting this value will almost surely break something. Things like

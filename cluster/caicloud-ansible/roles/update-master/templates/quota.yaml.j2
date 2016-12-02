@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: kube-system
+  namespace: kube-system
+  labels:
+    kubernetes-admin.caicloud.io/type: partition
+spec:
+  hard:
+    cpu: {{ new_quota_cpu }}
+    memory: {{ new_quota_memory }}

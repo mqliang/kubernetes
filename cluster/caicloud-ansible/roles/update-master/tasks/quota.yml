@@ -1,0 +1,32 @@
+---
+# Update kube-system quota resource
+
+- name: Backup old file
+  command:  cp "{{ kube_config_dir }}/addons/quota.yaml" "{{ kube_config_dir }}/addons/quota.yaml.old"
+
+- name: Get current node and master number
+  shell: "kubectl get node | awk 'NR!=1' | wc -l"
+  register: remote_total
+
+- name: Register ssh info
+  set_fact: 
+    external_ssh_info: "{{ master_external_ssh_info.split(',') }}"
+    internal_ssh_info: "{{ master_internal_ssh_info.split(',') }}"
+
+- name: Set total_num
+  set_fact: 
+    total_num: "{{ external_ssh_info | count + remote_total.stdout | int }}"
+
+- name: Count quota
+  set_fact:
+    new_metrics_memory: "{{ metrics_memory_initial + (metrics_memory_per_node * (total_num | int)) }}Mi"
+    new_eventer_memory: "{{ eventer_memory_initial + (eventer_memory_per_node * (total_num | int) / 1024) | round | int }}Mi"
+    new_quota_memory: "{{ 3428 + (total_num | int) * (205 + 50) + 1024 + 512 }}Mi"
+    new_quota_cpu: "{{ 1520+ (total_num | int) * (20 + 50) + 400 }}m"
+
+- name: Update kube-system quota resource
+  template: src="quota.yaml.j2" dest="{{ kube_config_dir }}/addons/quota.yaml"
+
+- name: Apply new quota resource
+  command: kubectl apply -f /etc/kubernetes/addons/quota.yaml
+  when: inventory_hostname == groups['masters'][0]

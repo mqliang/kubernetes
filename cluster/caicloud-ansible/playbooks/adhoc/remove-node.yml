@@ -1,0 +1,342 @@
+---
+
+- hosts: 
+    - masters
+  become: yes
+  tasks:
+    - name: Drain node before remove it
+      command: "kubectl drain {{ item }} --ignore-daemonsets --delete-local-data --force"
+      with_items:
+        - "{{ groups['nodes'] }}"
+      when: inventory_hostname == groups['masters'][0]
+      ignore_errors: yes
+
+- hosts:
+    - nodes
+
+  become: yes
+
+  tasks:
+    - name: Set use_hyperkube to true by default
+      set_fact:
+        use_hyperkube: true
+
+    - name: Display system information
+      debug: msg="{{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Detecting Operating System
+      shell: ls /run/ostree-booted
+      ignore_errors: yes
+      failed_when: false
+      register: ostree_output
+
+    - set_fact:
+        is_atomic: "{{ ostree_output.rc == 0 }}"
+    - set_fact:
+        is_containerized: "{{ is_atomic or containerized | default(false) | bool }}"
+
+    - name: Determine if CoreOS
+      raw: "grep '^NAME=' /etc/os-release | sed s'/NAME=//'"
+      register: distro
+      always_run: yes
+
+    - name: Initialize facts
+      set_fact:
+        is_coreos: false
+        etcd_svc_name: etcd
+        bin_dir: "/usr/bin"
+        networking: "flannel"
+        kube_config_dir: "/etc/kubernetes"
+
+    - name: Determine kubernetes_use_upstart
+      set_fact:
+        kubernetes_use_upstart: false
+
+    - set_fact:
+        kubernetes_use_upstart: true
+      when: ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 15
+
+    - name: Set CoreOS facts
+      when: "'CoreOS' in distro.stdout"
+      set_fact:
+        is_coreos: true
+        etcd_svc_name: etcd2
+        bin_dir: "/opt/bin"
+        kube_config_dir: "/etc/kubernetes"
+
+    - name: Remove br0 interface
+      shell: ovs-vsctl del-br br0
+      changed_when: False
+      failed_when: False
+
+    - name: Stop services
+      service: name={{ item }} state=stopped
+      with_items:
+        - kubelet
+        - kube-addons
+        - flanneld
+        - calicoctl
+        - "{{ etcd_svc_name }}"
+        - etcd-server
+        - etcd-server-events
+      failed_when: false
+
+    - name: Stop services
+      service: name={{ item }} state=stopped
+      with_items:
+        - kube-apiserver
+        - kube-controller-manager
+        - kube-proxy
+        - kube-scheduler
+      failed_when: false
+      when: not use_hyperkube
+
+    - name: Remove packages
+      action: "{{ ansible_pkg_mgr }} name={{ item }} state=absent"
+      when: not is_coreos and not is_atomic | bool
+      with_items:
+        - flannel
+        - calicoctl
+        - kubernetes-node
+        - kubernetes-master
+        - kubernetes-client
+        - "{{ etcd_svc_name }}"
+        - etcd-server
+        - etcd-server-events
+        - kube-addons
+        - atomic-enterprise
+        - atomic-enterprise-master
+        - atomic-enterprise-node
+
+    - name: CoreOS | Remove bins and systemd files
+      file: path={{ item }} state=absent
+      when: is_coreos
+      with_items:
+        - "{{ bin_dir }}/mk-docker-opts.sh"
+        - /etc/systemd/system/docker.service.d
+        - /etc/systemd/system/etcd2.service.d
+        - /etc/systemd/system/kube-apiserver.service.d
+        - /etc/systemd/system/kube-scheduler.service.d
+        - /etc/systemd/system/kube-controller-manager.service.d/
+        - /etc/systemd/system/kubelet.service.d
+        - /etc/systemd/system/kube-proxy.service.d
+
+    - name: Remove linux interfaces
+      shell: ip link del "{{ item }}"
+      changed_when: False
+      failed_when: False
+      with_items:
+        - flannel.1
+        - docker0
+
+    - shell: systemctl reset-failed
+      changed_when: False
+      when: not kubernetes_use_upstart
+
+    - shell: find /var/lib/kubelet/pods -type d -exec umount {} \; 2>/dev/null || true
+      changed_when: False
+
+    - name: Remove remaining files
+      file: path={{ item }} state=absent
+      with_items:
+        - "~{{ ansible_user }}/.kube"
+        - /root/.kube
+        - "{{ bin_dir }}/kube-apiserver"
+        - "{{ bin_dir }}/kube-controller-manager"
+        - "{{ bin_dir }}/kubectl"
+        - "{{ bin_dir }}/kubelet"
+        - "{{ bin_dir }}/kube-proxy"
+        - "{{ bin_dir }}/kube-scheduler"
+        - "{{ bin_dir }}/flanneld"
+        - "{{ bin_dir }}/calicoctl"
+        - /run/flannel_docker_opts.env
+        - /run/flannel
+        - /tmp/flannel-conf.json
+        - /opt/flannel-0.5.5 #flannel version can change
+        - /opt/cni
+        - /etc/cni
+        - /etc/kubernetes
+        - /etc/systemd/system/kube-addons.service
+        - /etc/systemd/system/kube-controller-manager.service
+        - /etc/systemd/system/kube-proxy.service
+        - /etc/systemd/system/kube-proxy.service.wants
+        - /etc/systemd/system/kube-apiserver.service
+        - /etc/systemd/system/kube-apiserver.service.wants
+        - /etc/systemd/system/kubelet.service
+        - /etc/systemd/system/kube-scheduler.service
+        - /etc/systemd/system/flanneld.service
+        - /etc/systemd/system/flanneld.service.wants
+        - /etc/systemd/system/calicoctl.service
+        - /etc/systemd/system/multi-user.target.wants/etcd-server.service
+        - /etc/systemd/system/multi-user.target.wants/etcd-server-events.service
+        - /etc/systemd/system/multi-user.target.wants/flanneld.service
+        - /etc/systemd/system/multi-user.target.wants/kubelet.service
+        - /etc/systemd/system/multi-user.target.wants/kube-proxy.service
+        - /etc/systemd/system/multi-user.target.wants/kube-apiserver.service
+        - /etc/systemd/system/multi-user.target.wants/kube-scheduler.service
+        - /etc/systemd/system/multi-user.target.wants/kube-controller-manager.service
+        - /etc/systemd/system/multi-user.target.wants/kube-addons.service
+        - /etc/systemd/system/delay-master-services.target
+        - /etc/systemd/system/delay-node-services.target
+        - /etc/sysconfig/flanneld
+        - /etc/sysconfig/calicoctl
+        - "/etc/systemd/system/{{ etcd_svc_name }}.service"
+        - /etc/init/kubelet.conf
+        - /etc/init/kube-proxy.conf
+        - /etc/init/kube-scheduler.conf
+        - /etc/init/kube-controller-manager.conf
+        - /etc/init/kube-apiserver.conf
+        - /etc/init/kube-addons.conf
+        - /etc/init/etcd-server.conf
+        - /etc/init/etcd-server-events.conf
+        - /etc/init/flanneld.conf
+        - /etc/init/calicoctl.conf
+        - /etc/default/kubelet
+        - /etc/default/kube-proxy
+        - /etc/default/kube-scheduler
+        - /etc/default/kube-controller-manager
+        - /etc/default/kube-apiserver
+        - /etc/default/etcd-server.conf
+        - /etc/default/etcd-server-events.conf
+        - /etc/default/flanneld
+        - /etc/default/calicoctl
+        - /usr/libexec/kubernetes
+        - /etc/etcd
+        - /etc/tmpfiles.d
+        - /usr/local/caicloud-kube
+        - /etc/systemd/system/docker.service.d/40-docker-depends-on-flannel.conf
+        - "{{ kube_config_dir }}"
+        - /var/lib/etcd
+        - /var/lib/etcd-events
+
+    - name: Ubuntu | Update docker.conf let docker to be independent of flannel
+      lineinfile:
+        dest: /etc/init/docker.conf
+        regexp: "^start on"
+        line: "start on (local-filesystems and net-device-up IFACE!=lo)"
+        state: present
+      when: kubernetes_use_upstart
+
+    - lineinfile:
+        dest: /etc/init/docker.conf
+        regexp: "^stop on"
+        line: "stop on runlevel [!2345]"
+        state: present
+      when: kubernetes_use_upstart
+
+    - name: Update docker.service
+      lineinfile:
+        dest: /etc/systemd/system/docker.service
+        regexp: "EnvironmentFile=-/run/flannel_docker_opts.env|ExecStartPre="
+        state: absent
+      when: not kubernetes_use_upstart and networking == "flannel"
+
+    - lineinfile:
+        dest: /etc/systemd/system/docker.service
+        regexp: "^ExecStart"
+        line: "ExecStart=/usr/bin/docker daemon -H fd://"
+        state: present
+      when: not kubernetes_use_upstart and networking == "flannel"
+
+    - shell: systemctl daemon-reload
+      changed_when: False
+      when: not kubernetes_use_upstart
+
+    - name: Restart docker
+      service:
+        name: docker
+        state: restarted
+
+    - name: Reload systemd manager configuration
+      command: systemctl daemon-reload
+      when: not kubernetes_use_upstart
+
+    - name: Finds incomplete or aborted yum transactions on a system and attempts to complete them
+      command: yum-complete-transaction --cleanup-only
+      failed_when: False
+      when: not kubernetes_use_upstart
+
+    - name: CoreOS | unbootstrap python
+      raw: rm -r {{ item }}
+      when: is_coreos
+      with_items:
+        - "{{ bin_dir }}/python"
+        - "{{ bin_dir }}/pypy"
+
+- hosts:
+    - masters
+  become: yes
+  tasks:
+    - name: Set use_hyperkube to true by default
+      set_fact:
+        use_hyperkube: true
+
+    - name: Delete node
+      command: kubectl delete node {{ item }}
+      with_items:
+        - "{{ groups['nodes'] }}"
+      when: inventory_hostname == groups['masters'][0]
+      ignore_errors: yes
+
+    - name: Update /etc/hosts
+      lineinfile: dest=/etc/hosts regexp="^{{ hostvars[item]['ansible_host'] }} {{ item }}.*" state=absent
+      with_items: "{{ groups['nodes'] }}"
+    
+    - set_fact:
+        kube_config_dir: "/etc/kubernetes"
+
+    - set_fact:
+        kube_token_dir: "{{ kube_config_dir }}/tokens"
+        kube_manifest_dir: "{{ kube_config_dir }}/manifests"
+        kube_config_temp_dir: "{{ kube_config_dir }}/temp"
+    
+    - name: Update token
+      file: path={{ kube_token_dir }}/{{ item[0] }}-{{ item[1] }}.token state=absent
+      with_nested:
+        - [ 'system:kubelet', 'system:proxy' ]
+        - "{{ groups['nodes'] }}"
+
+    - name: Update abac.json
+      lineinfile: dest={{ kube_token_dir }}/abac.json regexp=".*{{ item[0] }}-{{ item[1] }}.*" state=absent
+      with_nested:
+        - [ 'system:kubelet', 'system:proxy' ]
+        - "{{ groups['nodes'] }}"
+
+    - name: Update known_tokens.csv
+      lineinfile: dest={{ kube_token_dir }}/known_tokens.csv regexp=".*{{ item[0] }}-{{ item[1] }}.*" state=absent
+      with_nested:
+        - [ 'system:kubelet', 'system:proxy' ]
+        - "{{ groups['nodes'] }}"
+
+    - name: restart apiserver | service
+      service: name=kube-apiserver state=restarted
+      when: not use_hyperkube
+
+    - name: restart apiserver | pod
+      shell:  |
+        mv {{ kube_manifest_dir }}/hyperkube-apiserver.yaml {{ kube_config_temp_dir }}/hyperkube-apiserver.yaml;
+        sleep 20;
+        mv {{ kube_config_temp_dir }}/hyperkube-apiserver.yaml {{ kube_manifest_dir }}/hyperkube-apiserver.yaml;
+      when: use_hyperkube
+
+    # - name: Get current node and master number
+    #   shell: kubectl get node | awk 'NR!=1' | wc -l
+    #   register: remote_total
+
+    # - name: Set fact
+    #   set_fact: 
+    #     total_num: "{{ remote_total.stdout | int }}"
+
+    # - name: Count quota
+    #   set_fact: 
+    #     new_metrics_memory: "{{ metrics_memory_initial + (metrics_memory_per_node * (total_num | int)) }}Mi"
+    #     new_eventer_memory: "{{ eventer_memory_initial + (eventer_memory_per_node * (total_num | int) / 1024) | round | int }}Mi"
+    #     new_quota_memory: "{{ 3428 + (total_num | int) * (205 + 50) + 1024 + 512 }}Mi"
+    #     new_quota_cpu: "{{ 1520+ (total_num | int) * (20 + 50) + 400 }}m"
+
+    # - name: Update kube-system quota resource
+    #   template: src="../../roles/update-master/templates/quota.yaml.j2" dest="{{ kube_config_dir }}/addons/quota.yaml"
+
+    # - name: Apply new quota resource
+    #   command: kubectl apply -f /etc/kubernetes/addons/quota.yaml
+    #   when: inventory_hostname == groups['masters'][0]

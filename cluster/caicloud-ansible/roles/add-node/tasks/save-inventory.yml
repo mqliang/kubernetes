@@ -1,0 +1,46 @@
+---
+# Save in-memory inventory to file
+
+- name: Write group name [resourceservers]
+  shell: echo "[resourceservers]" > {{ kube_current }}/.ansible/inventory;
+
+- name: Write group [resourceservers]
+  shell: >
+    echo "{{ item }} ansible_host={{ hostvars[item]['ansible_host'] }}
+    ansible_user={{ hostvars[item]['ansible_user'] }} ansible_ssh_pass={{ hostvars[item]['ansible_ssh_pass'] }}
+    internal_ip={{ hostvars[item]['internal_ip'] }}" >> {{ kube_current }}/.ansible/inventory;
+    echo "" >> {{ kube_current }}/inventory;
+  with_items: "{{ groups['resourceservers'] }}"
+
+- name: Write group name [masters]
+  shell: echo "[masters]" > {{ kube_current }}/.ansible/inventory;
+
+- name: Write group [masters]
+  shell: >
+    echo "{{ item }} ansible_host={{ hostvars[item]['ansible_host'] }} 
+    ansible_user={{ hostvars[item]['ansible_user'] }} ansible_ssh_pass={{ hostvars[item]['ansible_ssh_pass'] }} 
+    internal_ip={{ hostvars[item]['internal_ip'] }}" >> {{ kube_current }}/.ansible/inventory;
+    echo "" >> {{ kube_current }}/inventory;
+  with_items: "{{ groups['masters'] }}"
+
+- name: Write group name [etcd]
+  shell: echo "[etcd]" >> {{ kube_current }}/.ansible/inventory;
+
+- name: Write group [etcd]
+  shell: >
+    echo "{{ item }} ansible_host={{ hostvars[item]['ansible_host'] }} 
+    ansible_user={{ hostvars[item]['ansible_user'] }} ansible_ssh_pass={{ hostvars[item]['ansible_ssh_pass'] }} 
+    internal_ip={{ hostvars[item]['internal_ip'] }}" >> {{ kube_current }}/.ansible/inventory;
+    echo "" >> {{ kube_current }}/inventory;
+  with_items: "{{ groups['etcd'] }}"
+
+- name: Write group name [nodes]
+  shell: echo "[nodes]" >> {{ kube_current }}/.ansible/inventory;
+
+- name: Write group [nodes]
+  shell: >
+    echo "{{ item }} ansible_host={{ hostvars[item]['ansible_host'] }} 
+    ansible_user={{ hostvars[item]['ansible_user'] }} ansible_ssh_pass={{ hostvars[item]['ansible_ssh_pass'] }} 
+    internal_ip={{ hostvars[item]['internal_ip'] }}" >> {{ kube_current }}/.ansible/inventory;
+    echo "" >> {{ kube_current }}/inventory;
+  with_items: "{{ groups['nodes'] }}"

@@ -1,0 +1,26 @@
+---
+# Update abac policy on master
+
+- name: Copy the abac policy gen script
+  copy:
+    src=../../kubernetes-base/files/kube-gen-abac-policy.sh
+    dest={{ kube_script_dir }}
+    mode=0500
+  changed_when: false
+
+- name: Generate abac policy for node components
+  command: "{{ kube_script_dir }}/kube-gen-abac-policy.sh {{ item[0] }}-{{ item[1] }}"
+  environment:
+    TOKEN_DIR: "{{ kube_token_dir }}"
+  with_nested:
+    - [ 'system:kubelet', 'system:proxy' ]
+    - "{{ groups['nodes'] }}"
+  notify:
+    - restart apiserver
+
+- name: Verify abac policy
+  file:
+    path={{ kube_token_dir }}/abac.json
+    group={{ kube_cert_group }}
+    owner=kube
+    mode=0640

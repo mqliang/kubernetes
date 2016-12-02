@@ -1,0 +1,33 @@
+---
+# Add host inventory for node.
+
+- name: Register ssh info
+  set_fact: 
+    external_ssh_info: "{{ node_external_ssh_info.split(',') }}"
+    internal_ssh_info: "{{ node_internal_ssh_info.split(',') }}"
+
+- name: Calculate node name
+  script: "calculate-node-name.sh"
+  environment:
+    TOTAL_NODE_NUM: "{{ external_ssh_info | count }}"
+    NODE_NAME_PREFIX: "{{node_name_prefix}}"
+    kubectl:  "{{ kubectl_sh }}"
+  register: node_names
+  when: node_instace_id_info is not defined
+
+- name: Add node inventory info
+  add_host: name={% if node_instace_id_info is defined %}{{ node_instace_id_info.split(',')[item | int - 1] }}{% else %}{{ node_names.stdout_lines[item | int - 1] }}{% endif %}
+            groups=nodes
+            ansible_host={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[2] }}
+            ansible_user={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[0] }}
+            ansible_ssh_pass={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[1] }}
+            internal_ip={{ internal_ssh_info[item | int - 1].replace(':', '@').split('@')[2] }}
+  with_sequence: count={{ external_ssh_info | count }}
+
+- name: Save node names
+  copy: content='export NODE_HOSTNAME_ARR={{ node_names.stdout_lines | join(",") }}' dest={{ kube_current }}/node_names.bashrc
+  when: node_instace_id_info is not defined
+
+- name: Save node names
+  copy: content='export NODE_HOSTNAME_ARR={{ node_instace_id_info }}' dest={{ kube_current }}/node_names.bashrc
+  when: node_instace_id_info is defined

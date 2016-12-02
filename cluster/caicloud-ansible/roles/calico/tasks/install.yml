@@ -41,3 +41,4 @@
     ETCD_ENDPOINTS: "{{ etcd_endpoints }}"
   command: "{{ bin_dir }}/calicoctl pool add {{ calico_subnet}}/{{calico_prefix}}"
   run_once: true
+  when: inventory_hostname in groups['masters']

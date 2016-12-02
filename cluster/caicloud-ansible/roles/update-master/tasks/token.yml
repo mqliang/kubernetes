@@ -1,0 +1,20 @@
+---
+# Update token on master
+
+- name: Copy the token gen script
+  copy:
+    src=../../kubernetes-base/files/kube-gen-token.sh
+    dest={{ kube_script_dir }}
+    mode=u+x
+
+- name: Generate tokens for new node components
+  command: "{{ kube_script_dir }}/kube-gen-token.sh {{ item[0] }}-{{ item[1] }}"
+  environment:
+    TOKEN_DIR: "{{ kube_token_dir }}"
+  with_nested:
+    - [ 'system:kubelet', 'system:proxy' ]
+    - "{{ groups['nodes'] }}"
+  register: gentoken
+  changed_when: "'Added' in gentoken.stdout"
+  notify:
+    - restart apiserver

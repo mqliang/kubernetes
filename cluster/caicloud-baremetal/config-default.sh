@@ -56,6 +56,10 @@ SETUP_INSTANCES=${SETUP_INSTANCES-"YES"}
 SSH_PRIVATE_KEY_FILE=${SSH_PRIVATE_KEY_FILE-"$HOME/.ssh/id_rsa"}
 SSH_PUBLIC_KEY_FILE=${SSH_PUBLIC_KEY_FILE-"$SSH_PRIVATE_KEY_FILE.pub"}
 
+CAICLOUD_K8S_CFG_STRING_KUBECTL_SH=${CAICLOUD_K8S_CFG_STRING_BIN_DIR-'/usr/bin'}/kubectl
+
+CAICLOUD_K8S_CFG_STRING_KUBE_CURRENT=$KUBE_CURRENT
+
 # -----------------------------------------------------------------------------
 # Derived params for kube-up (calculated based on above params: DO NOT CHANGE).
 # If above configs are changed manually, remember to call the function.
@@ -141,5 +145,62 @@ function op-fetch-kubectl {
       export KUBECTL_PATH=`which kubectl`
     fi
     fetch-kubeconfig-from-master
+  fi
+}
+
+# Following may move to caicloud/common.sh
+
+# Ensure apiserver domain can be resolved. May not work on multi-master
+# Not work in Pod
+function ensure-apiserver-hosts {
+  if [[ -z "${DNS_HOST_NAME-}" ]]; then
+    DNS_HOST_NAME="cluster"
+  fi
+
+  if [[ -z "${BASE_DOMAIN_NAME-}" ]]; then
+    BASE_DOMAIN_NAME="caicloudprivatetest.com"
+  fi
+
+  apiserver_domain=${DNS_HOST_NAME}.${BASE_DOMAIN_NAME}
+  IFS=',' read -ra external_ssh_info <<< "${MASTER_EXTERNAL_SSH_INFO}"
+  IFS=':@' read -ra e_ssh_info <<< "${external_ssh_info[0]}"
+  apiserver_ip=${e_ssh_info[2]}
+
+  found_hosts=`cat /etc/hosts | grep "${apiserver_domain}" | grep "${apiserver_ip}" | wc -l`
+
+  if [[ $found_hosts == 0 ]]; then
+    echo "Add hosts ${apiserver_ip} ${apiserver_domain}"
+    # remove wrong hosts
+    sed -i "/${apiserver_domain}/d" /etc/hosts
+    echo "${apiserver_ip} ${apiserver_domain}" >> /etc/hosts
+  fi
+}
+
+# Ensure kubectl binary exist in KUBECTL_PATH
+function ensure-kubectl-binary {
+  find-kubectl-binary
+  # If cann't find kubectl binary, we need to fetch it from master node.
+  if [[ -z "${KUBECTL_PATH-}" ]]; then
+    # Assume on linux amd64
+    locations=(
+      "${KUBE_ROOT}/_output/dockerized/bin/linux/amd64/kubectl"
+      "${KUBE_ROOT}/_output/local/bin/linux/amd64/kubectl"
+      "${KUBE_ROOT}/platforms/linux/amd64/kubectl"
+    )
+    kubectl=$( (ls -t "${locations[@]}" 2>/dev/null || true) | head -1 )
+    if [[ ! -x "$kubectl" ]]; then
+      export KUBECTL_PATH="${CAICLOUD_K8S_CFG_STRING_BIN_DIR-'/usr/bin'}/kubectl"
+      ansible-playbook -v -i $KUBE_CURRENT/.ansible/inventory --extra-vars "fetch_kubectl_binary=1 bin_dir=${CAICLOUD_K8S_CFG_STRING_BIN_DIR-'/usr/bin'}" $KUBE_ROOT/cluster/caicloud-ansible/playbooks/adhoc/fetch-kubectl.yml
+      ret=$?
+      if [[ $ret -ne 0 ]]; then
+        echo "Failed to fetch kubectl binary by ansible." >&2
+        exit 1
+      fi
+    else
+      export CAICLOUD_K8S_CFG_STRING_KUBECTL_SH="$(pwd)/$kubectl"
+      export KUBECTL_PATH=$kubectl
+    fi
+  else
+    export CAICLOUD_K8S_CFG_STRING_KUBECTL_SH="$KUBECTL_PATH"
   fi
 }

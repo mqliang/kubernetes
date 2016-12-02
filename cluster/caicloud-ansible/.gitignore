@@ -3,5 +3,9 @@ inventory
 *.swp
 *~
 cluster.retry
-extra_vars.json
 uninstall.retry
+add-node.retry
+remove-node.retry
+uninstall.retry
+extra_vars.json
+node_names.bashrc

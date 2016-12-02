@@ -1,0 +1,14 @@
+---
+
+- hosts:
+    - localhost
+  become: yes
+  tasks:
+    - name: Fetch kubectl binary from master
+      fetch: src={{ bin_dir }}/kubectl dest={{ bin_dir }}/kubectl flat=yes
+      delegate_to: "{{ groups['masters'][0] }}"
+      when: fetch_kubectl_binary is defined
+
+    - name: Chmod kubectl binary with mode 0755
+      file: path={{ bin_dir }}/kubectl owner=root group=root mode=0755
+      when: fetch_kubectl_binary is defined

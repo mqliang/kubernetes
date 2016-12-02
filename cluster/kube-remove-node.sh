@@ -14,24 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Add new node(s) to a running kubernetes cluster. This script assumes that
-# master already stores necessary files/packages to bring up a new node. To
-# be specific, the following should exist on master:
-#
-#   /etc/caicloud/caicloud-kube.tar.gz    -- caicloud kubernetes related binaries.
-#   /etc/caicloud/kubelet-kubeconfig      -- config needed by kubelet to access master
-#   /etc/caicloud/kube-proxy-kubeconfig   -- config needed by kube-proxy to access master
-#
-# The number of new nodes to add equals to ${NUM_MINIONS}.
-#
-# New versions of kube-up will place these files at the right location during
-# kube-up. The binaries tarball should also be updated when we upgrade cluster.
 set -o nounset
 set -o pipefail
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 
-PROVIDER_ADD_NODE_UTILS="${KUBE_ROOT}/cluster/${KUBERNETES_PROVIDER}/add-node.sh"
+PROVIDER_ADD_NODE_UTILS="${KUBE_ROOT}/cluster/${KUBERNETES_PROVIDER}/remove-node.sh"
 if [ -f ${PROVIDER_ADD_NODE_UTILS} ]; then
 	source "${PROVIDER_ADD_NODE_UTILS}"
 fi
@@ -42,22 +30,22 @@ fi
 
 source "${KUBE_ROOT}/cluster/lib/util.sh"
 
-echo "... Creating new instances using provider: $KUBERNETES_PROVIDER" >&2
+echo "... Removing instances using provider: $KUBERNETES_PROVIDER" >&2
 
 echo "... calling verify-prereqs" >&2
 verify-prereqs
 
-echo "... calling kube-add-nodes" >&2
-kube-add-nodes
+echo "... calling kube-remove-nodes" >&2
+kube-remove-nodes
 
-echo "... calling report-new-nodes" >&2
-report-new-nodes
+echo "... calling report-remove-nodes" >&2
+report-remove-nodes
 
 # still need to validate cluster after scaling up
 echo "... calling validate-cluster" >&2
 
 # Override errexit
-(validate-new-node) && validate_result="$?" || validate_result="$?"
+(validate-remove-node) && validate_result="$?" || validate_result="$?"
 
 # We have two different failure modes from validate cluster:
 # - 1: fatal error - cluster won't be working correctly
