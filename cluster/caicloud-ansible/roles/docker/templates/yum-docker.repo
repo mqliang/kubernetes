@@ -1,6 +1,6 @@
 [dockerrepo]
 name=Docker Repository
-baseurl=https://mirrors.caicloud.io/yum.dockerproject.org/repo/main/{{ ansible_distribution | lower }}/$releasever/
+baseurl={% if offline_mode %}http{% else %}https{% endif %}://mirrors.caicloud.io/yum.dockerproject.org/repo/main/{{ ansible_distribution | lower }}/$releasever/
 enabled=1
 gpgcheck=1
-gpgkey=https://mirrors.caicloud.io/yum.dockerproject.org/gpg
+gpgkey={% if offline_mode %}http{% else %}https{% endif %}://mirrors.caicloud.io/yum.dockerproject.org/gpg

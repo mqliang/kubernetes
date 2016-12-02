@@ -4,6 +4,10 @@
 
 - name: Ubuntu | Install GPG key
   apt_key: keyserver=keyserver.ubuntu.com id=F76221572C52609D
+  environment:
+    http_proxy: "{{ http_proxy|default('') }}"
+    https_proxy: "{{ https_proxy|default('') }}"
+    no_proxy: "{{ no_proxy|default('') }}"
   # Register and retry to work around transient http issues
   register: gpg_key_install
   until: gpg_key_install|success
@@ -23,6 +27,10 @@
   until: apt_cache_update|success
   retries: 3
   delay: 5
+
+- name: Ubuntu | Support aufs on ubuntu
+  shell: apt-get install -y linux-image-extra-$(uname -r)
+  when: use_aufs
 
 - name: Ubuntu | Install specific version of docker engine
   apt: name=docker-engine={{ docker_version }}-0~{{ ansible_distribution_release }}

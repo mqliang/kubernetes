@@ -4,7 +4,6 @@
 etcd_version: 2.3.7
 
 # The default url to download the etcd tar from.
-etcd_download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"
 etcd_download_url: "{{ etcd_download_url_base }}/etcd-v{{ etcd_version }}-linux-amd64.tar.gz"
 
 #

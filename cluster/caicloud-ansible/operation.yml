@@ -3,7 +3,7 @@
 
 - name: Precheck for loadbalancer
   hosts:
-    - masters
+    - resourceservers
     - nodes
     - localhost
   become: yes
@@ -11,6 +11,27 @@
     - loadbalancer
   tags:
     - loadbalancer
+
+- name: Setup for offline
+  hosts:
+    - resourceservers
+    - nodes
+  become: yes
+  roles:
+    - role: offline
+      when: offline_mode
+  tags:
+    - offline
+
+- name: Prologue once
+  hosts:
+    - resourceservers
+    - nodes
+  become: yes
+  roles:
+    - prologue-once
+  tags:
+    - prologue-once
 
 - name: Upgrade/downgrade masters
   hosts: masters
@@ -42,6 +63,7 @@
 - name: Fetch kubectl and kubeconfig
   hosts:
     - localhost
+  become: yes
   roles:
     - control-machine
   tags:

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cyclone
+  labels:
+    kubernetes-admin.caicloud.io/type: partition
+    kubernetes-admin.caicloud.io/partition: cyclone

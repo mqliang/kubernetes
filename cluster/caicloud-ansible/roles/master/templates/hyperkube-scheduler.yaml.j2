@@ -7,7 +7,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-scheduler
-    image: index.caicloud.io/caicloud/hyperkube:{{ hyperkube_version }}
+    image: {{ hyperkube_image }}
     imagePullPolicy: Always
     resources:
       requests:

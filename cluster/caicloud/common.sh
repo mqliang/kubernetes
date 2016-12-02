@@ -789,7 +789,8 @@ EOF
 
     if [[ $fail != "0" ]]; then
       # We give more attempts for setting up ssh to allow slow instance startup.
-      if (( attempt > 40 )); then
+      # Just try 6 times cause it's more likely fails for other reason, more attempts is useless.
+      if (( attempt > 5 )); then
         echo
         log "${color_red}Unable to setup instance ssh for $1 (sorry!)${color_norm}" >&2
         kube-up-complete N

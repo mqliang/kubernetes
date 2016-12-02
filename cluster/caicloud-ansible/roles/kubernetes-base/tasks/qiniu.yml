@@ -41,7 +41,7 @@
   delegate_to: localhost
   register: kube_tarball_copy
   until: kube_tarball_copy|success
-  retries: 5
+  retries: "{{ 5 * retry_ratio }}"
   delay: 3
 
 - name: Remove existing caicloud-kube

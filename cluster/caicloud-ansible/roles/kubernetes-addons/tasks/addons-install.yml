@@ -1,0 +1,63 @@
+---
+# Deploy addons by kube-addon-manager.
+
+# Install addons based on configuration.
+- name: Write kube-system namespace resource
+  copy: src="namespace.yaml" dest="{{ kube_config_dir }}/addons/namespace.yaml"
+
+# Disable quota.
+# - name: Write kube-system quota resource
+#   template: src="quota.yaml.j2" dest="{{ kube_config_dir }}/addons/quota.yaml"
+
+# Disable limitrange.
+# - name: Write kube-system limitrange resource
+#   copy: src="limitrange.yaml" dest="{{ kube_config_dir }}/addons/limitrange.yaml"
+
+- name: Write third party resource
+  copy: src="thirdpartyresource.yaml" dest="{{ kube_config_dir }}/addons/thirdpartyresource.yaml"
+
+- include: dns.yml
+  when: dns_setup
+
+- include: cluster-monitoring.yml
+  when: cluster_monitoring
+
+- include: cluster-logging.yml
+  when: cluster_logging
+
+- include: kubepush.yml
+  when: kube_push
+
+- include: ingress.yml
+  when: cluster_ingress
+
+- name: Install required packages and addon scripts
+  include: generic-install.yml
+
+- name: Write kube-addons script from kubernetes
+  copy:
+    src=kube-addons.sh
+    dest={{ kube_script_dir }}/kube-addons.sh mode=0755
+  notify:
+    - restart kube-addons
+
+- name: Write kube-addon-update script from kubernetes
+  copy:
+    src=kube-addon-update.sh
+    dest={{ kube_script_dir }}/kube-addon-update.sh mode=0755
+  notify:
+    - restart kube-addons
+
+- name: Install kube-addons service
+  template: src=kube-addons.service.j2 dest=/etc/systemd/system/kube-addons.service
+  notify:
+    - reload and restart kube-addons
+  when: not addons_use_upstart
+
+- name: Install kube-addons upstart configuration
+  template: src=kube-addons.upstart.j2 dest=/etc/init/kube-addons.conf
+  when: addons_use_upstart
+
+- name: Enable and start kube addons
+  service: name=kube-addons enabled=yes state=started
+  when: inventory_hostname == groups['masters'][0]

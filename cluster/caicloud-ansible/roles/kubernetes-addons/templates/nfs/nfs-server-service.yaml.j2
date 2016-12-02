@@ -1,0 +1,15 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: master-nfs-server
+spec:
+  ports:
+    - name: nfs
+      port: 2049
+    - name: mountd
+      port: 20048
+    - name: rpcbind
+      port: 111
+  clusterIP:  {{ nfs_server }}
+  selector:
+    role: master-nfs-server

@@ -29,6 +29,14 @@
 - name: CentOS | Install GPG key
   template: src="yum-docker.repo" dest="/etc/yum.repos.d/docker.repo"
 
+# https://github.com/docker/docker/issues/20484
+- name: CentOS | Install lvm2
+  command: yum install -y lvm2
+  when: ansible_distribution_version | version_compare('7.2.1511', '<')
+
+- name: CentOS | Install yum-utils
+  yum: name=yum-utils
+
 - name: Finds incomplete or aborted yum transactions on a system and attempts to complete them
   command: yum-complete-transaction --cleanup-only
   failed_when: False

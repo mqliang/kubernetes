@@ -18,7 +18,7 @@
   when: flannel_tarball.stat.exists == False
   register: flannel_tarball_download
   until: flannel_tarball_download|success
-  retries: 10
+  retries: "{{ 10 * retry_ratio }}"
   delay: 5
 
 - name: Extract tar file
