@@ -1,0 +1,23 @@
+---
+# Update master for add node.
+
+# Should recreate apiserver pod or restart apiserver service to ensure new hosts work
+- name: Update hosts on master
+  include:  hosts.yml
+
+- name: Update token on master
+  include:  token.yml
+  when: inventory_hostname == groups['masters'][0]
+
+- name: Update abac policy on master
+  include:  abac.yml
+  when: inventory_hostname == groups['masters'][0]
+
+- name: Sync tokens
+  include: ../../kubernetes-base/tasks/sync-tokens.yml
+  notify:
+    - restart apiserver
+  changed_when: true
+
+# - name: Update kube-system quota resource
+#   include:  quota.yml

@@ -39,9 +39,6 @@ master_nginx_conf_dir: "{{ kube_config_dir }}/nginx"
 # The IP(s) for which the certificate will be valid.
 kube_cert_ip: "{{ hostvars[inventory_hostname]['ansible_all_ipv4_addresses'] | join (',IP:') }}"
 
-# This is the group that the cert creation scripts chgrp the cert files to.
-kube_cert_group: "kube-cert"
-
 # Systemd unit file is hardcoded to use the directory.
 kubelet_working_dir: "/var/lib/kubelet"
 

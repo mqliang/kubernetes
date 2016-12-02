@@ -1,0 +1,53 @@
+---
+# Sync all certs from first master
+
+#
+# Place ca certificate everywhere.
+
+- name: Set kube_ca_cert
+  include: get_ca_cert.yml
+
+- name: Place CA certificate and kube_cfg credentials everywhere
+  copy: content="{{ kube_ca_cert }}" dest="{{ kube_cert_dir }}/ca.crt"
+  when: inventory_hostname != groups['masters'][0]
+
+#
+# Place certs on masters.
+
+- name: Get the certs from first master
+  slurp:
+    src: "{{ item }}"
+  register: slurp_certs
+  with_items:
+    - "{{ kube_cert_dir }}/kubelet.crt"
+    - "{{ kube_cert_dir }}/kubelet.key"
+    - "{{ kube_cert_dir }}/server.crt"
+    - "{{ kube_cert_dir }}/server.key"
+    - "{{ kube_cert_dir }}/kubecfg.crt"
+    - "{{ kube_cert_dir }}/kubecfg.key"
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Copy certs on masters
+  copy:
+    content: "{{ item.content|b64decode }}"
+    dest: "{{ item.source }}"
+  with_items: '{{slurp_certs.results}}'
+  when: inventory_hostname in groups['masters'] and
+        inventory_hostname != groups['masters'][0]
+
+- name: Verify certificate permissions
+  file:
+    path={{ item }}
+    group={{ kube_cert_group }}
+    owner=kube
+    mode=0440
+  with_items:
+    - "{{ kube_cert_dir }}/ca.crt"
+    - "{{ kube_cert_dir }}/server.crt"
+    - "{{ kube_cert_dir }}/server.key"
+    - "{{ kube_cert_dir }}/kubecfg.crt"
+    - "{{ kube_cert_dir }}/kubecfg.key"
+    - "{{ kube_cert_dir }}/kubelet.crt"
+    - "{{ kube_cert_dir }}/kubelet.key"
+  when: inventory_hostname in groups['masters']

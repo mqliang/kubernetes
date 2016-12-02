@@ -1,0 +1,45 @@
+---
+# Sync all tokens from first master
+
+#
+# Place tokens on masters.
+
+- name: Get list of tokens from first master
+  shell: "(find {{ kube_token_dir }} -maxdepth 1 -type f)"
+  register: tokens_list
+  changed_when: false
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Get the tokens from first master
+  slurp:
+    src: "{{ item }}"
+  register: slurp_tokens
+  with_items: '{{ tokens_list.stdout_lines }}'
+  run_once: true
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Copy tokens on masters
+  copy:
+    content: "{{ item.content|b64decode }}"
+    dest: "{{ item.source }}"
+  with_items: '{{slurp_tokens.results}}'
+  when: inventory_hostname in groups['masters'] and
+        inventory_hostname != groups['masters'][0]
+
+- name: Verify auth permissions
+  file:
+    path="{{ item.source }}"
+    group={{ kube_cert_group }}
+    owner=kube
+    mode=0440
+  with_items: '{{slurp_tokens.results}}'
+  when: inventory_hostname in groups['masters']
+
+- name: Verify abac policy permissions
+  file:
+    path={{ kube_token_dir }}/abac.json
+    group={{ kube_cert_group }}
+    owner=kube
+    mode=0640
+  when: inventory_hostname in groups['masters']

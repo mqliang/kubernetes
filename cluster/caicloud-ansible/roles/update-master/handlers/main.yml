@@ -1,0 +1,18 @@
+---
+
+- name: restart apiserver
+  command: /bin/true
+  notify:
+    - restart apiserver | service
+    - restart apiserver | pod
+
+- name: restart apiserver | service
+  service: name=kube-apiserver state=restarted
+  when: not use_hyperkube
+
+- name: restart apiserver | pod
+  shell:  |
+    mv {{ kube_manifest_dir }}/hyperkube-apiserver.yaml {{ kube_config_temp_dir }}/hyperkube-apiserver.yaml;
+    sleep 20;
+    mv {{ kube_config_temp_dir }}/hyperkube-apiserver.yaml {{ kube_manifest_dir }}/hyperkube-apiserver.yaml;
+  when: use_hyperkube

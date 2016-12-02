@@ -1,0 +1,121 @@
+---
+# This playbook add node to kubernetes cluster on caicloud supported platforms.
+
+- name: Prework for add node
+  hosts:
+    - localhost
+  become: yes
+  roles:
+    - add-node
+  tags:
+    - add-node
+
+- name: Precheck for loadbalancer
+  hosts:
+    - masters
+    - nodes
+    - localhost
+  become: yes
+  roles:
+    - loadbalancer
+  tags:
+    - loadbalancer
+
+- name: Setup for offline
+  hosts:
+    - masters
+    - nodes
+  become: yes
+  roles:
+    - role: offline
+      when: offline_mode
+  tags:
+    - offline
+
+- name: Prologue once
+  hosts:
+    - masters
+    - nodes
+  become: yes
+  roles:
+    - prologue-once
+  tags:
+    - prologue-once
+
+- name: Update master for add node
+  hosts:
+    - masters
+  become: yes
+  roles:
+    - update-master
+  tags:
+    - update-master
+
+
+- name: Ensure hostname in /etc/hosts file
+  hosts:
+    - nodes
+    - masters
+  become: yes
+  tasks:
+    - name: Get hostname
+      shell:  hostname
+      register: host_name
+    - name: Update /etc/hosts file
+      lineinfile: dest=/etc/hosts regexp='.*{{ host_name.stdout }}$' line="127.0.0.1 {{ host_name.stdout }}" state=present
+
+- name: Install docker
+  hosts: 
+    - nodes
+  become: yes
+  roles:
+    - docker
+  tags:
+    - docker
+
+- name: Install flannel
+  hosts:
+    - nodes
+  become: yes
+  roles:
+    - { role: flannel, when: networking == 'flannel' }
+  tags:
+    - network-service
+    - flannel
+
+- name: Install calico
+  hosts:
+    - nodes
+  become: yes
+  roles:
+    - { role: calico, when: networking == 'calico' }
+  tags:
+    - network-service
+    - calico
+
+- name: Install kubernetes nodes
+  hosts: nodes
+  become: yes
+  roles:
+    - node
+  tags:
+    - nodes
+
+- name: Install runtime dependencies and manifests
+  hosts:
+    - nodes
+  become: yes
+  roles:
+    - epilogue
+  tags:
+    - epilogue
+    - addons
+
+- name: Install kubeconfig for kubectl and add dns to hosts
+  hosts:
+    - localhost
+  become: yes
+  roles:
+    - control-machine
+  tags:
+    - control-machine

@@ -1,0 +1,10 @@
+---
+# Precheck for add node
+
+- name: Fails when node ip exists
+  environment:
+    kubectl:  "{{ kubectl_sh }}"
+  command: $kubectl get nodes -o go-template='{{ '{{' }}range .items{{ '}}' }}{{ '{{' }}range .status.addresses{{ '}}' }}{{ '{{' }}if or (eq .type "ExternalIP") (eq .type "LegacyHostIP"){{ '}}' }}{{ '{{' }}.address{{ '}}' }}{{ '{{' }}print "\n"{{ '}}' }}{{ '{{' }}end{{ '}}' }}{{ '{{' }}end{{ '}}' }}{{ '{{' }}end{{ '}}' }}'
+  register: nodes_ip
+  failed_when:  item.replace(':', '@').split('@')[2] in nodes_ip.stdout_lines or nodes_ip.rc != 0
+  with_items:  "{{ node_external_ssh_info.split(',') }}"

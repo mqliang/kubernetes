@@ -1,0 +1,20 @@
+---
+# Prework for add node.
+
+- name: Add host inventory for master and etcd
+  include: inventory-master.yml
+
+- name: Fetch kube config
+  include: kubeconfig.yml
+
+- name: Remove node_names.bashrc file
+  file: path={{ kube_current }}/node_names.bashrc state=absent
+
+- name: Precheck for add node
+  include: precheck.yml
+
+- name: Add host inventory for nodes
+  include: inventory-node.yml
+
+- name: Save inventory for later use
+  include: save-inventory.yml

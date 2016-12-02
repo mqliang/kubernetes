@@ -1360,7 +1360,7 @@ function report-ips {
 #   NODE_INTERNAL_SSH_INFO
 #
 # Optional vars:
-#   MASTER_EXTERNAR_SSH_INFO
+#   MASTER_EXTERNAL_SSH_INFO
 #   NODE_EXTERNAL_SSH_INFO
 function report-ips-to-executor {
   if [[ ${REPORT_KUBE_STATUS-} == "N" ]]; then

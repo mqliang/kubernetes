@@ -18,6 +18,7 @@
 
 - name: Prepare and write flannel configuration to etcd
   include: config-etcd.yml
+  when: inventory_hostname in groups['masters']
 
 - name: Install and configure flannel
   include: install.yml

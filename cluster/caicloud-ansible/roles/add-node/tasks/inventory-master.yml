@@ -1,0 +1,34 @@
+---
+# Add host inventory for master and etcd.
+
+- name: Register ssh info
+  set_fact: 
+    external_ssh_info: "{{ master_external_ssh_info.split(',') }}"
+    internal_ssh_info: "{{ master_internal_ssh_info.split(',') }}"
+
+- name: Add master inventory info
+  add_host: name={% if master_instace_id_info is defined %}{{ master_instace_id_info.split(',')[item | int - 1] }}{% else %}{{ master_name_prefix }}{{ item }}{% endif %}
+            groups=masters
+            ansible_host={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[2] }}
+            ansible_user={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[0] }}
+            ansible_ssh_pass={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[1] }}
+            internal_ip={{ internal_ssh_info[item | int - 1].replace(':', '@').split('@')[2] }}
+  with_sequence: count={{ external_ssh_info | count }}
+
+- name: Add etcd inventory info | It's the same with masters
+  add_host: name={% if master_instace_id_info is defined %}{{ master_instace_id_info.split(',')[item | int - 1] }}{% else %}{{ master_name_prefix }}{{ item }}{% endif %}
+            groups=etcd
+            ansible_host={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[2] }}
+            ansible_user={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[0] }}
+            ansible_ssh_pass={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[1] }}
+            internal_ip={{ internal_ssh_info[item | int - 1].replace(':', '@').split('@')[2] }}
+  with_sequence: count={{ external_ssh_info | count }}
+
+- name: Add resourceservers inventory info | It's the same with masters
+  add_host: name={% if master_instace_id_info is defined %}{{ master_instace_id_info.split(',')[item | int - 1] }}{% else %}{{ master_name_prefix }}{{ item }}{% endif %}
+            groups=resourceservers
+            ansible_host={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[2] }}
+            ansible_user={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[0] }}
+            ansible_ssh_pass={{ external_ssh_info[item | int - 1].replace(':', '@').split('@')[1] }}
+            internal_ip={{ internal_ssh_info[item | int - 1].replace(':', '@').split('@')[2] }}
+  with_sequence: count={{ external_ssh_info | count }}
