@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    caicloud-app: addon-manager-master
+    caicloud.io/cluster-service: "true"
+    addon-manager.caicloud.io/name: addon-manager-master
+    addon-manager.caicloud.io/version: v0.0.1
+    addon-manager.caicloud.io/key: master-svc
+  name: addon-manager-master
+spec:
+  ports:
+  - port: 8081
+    targetPort: 8081
+  selector:
+    caicloud-app: addon-manager-master

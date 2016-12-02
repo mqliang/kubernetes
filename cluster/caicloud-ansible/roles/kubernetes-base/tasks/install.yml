@@ -120,6 +120,14 @@
 #
 # Misc preparations for bringing up cluster.
 
+- name: Update /etc/hosts | Remove wrong registry hosts
+  lineinfile: dest=/etc/hosts regexp='.*{{ registry_prefix }}$' state=absent
+  when: ensure_registry_hosts and registry_ip != ""
+
+- name: Update /etc/hosts | Add registry hosts
+  lineinfile: dest=/etc/hosts regexp='.*{{ registry_prefix }}$' line="{{ registry_ip }} {{ registry_prefix }}" state=present
+  when: ensure_registry_hosts and registry_ip != ""
+
 - name: Copy cloud-config to {{ kube_config_dir }}
   copy: src={{ cloud_config_dir }}/cloud-config dest={{ kube_config_dir }}/cloud-config
   when: host_provider == "aliyun" or host_provider == "anchnet"
@@ -131,6 +139,10 @@
 
 - name: Download and extract tar file from qiniu for all hosts
   include: qiniu.yml
+
+- name: Install common CNI network plugins
+  include: cni.yml
+  when: network_plugins_cni
 
 - name: Generate certs (or use ca-signed certs) and tokens
   include: secrets.yml

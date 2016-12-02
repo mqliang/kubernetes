@@ -1,0 +1,145 @@
+---
+# Deploy addons by addon-manager.
+
+- name: Write kube-system namespace resource
+  copy: src="namespace.yaml" dest="{{ kube_config_dir }}/addons/namespace.yaml"
+
+- name: Write cyclone namespace resource
+  copy: src="namespace-cyclone.yaml" dest="{{ kube_config_dir }}/addons/namespace-cyclone.yaml"
+
+- name: Write kube-system quota resource
+  template: src="quota.yaml.j2" dest="{{ kube_config_dir }}/addons/quota.yaml"
+
+- name: Write cyclone quota resource
+  copy: src="quota-cyclone.yaml" dest="{{ kube_config_dir }}/addons/quota-cyclone.yaml"
+
+- name: Write third party resource
+  copy: src="thirdpartyresource.yaml" dest="{{ kube_config_dir }}/addons/thirdpartyresource.yaml"
+
+- name: namespace and quota
+  command: "{{ bin_dir }}/kubectl apply -f {{ kube_addons_dir }}/{{ item }}"
+  with_items:
+    - namespace.yaml
+    - thirdpartyresource.yaml
+    # - quota.yaml
+  when: inventory_hostname == groups['masters'][0]
+
+- name: namespace and quota for cyclone
+  command: "{{ bin_dir }}/kubectl apply -f {{ kube_addons_dir }}/{{ item }}"
+  with_items:
+    - namespace-cyclone.yaml
+    - quota-cyclone.yaml
+  when: inventory_hostname == groups['masters'][0] and deploy_caicloud_stack|bool
+
+- name: DNS | Make sure dns direcotry exists
+  file: path={{ kube_addons_dir }}/dns state=directory
+
+- name: DNS | Write dns template from converted saltfiles
+  template:
+  args:
+    src: "dns/{{ item }}.j2"
+    dest: "{{ kube_addons_dir }}/dns/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - skydns-rc.yaml
+    - skydns-svc.yaml
+
+- name: DNS | Install Dns addon
+  command: "{{ bin_dir }}/kubectl apply -f {{ kube_addons_dir }}/dns/{{ item }}"
+  with_items:
+    - skydns-svc.yaml
+    - skydns-rc.yaml
+  when: inventory_hostname == groups['masters'][0]
+
+- name: Addon-manager | Prepare configmap and secret
+  command: "{{ bin_dir }}/kubectl apply -f {{ addon_manager_root }}/{{ item }}"
+  delegate_to: localhost
+  with_items:
+    - configmap.yaml
+    - cds-executor-secret.yaml
+  when: deploy_caicloud_stack|bool and inventory_hostname == groups['masters'][0]
+
+- name: Addon-manager | Make sure addon-manager direcotry exists
+  file: path={{ kube_addons_dir }}/addon-manager state=directory
+
+- name: Addon-manager | Determine master mongo type emptydir
+  set_fact:
+    master_mongo_yaml: master-mongo-rc-emptydir.yaml
+
+- name: Addon-manager | Determine master mongo type nfs
+  set_fact:
+    master_mongo_yaml: master-mongo-rc-nfs.yaml
+  when: nfs_setup
+
+- name: Addon-manager | Write addon-manager-master pv template from converted saltfiles
+  template:
+  args:
+    src: "addon-manager/{{ item }}.j2"
+    dest: "{{ kube_addons_dir }}/addon-manager/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - master-mongo-pv.yaml
+    - master-mongo-pvc.yaml
+  when: nfs_setup
+
+- name: Addon-manager | Install addon-manager-master pv
+  command: "{{ bin_dir }}/kubectl apply -f {{ kube_addons_dir }}/addon-manager/{{ item }}"
+  with_items:
+    - master-mongo-pv.yaml
+    - master-mongo-pvc.yaml
+  when: nfs_setup and inventory_hostname == groups['masters'][0]
+
+- name: Addon-manager | Write addon-manager-minion template from converted saltfiles
+  template:
+  args:
+    src: "addon-manager/{{ item }}.j2"
+    dest: "{{ kube_addons_dir }}/addon-manager/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - minion-rc.yaml
+
+- name: Addon-manager | Write addon-manager-master template from converted saltfiles
+  template:
+  args:
+    src: "addon-manager/{{ item }}.j2"
+    dest: "{{ kube_addons_dir }}/addon-manager/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - master-minion-rc.yaml
+    - master-rc.yaml
+    - master-svc.yaml
+    - "{{ master_mongo_yaml }}"
+    - master-mongo-svc.yaml
+  when: deploy_caicloud_stack|bool
+
+- name: Addon-manager | Install addon-manager-minion addon
+  command: "{{ bin_dir }}/kubectl apply -f {{ kube_addons_dir }}/addon-manager/{{ item }}"
+  with_items:
+    - minion-rc.yaml
+  when: inventory_hostname == groups['masters'][0]
+
+- name: Addon-manager | Install addon-manager-master addon
+  command: "{{ bin_dir }}/kubectl apply -f {{ kube_addons_dir }}/addon-manager/{{ item }}"
+  with_items:
+    - master-svc.yaml
+    - "{{ master_mongo_yaml }}"
+    - master-mongo-svc.yaml
+    - master-minion-rc.yaml
+    - master-rc.yaml
+  when: deploy_caicloud_stack|bool and inventory_hostname == groups['masters'][0]
+
+- name: Addon-manager | Publish addons
+  include: addon-manager-publish-addons.yml
+  when: deploy_caicloud_stack|bool and publish_addons|bool and inventory_hostname == groups['masters'][0]
+
+- name: Addon-manager | Restore addons
+  include: addon-manager-restore-addons.yml
+  when: deploy_caicloud_stack|bool and restore_addons|bool and inventory_hostname == groups['masters'][0] and not publish_addons|bool

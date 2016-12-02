@@ -194,6 +194,9 @@
     mode: 0644
     owner: root
     group: root
+  register: hyperkube_apiserver_started
+  notify: restart apiserver | use_hyperkube
+  changed_when: hyperkube_apiserver_started.changed == false
   when: use_hyperkube
 
 - name: Sleep for a new apiserver
@@ -203,7 +206,7 @@
   uri: url=http://{{ kube_apiserver_insecure_bind_address }}:{{ kube_apiserver_insecure_bind_port }}/healthz
   register: result
   until: result.status == 200
-  retries: 15
+  retries: "{{ 15 * retry_ratio }}"
   delay: 20
   when: use_hyperkube
 

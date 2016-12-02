@@ -67,7 +67,7 @@
         - "/coreos.com"
         - "/{{ cluster_name }}" #cluster name. default in group_vars/all.yml
       ignore_errors: True
-      when: inventory_hostname == groups['etcd'][0]
+      when: inventory_hostname in groups['etcd']
 
     - name: Stop services
       service: name={{ item }} state=stopped
@@ -133,7 +133,7 @@
       changed_when: False
       when: not kubernetes_use_upstart
 
-    - shell: find /var/lib/kubelet/pods -type d -exec umount {} \; 2>/dev/null || true
+    - shell: find /var/lib/kubelet/pods -type d -exec umount -l {} \; 2>/dev/null || true
       changed_when: False
 
     - name: Remove remaining files
@@ -208,6 +208,8 @@
         - "{{ kube_config_dir }}"
         - /var/lib/etcd
         - /var/lib/etcd-events
+        - /var/lib/etcd-server
+        - /var/lib/etcd-server-events
 
     - name: Ubuntu | Update docker.conf let docker to be independent of flannel
       lineinfile:
@@ -216,6 +218,7 @@
         line: "start on (local-filesystems and net-device-up IFACE!=lo)"
         state: present
       when: kubernetes_use_upstart
+      ignore_errors: true
 
     - lineinfile:
         dest: /etc/init/docker.conf
@@ -223,6 +226,7 @@
         line: "stop on runlevel [!2345]"
         state: present
       when: kubernetes_use_upstart
+      ignore_errors: true
 
     - name: Update docker.service
       lineinfile:
@@ -230,6 +234,7 @@
         regexp: "EnvironmentFile=-/run/flannel_docker_opts.env|ExecStartPre="
         state: absent
       when: not kubernetes_use_upstart and networking == "flannel"
+      ignore_errors: true
 
     - lineinfile:
         dest: /etc/systemd/system/docker.service
@@ -237,6 +242,7 @@
         line: "ExecStart=/usr/bin/docker daemon -H fd://"
         state: present
       when: not kubernetes_use_upstart and networking == "flannel"
+      ignore_errors: true
 
     - shell: systemctl daemon-reload
       changed_when: False
@@ -246,6 +252,7 @@
       service:
         name: docker
         state: restarted
+      ignore_errors: true
 
     - name: Reload systemd manager configuration
       command: systemctl daemon-reload

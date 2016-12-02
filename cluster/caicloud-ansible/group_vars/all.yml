@@ -1,6 +1,10 @@
 # This value determines how kubernetes binaries, config files, and service
 # files are loaded onto the target machines.
 
+# The directory used by Ansible to temporarily store files on Ansible
+# managed systems.
+ansible_temp_dir: /tmp/.ansible/files
+
 # The provider of these machines, valid options: vagrant|anchnet|aliyun|other. For
 # private cloud, set this to 'other'.
 host_provider: vagrant
@@ -16,7 +20,7 @@ networking: flannel
 network_plugins_cni: true
 
 # The infra container image name.
-pod_infra_container_image: "index.caicloud.io/caicloudgcr/google_containers_pause-amd64:3.0"
+# pod_infra_container_image: "index.caicloud.io/caicloudgcr/google_containers_pause-amd64:3.0"
 
 # The set of admission_controllers used in cluster.
 admission_controllers: NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota
@@ -54,6 +58,21 @@ dns_domain: "cluster.local"
 # as kube_service_addresses. This magic will actually pick the 100th ip address
 # in the kube_service_addresses range and use that.
 dns_server: "{{ kube_service_addresses|ipaddr('net')|ipaddr(100)|ipaddr('address') }}"
+
+# Nfs server on master
+nfs_server: "{{ kube_service_addresses|ipaddr('net')|ipaddr(110)|ipaddr('address') }}"
+nfs_setup: false
+nfs_root_dir: /exports
+nfs_dirs:
+  - addon-manager-mongo
+  - auth-mongo
+  - cds-mongo
+  - console-web-mongo
+  - kubernetes-admin-mongo
+  - clever-admin-mongo
+  - cyclone-etcd
+  - cyclone-kafka
+  - cyclone-mongo
 
 # Number of replicas.
 elasticsearch_replicas: 2
@@ -166,19 +185,46 @@ kube_caicloud_version: v0.11.0
 kube_version: "{{ kube_base_version }}+{{ kube_caicloud_version}}"
 hyperkube_version: "{{ kube_caicloud_version }}"
 
-elasticsearch_image_elasticsearch: "index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.9"
-elasticsearch_image_escron: "index.caicloud.io/caicloud/es-cron:v0.1.2"
-fluentd_elasticsearch_image: "index.caicloud.io/caicloudgcr/google_containers_fluentd-elasticsearch:1.19"
-kibana_image: "index.caicloud.io/caicloudgcr/google_containers_kibana:1.3"
-heapster_image_heapster: "index.caicloud.io/caicloud/heapster:v1.2.0-v0.0.3"
-monitoring_image_influxdb: "index.caicloud.io/caicloud/influxdb:1.0.0-beta2"
-monitoring_image_grafana: "index.caicloud.io/caicloud/monitoring-grafana:v3.1.0-withfields"
-monitoring_image_watcher: "index.caicloud.io/caicloud/monitoring-watcher:v1.0.1"
-monitoring_image_server: "index.caicloud.io/caicloud/monitoring-server:v1.0.1"
-kubepush_image_kubepush: "index.caicloud.io/caicloud/kubepush:v0.0.1"
-ingress_keepalived_image: "index.caicloud.io/caicloud/ingress-keepalived-vip:v0.0.1"
-ingress_nginx_image: "index.caicloud.io/caicloud/nginx-ingress-controller:v0.0.1"
-ingress_loadbalancer_controller_image: "index.caicloud.io/caicloud/loadbalancer-controller:v0.0.1"
+download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"
+etcd_download_url_base: "{{ download_url_base }}"
+flannel_download_url_base: "{{ download_url_base }}"
+kube_download_url_base: "{{ download_url_base }}"
+cw_download_url_base: "{{ download_url_base }}"
+
+ensure_registry_hosts: false
+registry_ip: ""
+registry_prefix: "index.caicloud.io"
+registry_prefix_caicloud: "{{ registry_prefix }}/caicloud"
+registry_prefix_caicloudgcr: "{{ registry_prefix }}/caicloudgcr"
+
+elasticsearch_image_elasticsearch: "{{ registry_prefix_caicloudgcr }}/google_containers_elasticsearch:1.9"
+elasticsearch_image_escron: "{{ registry_prefix_caicloud }}/es-cron:v0.1.2"
+fluentd_elasticsearch_image: "{{ registry_prefix_caicloudgcr }}/google_containers_fluentd-elasticsearch:1.19"
+kibana_image: "{{ registry_prefix_caicloudgcr }}/google_containers_kibana:1.3"
+heapster_image_heapster: "{{ registry_prefix_caicloud }}/heapster:v1.2.0-v0.0.3"
+monitoring_image_influxdb: "{{ registry_prefix_caicloud }}/influxdb:1.0.0-beta2"
+monitoring_image_grafana: "{{ registry_prefix_caicloud }}/monitoring-grafana:v3.1.0-withfields"
+monitoring_image_watcher: "{{ registry_prefix_caicloud }}/monitoring-watcher:v1.0.1"
+monitoring_image_server: "{{ registry_prefix_caicloud }}/monitoring-server:v1.0.1"
+monitoring_image_network_checker_minion: "{{ registry_prefix_caicloud }}/network-checker-minion:canary"
+common_image_mongo: "{{ registry_prefix_caicloud }}/mongo:3.0.5"
+common_image_nginx: "{{ registry_prefix_caicloud }}/nginx:1.9.4"
+kubedns_image_kubedns: "{{ registry_prefix_caicloudgcr }}/google_containers_kubedns-amd64:1.8"
+kubedns_image_dnsmasq: "{{ registry_prefix_caicloudgcr }}/google_containers_kube-dnsmasq-amd64:1.4"
+kubedns_image_healthz: "{{ registry_prefix_caicloudgcr }}/google_containers_exechealthz-amd64:1.2"
+kubepush_image_kubepush: "{{ registry_prefix_caicloud }}/kubepush:v0.0.1"
+nfs_server_image: "{{ registry_prefix_caicloud }}/nfs-server:v0.0.1"
+calico_image_policy_controller: "{{ registry_prefix_caicloud }}/kube-policy-controller:v0.3.0"
+calico_image_leader_elector: "{{ registry_prefix_caicloudgcr }}/leader-elector:0.4"
+addon_manager_minion_image: "{{ registry_prefix_caicloud }}/addon-manager-minion:v-dev-test"
+addon_manager_master_image: "{{ registry_prefix_caicloud }}/addon-manager-master:v-dev-test"
+hyperkube_image: "{{ registry_prefix_caicloud }}/hyperkube:{{ hyperkube_version }}"
+load_balancer_keepalived_image: "{{ registry_prefix_caicloud }}/keepalived:v1.2.19"
+load_balancer_haproxy_image: "{{ registry_prefix_caicloud }}/haproxy:v1.6.5"
+pod_infra_container_image: "{{ registry_prefix_caicloudgcr }}/google_containers_pause-amd64:3.0"
+ingress_keepalived_image: "{{ registry_prefix_caicloud }}/ingress-keepalived-vip:v0.0.1"
+ingress_nginx_image: "{{ registry_prefix_caicloud }}/nginx-ingress-controller:v0.0.1"
+ingress_loadbalancer_controller_image: "{{ registry_prefix_caicloud }}/loadbalancer-controller:v0.0.1"
 
 # Main ports for etcd.
 etcd_client_port: 2379
@@ -186,15 +232,22 @@ etcd_peer_port: 2380
 etcd_events_client_port: 2381
 etcd_events_peer_port: 2382
 
-load_balancer_keepalived_image: "index.caicloud.io/caicloud/keepalived:v1.2.19"
-load_balancer_haproxy_image: "index.caicloud.io/caicloud/haproxy:v1.6.5"
-
 kube_apiserver_insecure_bind_address: "127.0.0.1"
 kube_apiserver_insecure_bind_port:  "8080"
 service_node_port_range:  "30000-32767"
 cloud_config: "/etc/kubernetes/cloud-config"
 kube_log_level: "0"
 use_hyperkube: true
+
+use_addon_manager: true
+deploy_caicloud_stack: "false"
+publish_addons: "false"
+restore_addons: false
+addon_manager_master_url: "http://addon-manager-master.default:8081"
+addon_manager_root: "/addon-manager"
+addon_manager_path: "{{ addon_manager_root }}/addons"
+addon_manager_dump_path: "{{ addon_manager_root }}/dump"
+generate_configmap: false
 
 kube_cert_dir: "{{ kube_config_dir }}/certs"
 
@@ -221,3 +274,11 @@ k8s_op: ""
 local_dir_extra_vars_json_stored: "/tmp/.ansible/extra-vars"
 # Directory where extra vars json files will be copied to remote machines
 dir_extra_vars_stored: "{{ kube_config_dir }}/.ansible"
+
+retry_ratio: 1
+
+# Offline mode configuration
+offline_mode: false
+offline_cacher_ip: ""
+
+use_aufs: false

@@ -4,7 +4,6 @@
 flannel_version: 0.5.5
 
 # The default url to download the flannel tar from.
-flannel_download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"
 flannel_download_file: "flannel-{{ flannel_version }}-linux-amd64.tar.gz"
 flannel_download_url: "{{ flannel_download_url_base }}/{{ flannel_download_file }}"
 
@@ -45,7 +44,6 @@ flannel_config_dir: "/etc/sysconfig"
 cw_version: 0.1.2
 
 # The default url to download the conf-watcher tar from.
-cw_download_url_base: "http://7xli2p.dl1.z0.glb.clouddn.com"
 cw_download_file: "conf-watcher-{{ cw_version }}-linux-amd64.tar.gz"
 cw_download_url: "{{ cw_download_url_base }}/{{ cw_download_file }}"
 

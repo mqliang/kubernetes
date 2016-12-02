@@ -149,6 +149,8 @@ rm -rf etcd-linux flannel-linux caicloud-kube
 mkdir -p caicloud-kube-script
 cp -R hack cluster build caicloud-kube-script
 rm -rf caicloud-kube-script/cluster/caicloud/certs
+rm -rf caicloud-kube-script/cluster/caicloud-ansible/roles/master/files/caicloudapp_certs
+rm -rf caicloud-kube-script/cluster/caicloud-ansible/roles/master/files/caicloudprivatetest_certs
 mkdir -p caicloud-kube-script/_output/dockerized/bin/linux/amd64/
 cp _output/dockerized/bin/linux/amd64/kubectl caicloud-kube-script/_output/dockerized/bin/linux/amd64/
 # Build docker image that will be used by cluster manager. The image contains all the k8s scripts

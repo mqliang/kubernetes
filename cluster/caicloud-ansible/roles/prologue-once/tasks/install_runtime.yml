@@ -1,0 +1,24 @@
+---
+# Tasks for installing runtime dependencies
+
+- name: Install runtime dependencies
+  yum: name={{ item }}
+  with_items:
+    - nfs-utils
+    - socat
+    - tar
+    - git
+    - libselinux-python
+  when: ansible_distribution == "CentOS"
+
+- name: Install runtime dependencies
+  apt: name={{ item }}
+  with_items:
+    - nfs-common
+    - socat
+    - tar
+    - git
+  when: ansible_distribution == "Ubuntu"
+
+- name: Send nsenter to all instances
+  copy: src=nsenter dest={{ bin_dir }}/nsenter owner=root group=root mode=0755 force=no

@@ -1,0 +1,17 @@
+---
+# Common tasks for all other roles only run once.
+
+- include_vars: ../../kubernetes-base/defaults/main.yml
+
+- name: Create kubernetes manifest directory
+  file: path={{ kube_manifest_dir }} state=directory
+
+- name: Create binary directory
+  file: path={{ bin_dir }} state=directory
+
+- name: Create ansible temp directory
+  file: path={{ ansible_temp_dir }} state=directory
+
+- name: Install runtime
+  include: install_runtime.yml
+  when: k8s_op == "OP_INSTALL"

@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: mongo
-        image: index.caicloud.io/caicloud/mongo:3.0.5
+        image: {{ common_image_mongo }}
         imagePullPolicy: Always
         resources:
           # keep request = limit to keep this container in guaranteed class

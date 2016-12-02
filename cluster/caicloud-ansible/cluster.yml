@@ -3,7 +3,7 @@
 
 - name: Precheck for loadbalancer
   hosts:
-    - masters
+    - resourceservers
     - nodes
     - localhost
   become: yes
@@ -11,6 +11,27 @@
     - loadbalancer
   tags:
     - loadbalancer
+
+- name: Setup for offline
+  hosts:
+    - resourceservers
+    - nodes
+  become: yes
+  roles:
+    - role: offline
+      when: offline_mode
+  tags:
+    - offline
+
+- name: Prologue once
+  hosts:
+    - resourceservers
+    - nodes
+  become: yes
+  roles:
+    - prologue-once
+  tags:
+    - prologue-once
 
 - name: Install etcd
   hosts: etcd
@@ -58,6 +79,15 @@
   tags:
     - masters
 
+- name: Install kubeconfig for kubectl and add dns to hosts
+  hosts:
+    - localhost
+  become: yes
+  roles:
+    - control-machine
+  tags:
+    - control-machine
+
 - name: Install kubernetes nodes
   hosts: nodes
   become: yes
@@ -65,6 +95,14 @@
     - node
   tags:
     - nodes
+
+- name: Generate configmap
+  hosts: localhost
+  become: yes
+  roles:
+    - { role: /addon-manager/configmap, when: generate_configmap }
+  tags:
+    - configmap
 
 - name: Install kubernetes addons
   hosts: masters
@@ -84,11 +122,3 @@
   tags:
     - epilogue
     - addons
-
-- name: Install kubeconfig for kubectl and add dns to hosts
-  hosts:
-    - localhost
-  roles:
-    - control-machine
-  tags:
-    - control-machine

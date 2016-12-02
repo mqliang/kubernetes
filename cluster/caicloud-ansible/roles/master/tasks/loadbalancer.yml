@@ -19,10 +19,16 @@
   register: healthz_token
 
 - name: Create haproxy certificates | {{ load_balancer_name }}.pem
-  shell:  "cat {{ caicloudapp_cert_dir }}/master.crt {{ caicloudapp_cert_dir }}/master.key > {{ kube_cert_dir }}/{{ load_balancer_name }}.pem"
+  shell: |
+    cat {{ caicloudapp_cert_dir }}/master.crt > {{ kube_cert_dir }}/{{ load_balancer_name }}.pem;
+    echo >> {{ kube_cert_dir }}/{{ load_balancer_name }}.pem;
+    cat {{ caicloudapp_cert_dir }}/master.key >> {{ kube_cert_dir }}/{{ load_balancer_name }}.pem;
 
 - name: Create haproxy certificates | server.pem
-  shell:  "cat {{ kube_cert_dir }}/server.crt {{ kube_cert_dir }}/server.key > {{ kube_cert_dir }}/server.pem"
+  shell: |
+    cat {{ kube_cert_dir }}/server.crt > {{ kube_cert_dir }}/server.pem;
+    echo >> {{ kube_cert_dir }}/server.pem;
+    cat {{ kube_cert_dir }}/server.key >> {{ kube_cert_dir }}/server.pem;
 
 - name: Verify certificate permissions
   file:

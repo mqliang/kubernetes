@@ -14,7 +14,7 @@ spec:
   containers:
     # The Calico policy controller.
     - name: policy-controller 
-      image: index.caicloud.io/caicloud/kube-policy-controller:v0.3.0
+      image: {{ calico_image_policy_controller }}
       imagePullPolicy: IfNotPresent 
       env:
         # Modify ETCD_ENDPOINTS to match your etcd cluster.
@@ -31,7 +31,7 @@ spec:
           memory: "64Mi"
           cpu: "100m"
     - name: leader-elector
-      image: index.caicloud.io/caicloudgcr/leader-elector:0.4
+      image: {{ calico_image_leader_elector }}
       imagePullPolicy: IfNotPresent
       args:
         - "--election=calico-policy-election"

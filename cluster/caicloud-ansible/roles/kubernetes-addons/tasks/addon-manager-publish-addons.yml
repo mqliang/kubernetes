@@ -1,0 +1,36 @@
+---
+# Publish addons for addon-manager.
+
+- name: Publish addons | Wait for available addon-manager-master endpoint
+  shell: "{{ bin_dir }}/kubectl get ep addon-manager-master | grep addon-manager-master | awk '{print $2}'"
+  register: addon_manager_master_endpoint
+  until: addon_manager_master_endpoint|success and addon_manager_master_endpoint.stdout.find('none') == -1
+  retries: "{{ 15 * retry_ratio }}"
+  delay: 20
+
+- name: Publish addons | Wait for addon-manager-master
+  uri: url=http://{{ addon_manager_master_endpoint.stdout }}/version
+  register: addon_result
+  until: addon_result|success and addon_result.status == 200
+  retries: "{{ 15 * retry_ratio }}"
+  delay: 20
+
+- name: Publish addons | Get addon-manager-master pod name
+  shell: "{{ bin_dir }}/kubectl get pods -l caicloud-app=addon-manager-master -o go-template=\"{{ '{{' }}range.items{{ '}}' }}{{ '{{' }}.metadata.name{{ '}}' }}{{ '{{' }}end{{ '}}' }}\""
+  register: addon_name_result
+  until: addon_name_result|success
+  retries: 3
+  delay: 5
+
+- name: Publish addons | Proxy addon-manager-master port to localhost
+  shell: "{{ bin_dir }}/kubectl port-forward {{ addon_name_result.stdout }} 8081"
+  async: 120
+  delegate_to: localhost
+
+- name: Publish addons | Publish addons
+  shell: "{{ bin_dir }}/publish {{ addon_manager_path }} {{ kube_caicloud_version }} all"
+  register: addon_publish_result
+  until: addon_publish_result|success
+  retries: 10
+  delay: 5
+  delegate_to: localhost

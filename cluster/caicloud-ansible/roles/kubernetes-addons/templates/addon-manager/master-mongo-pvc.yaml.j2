@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: addon-manager-mongo-data
+  labels:
+    caicloud-app: addon-manager-mongo-data
+    caicloud.io/cluster-service: "true"
+    addon-manager.caicloud.io/name: addon-manager-master
+    addon-manager.caicloud.io/version: v0.0.1
+    addon-manager.caicloud.io/key: master-mongo-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 4096Mi

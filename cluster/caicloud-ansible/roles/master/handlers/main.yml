@@ -23,7 +23,7 @@
     mv {{ kube_manifest_dir }}/hyperkube-apiserver.yaml {{ kube_config_temp_dir }}/hyperkube-apiserver.yaml;
     sleep 20;
     mv {{ kube_config_temp_dir }}/hyperkube-apiserver.yaml {{ kube_manifest_dir }}/hyperkube-apiserver.yaml;
-  when: apiserver_started.changed == false and use_hyperkube
+  when: use_hyperkube
 
 - name: restart controller-manager
   service: name=kube-controller-manager state=restarted
@@ -45,13 +45,13 @@
   uri: url=http://localhost:{{ kube_scheduler_port }}/healthz
   register: scheduler_result
   until: scheduler_result.status == 200
-  retries: 15
+  retries: "{{ 15 * retry_ratio }}"
   delay: 20
 
 - name: wait for kube-controller-manager
   uri: url=http://localhost:{{ kube_controller_port }}/healthz
   register: controller_manager_result
   until: controller_manager_result.status == 200
-  retries: 15
+  retries: "{{ 15 * retry_ratio }}"
   delay: 20
   

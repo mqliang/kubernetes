@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: addon-manager-mongo
+  labels:
+    caicloud-app: addon-manager-mongo
+    caicloud.io/cluster-service: "true"
+    addon-manager.caicloud.io/name: addon-manager-master
+    addon-manager.caicloud.io/version: v0.0.1
+    addon-manager.caicloud.io/key: master-mongo-svc
+spec:
+  ports:
+  - port: 27017
+  selector:
+    caicloud-app: addon-manager-mongo

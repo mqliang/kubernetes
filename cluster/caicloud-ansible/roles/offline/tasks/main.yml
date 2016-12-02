@@ -1,0 +1,61 @@
+---
+# Setup for offline mode
+
+- name: Setup offline mode | Check cacher ip
+  set_fact:
+    offline_cacher_url: "http://{{ offline_cacher_ip }}:3142"
+  failed_when: offline_mode and offline_cacher_ip == ""
+
+- name: Setup offline mode | Set fact
+  set_fact:
+    http_proxy: "{{ offline_cacher_url }}"
+
+- name: Setup offline mode | Update yum conf
+  lineinfile:
+    dest: /etc/yum.conf
+    regexp: "^proxy=http"
+    line: "proxy={{ offline_cacher_url }}"
+    state: present
+  when: ansible_distribution == "CentOS"
+
+- name: Setup offline mode | Backup old /etc/yum.repos.d
+  shell: mv /etc/yum.repos.d /etc/yum.repos.d.`date +"%Y-%m-%d-%H-%M-%S"`.bak
+  when: ansible_distribution == "CentOS"
+
+- name: Setup offline mode | Create the directory /etc/yum.repos.d
+  file: path=/etc/yum.repos.d state=directory
+  when: ansible_distribution == "CentOS"
+
+- name: Setup offline mode | Overwrite CentOS-Base.repo
+  template:
+  args:
+    src: "CentOS-Base.repo.j2"
+    dest: "/etc/yum.repos.d/CentOS-Base.repo"
+    mode: 0644
+    owner: root
+    group: root
+    backup: yes
+  when: ansible_distribution == "CentOS"
+
+- name: Setup offline mode | Check fastestmirror conf
+  stat: path=/etc/yum/pluginconf.d/fastestmirror.conf
+  register: fastestmirror_stat
+  when: ansible_distribution == "CentOS"
+
+- name: Setup offline mode | Update fastestmirror conf
+  replace:
+    dest: /etc/yum/pluginconf.d/fastestmirror.conf
+    regexp: 'enabled=1'
+    replace: 'enabled=0'
+  when: ansible_distribution == "CentOS" and fastestmirror_stat.stat.isreg is defined and fastestmirror_stat.stat.isreg
+
+- name: Setup offline mode | Create apt proxy conf
+  file: path=/etc/apt/apt.conf.d/01proxy state=touch owner=root group=root mode=0644
+  when: ansible_distribution == "Ubuntu"
+
+- name: Setup offline mode | Update apt proxy conf
+  lineinfile:
+    dest: /etc/apt/apt.conf.d/01proxy
+    line: "Acquire::http { Proxy \"{{ offline_cacher_url }}\"; };"
+    state: present
+  when: ansible_distribution == "Ubuntu"

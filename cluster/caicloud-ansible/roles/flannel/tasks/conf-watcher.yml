@@ -36,7 +36,7 @@
   when: cw_tarball.stat.exists == False
   register: cw_tarball_download
   until: cw_tarball_download|success
-  retries: 10
+  retries: "{{ 10 * retry_ratio }}"
   delay: 5
 
 - name: Extract cw tar file

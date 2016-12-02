@@ -1,0 +1,34 @@
+---
+# Install nfs addon.
+
+- name: NFS | Mare sure dns direcotry exists
+  file: path={{ kube_addons_dir }}/nfs state=directory
+
+- name: NFS | Write dns service template from converted saltfiles
+  template:
+  args:
+    src: "nfs/{{ item }}.j2"
+    dest: "{{ kube_addons_dir }}/nfs/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - nfs-server-service.yaml
+
+- name: NFS | Install dns pod from converted saltfiles
+  template:
+  args:
+    src: "nfs/{{ item }}.j2"
+    dest: "{{ kube_manifest_dir }}/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - nfs-server.yaml
+  when: inventory_hostname == groups['masters'][0]
+
+- name: NFS | Install nfs service
+  command: "{{ bin_dir }}/kubectl apply -f {{ kube_addons_dir }}/nfs/{{ item }}"
+  with_items:
+    - nfs-server-service.yaml
+  when: inventory_hostname == groups['masters'][0]

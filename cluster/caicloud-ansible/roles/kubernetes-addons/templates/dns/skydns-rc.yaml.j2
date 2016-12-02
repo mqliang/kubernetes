@@ -9,6 +9,9 @@ metadata:
     kubernetes.io/cluster-service: "true"
     kubernetes-admin.caicloud.io/type: application
     kubernetes-admin.caicloud.io/application: kube-dns-v20
+    addon-manager.caicloud.io/name: dns
+    addon-manager.caicloud.io/version: v0.0.1
+    addon-manager.caicloud.io/key: skydns-rc
 spec:
   replicas: {{ dns_replicas }}
   selector:
@@ -28,7 +31,7 @@ spec:
     spec:
       containers:
       - name: kubedns
-        image: index.caicloud.io/caicloudgcr/google_containers_kubedns-amd64:1.8
+        image: {{ kubedns_image_kubedns }}
         resources:
           # TODO: Set memory limits when we've profiled the container for large
           # clusters, then set request = limit to keep this container in
@@ -70,7 +73,7 @@ spec:
           name: dns-tcp-local
           protocol: TCP
       - name: dnsmasq
-        image: index.caicloud.io/caicloudgcr/google_containers_kube-dnsmasq-amd64:1.4
+        image: {{ kubedns_image_dnsmasq }}
         livenessProbe:
           httpGet:
             path: /healthz-dnsmasq
@@ -104,7 +107,7 @@ spec:
           name: dns-tcp
           protocol: TCP
       - name: healthz
-        image: index.caicloud.io/caicloudgcr/google_containers_exechealthz-amd64:1.2
+        image: {{ kubedns_image_healthz }}
         resources:
           # keep request = limit to keep this container in guaranteed class
           limits:

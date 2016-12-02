@@ -1,12 +1,6 @@
 ---
 # Common tasks for all other roles.
 
-- name: Create the directory used to store binaries
-  file: path={{ bin_dir }} state=directory
-
-- name: Create ansible temp directory
-  file: path={{ ansible_temp_dir }} state=directory
-
 - name: Get flannel interface name of IPv4 address
   shell: ip addr show | grep {{ internal_ip }} | awk '{print $NF}'
   register: interface_name
@@ -28,7 +22,3 @@
 
 - name: Display system information
   debug: msg="{{ ansible_distribution }} {{ ansible_distribution_version }}"
-
-- name: CentOS | Be sure libselinux-python are installed
-  yum: name=libselinux-python
-  when: ansible_distribution == "CentOS"
