@@ -143,3 +143,7 @@
 - name: Addon-manager | Restore addons
   include: addon-manager-restore-addons.yml
   when: deploy_caicloud_stack|bool and restore_addons|bool and inventory_hostname == groups['masters'][0] and not publish_addons|bool
+
+- name: Enable caicloud control cluster self-hosted
+  include: caicloud-self-hosted.yml
+  when: caicloud_self_hosted == "YES" and inventory_hostname == groups['masters'][0]

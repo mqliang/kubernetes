@@ -1,0 +1,21 @@
+---
+# Start caicloud self-hosted job
+
+- set_fact:
+    kube_pwd: "{{ kube_password }}"
+
+- name: Get kube_password
+  shell: cat {{ kube_token_dir }}/basic-auth.csv | awk -F ',' '{print $1}'
+  register: output_password
+  when: kube_password == ""
+
+- name: Set kube_pwd for caicloud-self-hosted.yaml.j2
+  set_fact:
+    kube_pwd: "{{ output_password.stdout }}"
+  when: kube_password == ""
+
+- name: Copy caicloud self-hosted job yaml
+  template: src=caicloud-self-hosted.yaml.j2 dest={{ kube_config_dir }}/caicloud-self-hosted.yaml
+
+- name: Start caicloud self-hosted job
+  command: "{{ bin_dir }}/kubectl apply -f {{ kube_config_dir }}/caicloud-self-hosted.yaml"
