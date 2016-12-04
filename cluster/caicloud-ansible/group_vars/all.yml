@@ -120,6 +120,10 @@ network_checker_public_host: "www.baidu.com"
 network_checker_pods_num: "2"
 enable_public_network: "true"
 
+# The username/password here is used to login to kubernetes cluster.
+kube_user: "admin"
+kube_password: ""
+
 #
 # DO NOT CHANGE
 #
@@ -230,6 +234,7 @@ pod_infra_container_image: "{{ registry_prefix_caicloudgcr }}/google_containers_
 ingress_keepalived_image: "{{ registry_prefix_caicloud }}/ingress-keepalived-vip:v0.0.1"
 ingress_nginx_image: "{{ registry_prefix_caicloud }}/nginx-ingress-controller:v0.0.1"
 ingress_loadbalancer_controller_image: "{{ registry_prefix_caicloud }}/loadbalancer-controller:v0.0.1"
+caicloud_self_hosted_image: "{{ registry_prefix_caicloud }}/self-hosted:v0.0.3"
 
 # Main ports for etcd.
 etcd_client_port: 2379
@@ -287,3 +292,9 @@ offline_mode: false
 offline_cacher_ip: ""
 
 use_aufs: false
+
+caicloud_self_hosted: "NO"
+
+kubernetes_provider: caicloud-baremetal
+dns_host_name: cluster
+base_domain_name: "{{ caicloud_private_test_domain }}"

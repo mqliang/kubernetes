@@ -107,6 +107,8 @@ function calculate-default {
   if [[ ! -z "${USE_HYPERKUBE-}" ]]; then
     CAICLOUD_K8S_CFG_NUMBER_USE_HYPERKUBE=${USE_HYPERKUBE}
   fi
+
+  CAICLOUD_K8S_CFG_STRING_KUBERNETES_PROVIDER=${KUBERNETES_PROVIDER}
 }
 
 calculate-default
