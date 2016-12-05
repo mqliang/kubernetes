@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package node
+package utils
 
 import (
 	"errors"
@@ -31,8 +31,6 @@ import (
 	v1core "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5/typed/core/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/clock"
-	utilnode "k8s.io/kubernetes/pkg/util/node"
-	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -56,7 +54,7 @@ type FakeNodeHandler struct {
 
 	// Synchronization
 	lock           sync.Mutex
-	deleteWaitChan chan struct{}
+	DeleteWaitChan chan struct{}
 }
 
 type FakeLegacyHandler struct {
@@ -64,7 +62,7 @@ type FakeLegacyHandler struct {
 	n *FakeNodeHandler
 }
 
-func (c *FakeNodeHandler) getUpdatedNodesCopy() []*v1.Node {
+func (c *FakeNodeHandler) GetUpdatedNodesCopy() []*v1.Node {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	updatedNodesCopy := make([]*v1.Node, len(c.UpdatedNodes), len(c.UpdatedNodes))
@@ -156,8 +154,8 @@ func (m *FakeNodeHandler) Delete(id string, opt *v1.DeleteOptions) error {
 	m.lock.Lock()
 	defer func() {
 		m.RequestCount++
-		if m.deleteWaitChan != nil {
-			m.deleteWaitChan <- struct{}{}
+		if m.DeleteWaitChan != nil {
+			m.DeleteWaitChan <- struct{}{}
 		}
 		m.lock.Unlock()
 	}()
@@ -213,7 +211,7 @@ func (m *FakeNodeHandler) Patch(name string, pt api.PatchType, data []byte, subr
 // FakeRecorder is used as a fake during testing.
 type FakeRecorder struct {
 	source v1.EventSource
-	events []*v1.Event
+	Events []*v1.Event
 	clock  clock.Clock
 }
 
@@ -235,9 +233,9 @@ func (f *FakeRecorder) generateEvent(obj runtime.Object, timestamp unversioned.T
 	}
 	event := f.makeEvent(ref, eventtype, reason, message)
 	event.Source = f.source
-	if f.events != nil {
+	if f.Events != nil {
 		fmt.Println("write event")
-		f.events = append(f.events, event)
+		f.Events = append(f.Events, event)
 	}
 }
 
@@ -266,9 +264,18 @@ func (f *FakeRecorder) makeEvent(ref *v1.ObjectReference, eventtype, reason, mes
 func NewFakeRecorder() *FakeRecorder {
 	return &FakeRecorder{
 		source: v1.EventSource{Component: "nodeControllerTest"},
-		events: []*v1.Event{},
+		Events: []*v1.Event{},
 		clock:  clock.NewFakeClock(time.Now()),
 	}
+}
+
+func contains(node *v1.Node, nodes []*v1.Node) bool {
+	for i := 0; i < len(nodes); i++ {
+		if node.Name == nodes[i].Name {
+			return true
+		}
+	}
+	return false
 }
 
 func newNode(name string) *v1.Node {
@@ -284,49 +291,4 @@ func newNode(name string) *v1.Node {
 			},
 		},
 	}
-}
-
-func newPod(name, host string) *v1.Pod {
-	pod := &v1.Pod{
-		ObjectMeta: v1.ObjectMeta{
-			Namespace: "default",
-			Name:      name,
-		},
-		Spec: v1.PodSpec{
-			NodeName: host,
-		},
-		Status: v1.PodStatus{
-			Conditions: []v1.PodCondition{
-				{
-					Type:   v1.PodReady,
-					Status: v1.ConditionTrue,
-				},
-			},
-		},
-	}
-
-	return pod
-}
-
-func contains(node *v1.Node, nodes []*v1.Node) bool {
-	for i := 0; i < len(nodes); i++ {
-		if node.Name == nodes[i].Name {
-			return true
-		}
-	}
-	return false
-}
-
-// Returns list of zones for all Nodes stored in FakeNodeHandler
-func getZones(nodeHandler *FakeNodeHandler) []string {
-	nodes, _ := nodeHandler.List(v1.ListOptions{})
-	zones := sets.NewString()
-	for _, node := range nodes.Items {
-		zones.Insert(utilnode.GetZoneKey(&node))
-	}
-	return zones.List()
-}
-
-func createZoneID(region, zone string) string {
-	return region + ":\x00:" + zone
 }

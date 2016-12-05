@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package node
+package nodestatus
 
 import (
 	"fmt"
@@ -36,11 +36,6 @@ import (
 	"k8s.io/kubernetes/pkg/version"
 
 	"github.com/golang/glog"
-)
-
-const (
-	// Number of Nodes that needs to be in the cluster for it to be treated as "large"
-	LargeClusterThreshold = 20
 )
 
 // deletePods will delete all pods from master running on given node, and return true
@@ -138,7 +133,7 @@ func forcefullyDeleteNode(kubeClient clientset.Interface, nodeName string) error
 
 // maybeDeleteTerminatingPod non-gracefully deletes pods that are terminating
 // that should not be gracefully terminated.
-func (nc *NodeController) maybeDeleteTerminatingPod(obj interface{}) {
+func (nc *NodeStatusController) maybeDeleteTerminatingPod(obj interface{}) {
 	pod, ok := obj.(*v1.Pod)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)

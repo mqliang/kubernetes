@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package node
+package nodestatus
 
 import (
-	"net"
 	"strings"
 	"testing"
 	"time"
@@ -35,9 +34,12 @@ import (
 	fakecloud "k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/informers"
+	"k8s.io/kubernetes/pkg/controller/node/utils"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/node"
+	utilnode "k8s.io/kubernetes/pkg/util/node"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
 
@@ -50,7 +52,43 @@ const (
 	testUnhealtyThreshold      = float32(0.55)
 )
 
-func NewNodeControllerFromClient(
+func newPod(name, host string) *v1.Pod {
+	pod := &v1.Pod{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "default",
+			Name:      name,
+		},
+		Spec: v1.PodSpec{
+			NodeName: host,
+		},
+		Status: v1.PodStatus{
+			Conditions: []v1.PodCondition{
+				{
+					Type:   v1.PodReady,
+					Status: v1.ConditionTrue,
+				},
+			},
+		},
+	}
+
+	return pod
+}
+
+// Returns list of zones for all Nodes stored in FakeNodeHandler
+func getZones(nodeHandler *utils.FakeNodeHandler) []string {
+	nodes, _ := nodeHandler.List(v1.ListOptions{})
+	zones := sets.NewString()
+	for _, node := range nodes.Items {
+		zones.Insert(utilnode.GetZoneKey(&node))
+	}
+	return zones.List()
+}
+
+func createZoneID(region, zone string) string {
+	return region + ":\x00:" + zone
+}
+
+func NewNodeStatusControllerFromClient(
 	cloud cloudprovider.Interface,
 	kubeClient clientset.Interface,
 	podEvictionTimeout time.Duration,
@@ -60,17 +98,12 @@ func NewNodeControllerFromClient(
 	unhealthyZoneThreshold float32,
 	nodeMonitorGracePeriod time.Duration,
 	nodeStartupGracePeriod time.Duration,
-	nodeMonitorPeriod time.Duration,
-	clusterCIDR *net.IPNet,
-	serviceCIDR *net.IPNet,
-	nodeCIDRMaskSize int,
-	allocateNodeCIDRs bool) (*NodeController, error) {
+	nodeMonitorPeriod time.Duration) (*NodeStatusController, error) {
 
 	factory := informers.NewSharedInformerFactory(kubeClient, nil, controller.NoResyncPeriodFunc())
 
-	nc, err := NewNodeController(factory.Pods(), factory.Nodes(), factory.DaemonSets(), cloud, kubeClient, podEvictionTimeout, evictionLimiterQPS, secondaryEvictionLimiterQPS,
-		largeClusterThreshold, unhealthyZoneThreshold, nodeMonitorGracePeriod, nodeStartupGracePeriod, nodeMonitorPeriod, clusterCIDR,
-		serviceCIDR, nodeCIDRMaskSize, allocateNodeCIDRs)
+	nc, err := NewNodeStatusController(factory.Pods(), factory.Nodes(), factory.DaemonSets(), cloud, kubeClient, podEvictionTimeout, evictionLimiterQPS, secondaryEvictionLimiterQPS,
+		largeClusterThreshold, unhealthyZoneThreshold, nodeMonitorGracePeriod, nodeStartupGracePeriod, nodeMonitorPeriod)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +131,7 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 	}
 
 	table := []struct {
-		fakeNodeHandler     *FakeNodeHandler
+		fakeNodeHandler     *utils.FakeNodeHandler
 		daemonSets          []extensions.DaemonSet
 		timeToPass          time.Duration
 		newNodeStatus       v1.NodeStatus
@@ -108,7 +141,7 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 	}{
 		// Node created recently, with no status (happens only at cluster startup).
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -152,7 +185,7 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 		},
 		// Node created long time ago, and kubelet posted NotReady for a short period of time.
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -216,7 +249,7 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 		},
 		// Pod is ds-managed, and kubelet posted NotReady for a long period of time.
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -307,7 +340,7 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 		},
 		// Node created long time ago, and kubelet posted NotReady for a long period of time.
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -371,7 +404,7 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 		},
 		// Node created long time ago, node controller posted Unknown for a short period of time.
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -435,7 +468,7 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 		},
 		// Node created long time ago, node controller posted Unknown for a long period of time.
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -500,9 +533,9 @@ func TestMonitorNodeStatusEvictPods(t *testing.T) {
 	}
 
 	for _, item := range table {
-		nodeController, _ := NewNodeControllerFromClient(nil, item.fakeNodeHandler,
+		nodeController, _ := NewNodeStatusControllerFromClient(nil, item.fakeNodeHandler,
 			evictionTimeout, testRateLimiterQPS, testRateLimiterQPS, testLargeClusterThreshold, testUnhealtyThreshold, testNodeMonitorGracePeriod,
-			testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, nil, 0, false)
+			testNodeStartupGracePeriod, testNodeMonitorPeriod)
 		nodeController.now = func() unversioned.Time { return fakeNow }
 		for _, ds := range item.daemonSets {
 			nodeController.daemonSetStore.Add(&ds)
@@ -562,7 +595,7 @@ func TestPodStatusChange(t *testing.T) {
 
 	// Node created long time ago, node controller posted Unknown for a long period of time.
 	table := []struct {
-		fakeNodeHandler     *FakeNodeHandler
+		fakeNodeHandler     *utils.FakeNodeHandler
 		daemonSets          []extensions.DaemonSet
 		timeToPass          time.Duration
 		newNodeStatus       v1.NodeStatus
@@ -572,7 +605,7 @@ func TestPodStatusChange(t *testing.T) {
 		description         string
 	}{
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -638,9 +671,9 @@ func TestPodStatusChange(t *testing.T) {
 	}
 
 	for _, item := range table {
-		nodeController, _ := NewNodeControllerFromClient(nil, item.fakeNodeHandler,
+		nodeController, _ := NewNodeStatusControllerFromClient(nil, item.fakeNodeHandler,
 			evictionTimeout, testRateLimiterQPS, testRateLimiterQPS, testLargeClusterThreshold, testUnhealtyThreshold, testNodeMonitorGracePeriod,
-			testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, nil, 0, false)
+			testNodeStartupGracePeriod, testNodeMonitorPeriod)
 		nodeController.now = func() unversioned.Time { return fakeNow }
 		if err := nodeController.monitorNodeStatus(); err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -1144,13 +1177,13 @@ func TestMonitorNodeStatusEvictPodsWithDisruption(t *testing.T) {
 	}
 
 	for _, item := range table {
-		fakeNodeHandler := &FakeNodeHandler{
+		fakeNodeHandler := &utils.FakeNodeHandler{
 			Existing:  item.nodeList,
 			Clientset: fake.NewSimpleClientset(&v1.PodList{Items: item.podList}),
 		}
-		nodeController, _ := NewNodeControllerFromClient(nil, fakeNodeHandler,
+		nodeController, _ := NewNodeStatusControllerFromClient(nil, fakeNodeHandler,
 			evictionTimeout, testRateLimiterQPS, testRateLimiterQPS, testLargeClusterThreshold, testUnhealtyThreshold, testNodeMonitorGracePeriod,
-			testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, nil, 0, false)
+			testNodeStartupGracePeriod, testNodeMonitorPeriod)
 		nodeController.now = func() unversioned.Time { return fakeNow }
 		nodeController.enterPartialDisruptionFunc = func(nodeNum int) float32 {
 			return testRateLimiterQPS
@@ -1211,7 +1244,7 @@ func TestMonitorNodeStatusEvictPodsWithDisruption(t *testing.T) {
 // pods and the node when kubelet has not reported, and the cloudprovider says
 // the node is gone.
 func TestCloudProviderNoRateLimit(t *testing.T) {
-	fnh := &FakeNodeHandler{
+	fnh := &utils.FakeNodeHandler{
 		Existing: []*v1.Node{
 			{
 				ObjectMeta: v1.ObjectMeta{
@@ -1231,12 +1264,12 @@ func TestCloudProviderNoRateLimit(t *testing.T) {
 			},
 		},
 		Clientset:      fake.NewSimpleClientset(&v1.PodList{Items: []v1.Pod{*newPod("pod0", "node0"), *newPod("pod1", "node0")}}),
-		deleteWaitChan: make(chan struct{}),
+		DeleteWaitChan: make(chan struct{}),
 	}
-	nodeController, _ := NewNodeControllerFromClient(nil, fnh, 10*time.Minute,
+	nodeController, _ := NewNodeStatusControllerFromClient(nil, fnh, 10*time.Minute,
 		testRateLimiterQPS, testRateLimiterQPS, testLargeClusterThreshold, testUnhealtyThreshold,
 		testNodeMonitorGracePeriod, testNodeStartupGracePeriod,
-		testNodeMonitorPeriod, nil, nil, 0, false)
+		testNodeMonitorPeriod)
 	nodeController.cloud = &fakecloud.FakeCloud{}
 	nodeController.now = func() unversioned.Time { return unversioned.Date(2016, 1, 1, 12, 0, 0, 0, time.UTC) }
 	nodeController.nodeExistsInCloudProvider = func(nodeName types.NodeName) (bool, error) {
@@ -1247,7 +1280,7 @@ func TestCloudProviderNoRateLimit(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	select {
-	case <-fnh.deleteWaitChan:
+	case <-fnh.DeleteWaitChan:
 	case <-time.After(wait.ForeverTestTimeout):
 		t.Errorf("Timed out waiting %v for node to be deleted", wait.ForeverTestTimeout)
 	}
@@ -1262,7 +1295,7 @@ func TestCloudProviderNoRateLimit(t *testing.T) {
 func TestMonitorNodeStatusUpdateStatus(t *testing.T) {
 	fakeNow := unversioned.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC)
 	table := []struct {
-		fakeNodeHandler      *FakeNodeHandler
+		fakeNodeHandler      *utils.FakeNodeHandler
 		timeToPass           time.Duration
 		newNodeStatus        v1.NodeStatus
 		expectedEvictPods    bool
@@ -1272,7 +1305,7 @@ func TestMonitorNodeStatusUpdateStatus(t *testing.T) {
 		// Node created long time ago, without status:
 		// Expect Unknown status posted from node controller.
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -1316,7 +1349,7 @@ func TestMonitorNodeStatusUpdateStatus(t *testing.T) {
 		// Node created recently, without status.
 		// Expect no action from node controller (within startup grace period).
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -1333,7 +1366,7 @@ func TestMonitorNodeStatusUpdateStatus(t *testing.T) {
 		// Node created long time ago, with status updated by kubelet exceeds grace period.
 		// Expect Unknown status posted from node controller.
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -1432,7 +1465,7 @@ func TestMonitorNodeStatusUpdateStatus(t *testing.T) {
 		// Node created long time ago, with status updated recently.
 		// Expect no action from node controller (within monitor grace period).
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -1467,9 +1500,9 @@ func TestMonitorNodeStatusUpdateStatus(t *testing.T) {
 	}
 
 	for i, item := range table {
-		nodeController, _ := NewNodeControllerFromClient(nil, item.fakeNodeHandler, 5*time.Minute,
+		nodeController, _ := NewNodeStatusControllerFromClient(nil, item.fakeNodeHandler, 5*time.Minute,
 			testRateLimiterQPS, testRateLimiterQPS, testLargeClusterThreshold, testUnhealtyThreshold,
-			testNodeMonitorGracePeriod, testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, nil, 0, false)
+			testNodeMonitorGracePeriod, testNodeStartupGracePeriod, testNodeMonitorPeriod)
 		nodeController.now = func() unversioned.Time { return fakeNow }
 		if err := nodeController.monitorNodeStatus(); err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -1496,7 +1529,7 @@ func TestMonitorNodeStatusUpdateStatus(t *testing.T) {
 func TestMonitorNodeStatusMarkPodsNotReady(t *testing.T) {
 	fakeNow := unversioned.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC)
 	table := []struct {
-		fakeNodeHandler         *FakeNodeHandler
+		fakeNodeHandler         *utils.FakeNodeHandler
 		timeToPass              time.Duration
 		newNodeStatus           v1.NodeStatus
 		expectedPodStatusUpdate bool
@@ -1504,7 +1537,7 @@ func TestMonitorNodeStatusMarkPodsNotReady(t *testing.T) {
 		// Node created recently, without status.
 		// Expect no action from node controller (within startup grace period).
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -1520,7 +1553,7 @@ func TestMonitorNodeStatusMarkPodsNotReady(t *testing.T) {
 		// Node created long time ago, with status updated recently.
 		// Expect no action from node controller (within monitor grace period).
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -1554,7 +1587,7 @@ func TestMonitorNodeStatusMarkPodsNotReady(t *testing.T) {
 		// Node created long time ago, with status updated by kubelet exceeds grace period.
 		// Expect pods status updated and Unknown node status posted from node controller
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -1624,7 +1657,7 @@ func TestMonitorNodeStatusMarkPodsNotReady(t *testing.T) {
 		// Node created long time ago, with outdated kubelet version 1.1.0 and status
 		// updated by kubelet exceeds grace period. Expect no action from node controller.
 		{
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -1694,9 +1727,9 @@ func TestMonitorNodeStatusMarkPodsNotReady(t *testing.T) {
 	}
 
 	for i, item := range table {
-		nodeController, _ := NewNodeControllerFromClient(nil, item.fakeNodeHandler, 5*time.Minute,
+		nodeController, _ := NewNodeStatusControllerFromClient(nil, item.fakeNodeHandler, 5*time.Minute,
 			testRateLimiterQPS, testRateLimiterQPS, testLargeClusterThreshold, testUnhealtyThreshold,
-			testNodeMonitorGracePeriod, testNodeStartupGracePeriod, testNodeMonitorPeriod, nil, nil, 0, false)
+			testNodeMonitorGracePeriod, testNodeStartupGracePeriod, testNodeMonitorPeriod)
 		nodeController.now = func() unversioned.Time { return fakeNow }
 		if err := nodeController.monitorNodeStatus(); err != nil {
 			t.Errorf("Case[%d] unexpected error: %v", i, err)
@@ -1723,7 +1756,7 @@ func TestMonitorNodeStatusMarkPodsNotReady(t *testing.T) {
 
 func TestNodeEventGeneration(t *testing.T) {
 	fakeNow := unversioned.Date(2016, 9, 10, 12, 0, 0, 0, time.UTC)
-	fakeNodeHandler := &FakeNodeHandler{
+	fakeNodeHandler := &utils.FakeNodeHandler{
 		Existing: []*v1.Node{
 			{
 				ObjectMeta: v1.ObjectMeta{
@@ -1749,31 +1782,31 @@ func TestNodeEventGeneration(t *testing.T) {
 		Clientset: fake.NewSimpleClientset(&v1.PodList{Items: []v1.Pod{*newPod("pod0", "node0")}}),
 	}
 
-	nodeController, _ := NewNodeControllerFromClient(nil, fakeNodeHandler, 5*time.Minute,
+	nodeController, _ := NewNodeStatusControllerFromClient(nil, fakeNodeHandler, 5*time.Minute,
 		testRateLimiterQPS, testRateLimiterQPS, testLargeClusterThreshold, testUnhealtyThreshold,
 		testNodeMonitorGracePeriod, testNodeStartupGracePeriod,
-		testNodeMonitorPeriod, nil, nil, 0, false)
+		testNodeMonitorPeriod)
 	nodeController.cloud = &fakecloud.FakeCloud{}
 	nodeController.nodeExistsInCloudProvider = func(nodeName types.NodeName) (bool, error) {
 		return false, nil
 	}
 	nodeController.now = func() unversioned.Time { return fakeNow }
-	fakeRecorder := NewFakeRecorder()
+	fakeRecorder := utils.NewFakeRecorder()
 	nodeController.recorder = fakeRecorder
 	if err := nodeController.monitorNodeStatus(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if len(fakeRecorder.events) != 2 {
-		t.Fatalf("unexpected events, got %v, expected %v: %+v", len(fakeRecorder.events), 2, fakeRecorder.events)
+	if len(fakeRecorder.Events) != 2 {
+		t.Fatalf("unexpected events, got %v, expected %v: %+v", len(fakeRecorder.Events), 2, fakeRecorder.Events)
 	}
-	if fakeRecorder.events[0].Reason != "RegisteredNode" || fakeRecorder.events[1].Reason != "DeletingNode" {
+	if fakeRecorder.Events[0].Reason != "RegisteredNode" || fakeRecorder.Events[1].Reason != "DeletingNode" {
 		var reasons []string
-		for _, event := range fakeRecorder.events {
+		for _, event := range fakeRecorder.Events {
 			reasons = append(reasons, event.Reason)
 		}
 		t.Fatalf("unexpected events generation: %v", strings.Join(reasons, ","))
 	}
-	for _, event := range fakeRecorder.events {
+	for _, event := range fakeRecorder.Events {
 		involvedObject := event.InvolvedObject
 		actualUID := string(involvedObject.UID)
 		if actualUID != "1234567890" {
@@ -1860,7 +1893,7 @@ func TestCheckPod(t *testing.T) {
 		},
 	}
 
-	nc, _ := NewNodeControllerFromClient(nil, fake.NewSimpleClientset(), 0, 0, 0, 0, 0, 0, 0, 0, nil, nil, 0, false)
+	nc, _ := NewNodeStatusControllerFromClient(nil, fake.NewSimpleClientset(), 0, 0, 0, 0, 0, 0, 0, 0)
 	nc.nodeStore.Store = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	nc.nodeStore.Store.Add(&v1.Node{
 		ObjectMeta: v1.ObjectMeta{

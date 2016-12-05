@@ -14,15 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package node
+package cidrallocation
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/big"
 	"net"
 	"sync"
 )
+
+var errCIDRRangeNoCIDRsRemaining = errors.New("CIDR allocation failed; there are no remaining CIDRs left to allocate in the accepted range")
 
 type cidrSet struct {
 	sync.Mutex

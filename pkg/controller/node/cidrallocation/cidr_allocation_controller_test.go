@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package node
+package cidrallocation
 
 import (
 	"net"
@@ -22,7 +22,12 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/cache"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5/fake"
+	"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/controller/informers"
+	"k8s.io/kubernetes/pkg/controller/node/utils"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
 
@@ -30,19 +35,29 @@ const (
 	nodePollInterval = 100 * time.Millisecond
 )
 
-func waitForUpdatedNodeWithTimeout(nodeHandler *FakeNodeHandler, number int, timeout time.Duration) error {
+func waitForUpdatedNodeWithTimeout(nodeHandler *utils.FakeNodeHandler, number int, timeout time.Duration) error {
 	return wait.Poll(nodePollInterval, timeout, func() (bool, error) {
-		if len(nodeHandler.getUpdatedNodesCopy()) >= number {
+		if len(nodeHandler.GetUpdatedNodesCopy()) >= number {
 			return true, nil
 		}
 		return false, nil
 	})
 }
 
+func testNewCIDRAllocationControllerFromClient(client clientset.Interface, stopCh chan struct{}, clusterCIDR, serviceCIDR *net.IPNet, subNetMaskSize int) *CIDRAllocationController {
+	informers := informers.NewSharedInformerFactory(client, nil, controller.NoResyncPeriodFunc())
+	ret, _ := NewCIDRAllocationController(informers.Nodes(), client, clusterCIDR, serviceCIDR, subNetMaskSize)
+	ret.nodeLister = &cache.StoreToNodeLister{Store: cache.NewStore(cache.DeletionHandlingMetaNamespaceKeyFunc)}
+
+	informers.Start(stopCh)
+	go ret.worker()
+	return ret
+}
+
 func TestAllocateOrOccupyCIDRSuccess(t *testing.T) {
 	testCases := []struct {
 		description           string
-		fakeNodeHandler       *FakeNodeHandler
+		fakeNodeHandler       *utils.FakeNodeHandler
 		clusterCIDR           *net.IPNet
 		serviceCIDR           *net.IPNet
 		subNetMaskSize        int
@@ -51,7 +66,7 @@ func TestAllocateOrOccupyCIDRSuccess(t *testing.T) {
 	}{
 		{
 			description: "When there's no ServiceCIDR return first CIDR in range",
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -71,7 +86,7 @@ func TestAllocateOrOccupyCIDRSuccess(t *testing.T) {
 		},
 		{
 			description: "Correctly filter out ServiceCIDR",
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -95,7 +110,7 @@ func TestAllocateOrOccupyCIDRSuccess(t *testing.T) {
 		},
 		{
 			description: "Correctly ignore already allocated CIDRs",
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -121,47 +136,33 @@ func TestAllocateOrOccupyCIDRSuccess(t *testing.T) {
 
 	testFunc := func(tc struct {
 		description           string
-		fakeNodeHandler       *FakeNodeHandler
+		fakeNodeHandler       *utils.FakeNodeHandler
 		clusterCIDR           *net.IPNet
 		serviceCIDR           *net.IPNet
 		subNetMaskSize        int
 		expectedAllocatedCIDR string
 		allocatedCIDRs        []string
 	}) {
-		allocator, _ := NewCIDRRangeAllocator(tc.fakeNodeHandler, tc.clusterCIDR, tc.serviceCIDR, tc.subNetMaskSize, nil)
+		stopCh := make(chan struct{})
+		defer close(stopCh)
+
+		allocator := testNewCIDRAllocationControllerFromClient(tc.fakeNodeHandler.Clientset, stopCh, tc.clusterCIDR, tc.serviceCIDR, tc.subNetMaskSize)
 		// this is a bit of white box testing
+		allocator.filterOutServiceRange(tc.serviceCIDR)
 		for _, allocated := range tc.allocatedCIDRs {
 			_, cidr, err := net.ParseCIDR(allocated)
 			if err != nil {
 				t.Fatalf("%v: unexpected error when parsing CIDR %v: %v", tc.description, allocated, err)
 			}
-			rangeAllocator, ok := allocator.(*rangeAllocator)
-			if !ok {
-				t.Logf("%v: found non-default implementation of CIDRAllocator, skipping white-box test...", tc.description)
-				return
-			}
-			if err = rangeAllocator.cidrs.occupy(cidr); err != nil {
+			if err = allocator.cidrs.occupy(cidr); err != nil {
 				t.Fatalf("%v: unexpected error when occupying CIDR %v: %v", tc.description, allocated, err)
 			}
 		}
-		if err := allocator.AllocateOrOccupyCIDR(tc.fakeNodeHandler.Existing[0]); err != nil {
-			t.Errorf("%v: unexpected error in AllocateOrOccupyCIDR: %v", tc.description, err)
-		}
+
+		allocator.AllocateOrOccupyCIDR(tc.fakeNodeHandler.Existing[0])
+
 		if err := waitForUpdatedNodeWithTimeout(tc.fakeNodeHandler, 1, wait.ForeverTestTimeout); err != nil {
 			t.Fatalf("%v: timeout while waiting for Node update: %v", tc.description, err)
-		}
-		found := false
-		seenCIDRs := []string{}
-		for _, updatedNode := range tc.fakeNodeHandler.getUpdatedNodesCopy() {
-			seenCIDRs = append(seenCIDRs, updatedNode.Spec.PodCIDR)
-			if updatedNode.Spec.PodCIDR == tc.expectedAllocatedCIDR {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("%v: Unable to find allocated CIDR %v, found updated Nodes with CIDRs: %v",
-				tc.description, tc.expectedAllocatedCIDR, seenCIDRs)
 		}
 	}
 
@@ -173,7 +174,7 @@ func TestAllocateOrOccupyCIDRSuccess(t *testing.T) {
 func TestAllocateOrOccupyCIDRFailure(t *testing.T) {
 	testCases := []struct {
 		description     string
-		fakeNodeHandler *FakeNodeHandler
+		fakeNodeHandler *utils.FakeNodeHandler
 		clusterCIDR     *net.IPNet
 		serviceCIDR     *net.IPNet
 		subNetMaskSize  int
@@ -181,7 +182,7 @@ func TestAllocateOrOccupyCIDRFailure(t *testing.T) {
 	}{
 		{
 			description: "When there's no ServiceCIDR return first CIDR in range",
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -203,39 +204,36 @@ func TestAllocateOrOccupyCIDRFailure(t *testing.T) {
 
 	testFunc := func(tc struct {
 		description     string
-		fakeNodeHandler *FakeNodeHandler
+		fakeNodeHandler *utils.FakeNodeHandler
 		clusterCIDR     *net.IPNet
 		serviceCIDR     *net.IPNet
 		subNetMaskSize  int
 		allocatedCIDRs  []string
 	}) {
-		allocator, _ := NewCIDRRangeAllocator(tc.fakeNodeHandler, tc.clusterCIDR, tc.serviceCIDR, tc.subNetMaskSize, nil)
+		stopCh := make(chan struct{})
+		defer close(stopCh)
+		allocator := testNewCIDRAllocationControllerFromClient(tc.fakeNodeHandler.Clientset, stopCh, tc.clusterCIDR, tc.serviceCIDR, tc.subNetMaskSize)
 		// this is a bit of white box testing
+		allocator.filterOutServiceRange(tc.serviceCIDR)
 		for _, allocated := range tc.allocatedCIDRs {
 			_, cidr, err := net.ParseCIDR(allocated)
 			if err != nil {
 				t.Fatalf("%v: unexpected error when parsing CIDR %v: %v", tc.description, allocated, err)
 			}
-			rangeAllocator, ok := allocator.(*rangeAllocator)
-			if !ok {
-				t.Logf("%v: found non-default implementation of CIDRAllocator, skipping white-box test...", tc.description)
-				return
-			}
-			err = rangeAllocator.cidrs.occupy(cidr)
+			err = allocator.cidrs.occupy(cidr)
 			if err != nil {
 				t.Fatalf("%v: unexpected error when occupying CIDR %v: %v", tc.description, allocated, err)
 			}
 		}
-		if err := allocator.AllocateOrOccupyCIDR(tc.fakeNodeHandler.Existing[0]); err == nil {
-			t.Errorf("%v: unexpected success in AllocateOrOccupyCIDR: %v", tc.description, err)
-		}
+
+		allocator.AllocateOrOccupyCIDR(tc.fakeNodeHandler.Existing[0])
 		// We don't expect any updates, so just sleep for some time
 		time.Sleep(time.Second)
-		if len(tc.fakeNodeHandler.getUpdatedNodesCopy()) != 0 {
-			t.Fatalf("%v: unexpected update of nodes: %v", tc.description, tc.fakeNodeHandler.getUpdatedNodesCopy())
+		if len(tc.fakeNodeHandler.GetUpdatedNodesCopy()) != 0 {
+			t.Fatalf("%v: unexpected update of nodes: %v", tc.description, tc.fakeNodeHandler.GetUpdatedNodesCopy())
 		}
 		seenCIDRs := []string{}
-		for _, updatedNode := range tc.fakeNodeHandler.getUpdatedNodesCopy() {
+		for _, updatedNode := range tc.fakeNodeHandler.GetUpdatedNodesCopy() {
 			if updatedNode.Spec.PodCIDR != "" {
 				seenCIDRs = append(seenCIDRs, updatedNode.Spec.PodCIDR)
 			}
@@ -253,7 +251,7 @@ func TestAllocateOrOccupyCIDRFailure(t *testing.T) {
 func TestReleaseCIDRSuccess(t *testing.T) {
 	testCases := []struct {
 		description                      string
-		fakeNodeHandler                  *FakeNodeHandler
+		fakeNodeHandler                  *utils.FakeNodeHandler
 		clusterCIDR                      *net.IPNet
 		serviceCIDR                      *net.IPNet
 		subNetMaskSize                   int
@@ -264,7 +262,7 @@ func TestReleaseCIDRSuccess(t *testing.T) {
 	}{
 		{
 			description: "Correctly release preallocated CIDR",
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -287,7 +285,7 @@ func TestReleaseCIDRSuccess(t *testing.T) {
 		},
 		{
 			description: "Correctly recycle CIDR",
-			fakeNodeHandler: &FakeNodeHandler{
+			fakeNodeHandler: &utils.FakeNodeHandler{
 				Existing: []*v1.Node{
 					{
 						ObjectMeta: v1.ObjectMeta{
@@ -311,7 +309,7 @@ func TestReleaseCIDRSuccess(t *testing.T) {
 
 	testFunc := func(tc struct {
 		description                      string
-		fakeNodeHandler                  *FakeNodeHandler
+		fakeNodeHandler                  *utils.FakeNodeHandler
 		clusterCIDR                      *net.IPNet
 		serviceCIDR                      *net.IPNet
 		subNetMaskSize                   int
@@ -320,39 +318,31 @@ func TestReleaseCIDRSuccess(t *testing.T) {
 		allocatedCIDRs                   []string
 		cidrsToRelease                   []string
 	}) {
-		allocator, _ := NewCIDRRangeAllocator(tc.fakeNodeHandler, tc.clusterCIDR, tc.serviceCIDR, tc.subNetMaskSize, nil)
+		stopCh := make(chan struct{})
+		defer close(stopCh)
+		allocator := testNewCIDRAllocationControllerFromClient(tc.fakeNodeHandler.Clientset, stopCh, tc.clusterCIDR, tc.serviceCIDR, tc.subNetMaskSize)
 		// this is a bit of white box testing
+		allocator.filterOutServiceRange(tc.serviceCIDR)
 		for _, allocated := range tc.allocatedCIDRs {
 			_, cidr, err := net.ParseCIDR(allocated)
 			if err != nil {
 				t.Fatalf("%v: unexpected error when parsing CIDR %v: %v", tc.description, allocated, err)
 			}
-			rangeAllocator, ok := allocator.(*rangeAllocator)
-			if !ok {
-				t.Logf("%v: found non-default implementation of CIDRAllocator, skipping white-box test...", tc.description)
-				return
-			}
-			err = rangeAllocator.cidrs.occupy(cidr)
+			err = allocator.cidrs.occupy(cidr)
 			if err != nil {
 				t.Fatalf("%v: unexpected error when occupying CIDR %v: %v", tc.description, allocated, err)
 			}
 		}
-		err := allocator.AllocateOrOccupyCIDR(tc.fakeNodeHandler.Existing[0])
+		allocator.AllocateOrOccupyCIDR(tc.fakeNodeHandler.Existing[0])
 		if tc.expectedAllocatedCIDRFirstRound != "" {
-			if err != nil {
-				t.Fatalf("%v: unexpected error in AllocateOrOccupyCIDR: %v", tc.description, err)
-			}
 			if err := waitForUpdatedNodeWithTimeout(tc.fakeNodeHandler, 1, wait.ForeverTestTimeout); err != nil {
 				t.Fatalf("%v: timeout while waiting for Node update: %v", tc.description, err)
 			}
 		} else {
-			if err == nil {
-				t.Fatalf("%v: unexpected success in AllocateOrOccupyCIDR: %v", tc.description, err)
-			}
 			// We don't expect any updates here
 			time.Sleep(time.Second)
-			if len(tc.fakeNodeHandler.getUpdatedNodesCopy()) != 0 {
-				t.Fatalf("%v: unexpected update of nodes: %v", tc.description, tc.fakeNodeHandler.getUpdatedNodesCopy())
+			if len(tc.fakeNodeHandler.GetUpdatedNodesCopy()) != 0 {
+				t.Fatalf("%v: unexpected update of nodes: %v", tc.description, tc.fakeNodeHandler.GetUpdatedNodesCopy())
 			}
 		}
 
@@ -363,22 +353,18 @@ func TestReleaseCIDRSuccess(t *testing.T) {
 				},
 			}
 			nodeToRelease.Spec.PodCIDR = cidrToRelease
-			err = allocator.ReleaseCIDR(&nodeToRelease)
-			if err != nil {
-				t.Fatalf("%v: unexpected error in ReleaseCIDR: %v", tc.description, err)
-			}
+			allocator.ReleaseCIDR(&nodeToRelease)
 		}
 
-		if err = allocator.AllocateOrOccupyCIDR(tc.fakeNodeHandler.Existing[0]); err != nil {
-			t.Fatalf("%v: unexpected error in AllocateOrOccupyCIDR: %v", tc.description, err)
-		}
+		allocator.AllocateOrOccupyCIDR(tc.fakeNodeHandler.Existing[0])
+
 		if err := waitForUpdatedNodeWithTimeout(tc.fakeNodeHandler, 1, wait.ForeverTestTimeout); err != nil {
 			t.Fatalf("%v: timeout while waiting for Node update: %v", tc.description, err)
 		}
 
 		found := false
 		seenCIDRs := []string{}
-		for _, updatedNode := range tc.fakeNodeHandler.getUpdatedNodesCopy() {
+		for _, updatedNode := range tc.fakeNodeHandler.GetUpdatedNodesCopy() {
 			seenCIDRs = append(seenCIDRs, updatedNode.Spec.PodCIDR)
 			if updatedNode.Spec.PodCIDR == tc.expectedAllocatedCIDRSecondRound {
 				found = true
