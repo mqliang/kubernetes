@@ -11,14 +11,16 @@
 # Update the config file of the chrony service
 
 - name: Ubuntu | Update the chrony config file
-  include: chrony-conf-update.yml
+  include: chrony-update.yml
   vars:
+    chrony_service_name: "chrony"
     chrony_config_file: "/etc/chrony/chrony.conf"
   when: ansible_distribution == "Ubuntu"
 
 - name: CentOS | Update the chrony config file
-  include: chrony-conf-update.yml
+  include: chrony-update.yml
   vars:
+    chrony_service_name: "chronyd"
     chrony_config_file: "/etc/chrony.conf"
   when: ansible_distribution == "CentOS"
 

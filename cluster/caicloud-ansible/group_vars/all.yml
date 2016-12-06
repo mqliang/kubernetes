@@ -307,3 +307,5 @@ caicloud_self_hosted: "NO"
 kubernetes_provider: caicloud-baremetal
 dns_host_name: cluster
 base_domain_name: "{{ caicloud_private_test_domain }}"
+
+custom_time_server: ""
