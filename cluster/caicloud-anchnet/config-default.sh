@@ -194,7 +194,9 @@ USER_PROJECT_WAIT_INTERVAL=${USER_PROJECT_WAIT_INTERVAL:-3}
 ENABLE_CLUSTER_DNS=${ENABLE_CLUSTER_DNS:-true}
 DNS_SERVER_IP=${DNS_SERVER_IP:-10.254.0.100} # Must be a IP in SERVICE_CLUSTER_IP_RANGE.
 DNS_DOMAIN=${DNS_DOMAIN:-"cluster.local"}
-DNS_REPLICAS=${DNS_REPLICAS:-1}
+MIN_DNS_REPLICAS=${DNS_REPLICAS:-2}
+CORES_PER_DNS_REPLICAS={CORES_PER_DNS_REPLICAS:-256}
+NODES_PER_DNS_REPLICAS={NODES_PER_DNS_REPLICAS:-16}
 
 # Used by monitoring to indicate which environment we are running on
 RUNNING_ENV=${RUNNING_ENV:-"dev"}
@@ -335,7 +337,9 @@ APT_MIRRORS_DOCKER=${APT_MIRRORS_DOCKER:-"http://get.caicloud.io/docker"}
 
 DNS_IMAGE_KUBEDNS=${DNS_IMAGE_KUBEDNS:-"index.caicloud.io/caicloudgcr/google_containers_kubedns-amd64:1.8"}
 DNS_IMAGE_DNSMASQ=${DNS_IMAGE_DNSMASQ:-"index.caicloud.io/caicloudgcr/google_containers_kube-dnsmasq-amd64:1.4"}
+DNS_IMAGE_DNSMASQ_METRICS=${DNS_IMAGE_DNSMASQ_METRICS:-"index.caicloud.io/caicloudgcr/google_containers_dnsmasq-metrics-amd64:1.0"}
 DNS_IMAGE_HEALTHZ=${DNS_IMAGE_HEALTHZ:-"index.caicloud.io/caicloudgcr/google_containers_exechealthz-amd64:1.2"}
+DNS_HPA_IMAGE=${DNS_HPA_IMAGE:-"index.caicloud.io/caicloudgcr/google_containters_cluster-proportional-autoscaler-amd64:1.0.0"}
 
 ELASTICSEARCH_IMAGE_ELASTICSEARCH=${ELASTICSEARCH_IMAGE_ELASTICSEARCH:-"index.caicloud.io/caicloudgcr/google_containers_elasticsearch:1.9"}
 ELASTICSEARCH_IMAGE_ESCRON=${ELASTICSEARCH_IMAGE_ESCRON:-"index.caicloud.io/caicloud/es-cron:v0.1.2"}

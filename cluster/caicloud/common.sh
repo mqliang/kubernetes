@@ -46,10 +46,18 @@ function deploy-addons {
   # Replace placeholder with our configuration for dns rc/svc.
   local -r skydns_rc_file="${KUBE_ROOT}/cluster/caicloud/addons/dns/skydns-rc.yaml.in"
   local -r skydns_svc_file="${KUBE_ROOT}/cluster/caicloud/addons/dns/skydns-svc.yaml.in"
-  sed -e "s/{{ pillar\['dns_replicas'\] }}/${DNS_REPLICAS}/g;\
+  local -r dns_hpa_file="${KUBE_ROOT}/cluster/caicloud/addons/dns/dns-hpa.yaml.in"
+  sed -e "s/{{ pillar\['min_dns_replicas'\] }}/${MIN_DNS_REPLICAS}/g;\
+          s/{{ pillar\['dns_hpa_image'\] }}/${DNS_HPA_IMAGE}/g;\
+          s/{{ pillar\['cores_per_dns_replica'\] }}/${CORES_PER_DNS_REPLICA}/g;\
+          s/{{ pillar\['nodes_per_dns_replica'\] }}/${NODES_PER_DNS_REPLICA}/g;"\
+		  ${dns_hpa_file} > ${KUBE_TEMP}/dns-hpa.yaml
+
+  sed -e "s/{{ pillar\['min_dns_replicas'\] }}/${MIN_DNS_REPLICAS}/g;\
           s/{{ pillar\['dns_domain'\] }}/${DNS_DOMAIN}/g;\
           s|{{ pillar\['dns_image_kubedns'\] }}|${DNS_IMAGE_KUBEDNS}|g;\
           s|{{ pillar\['dns_image_dnsmasq'\] }}|${DNS_IMAGE_DNSMASQ}|g;\
+          s|{{ pillar\['dns_image_dnsmasq-metrics'\] }}|${DNS_IMAGE_DNSMASQ_METRICS}|g;\
           s|{{ pillar\['dns_image_healthz'\] }}|${DNS_IMAGE_HEALTHZ}|g" ${skydns_rc_file} > ${KUBE_TEMP}/skydns-rc.yaml
   sed -e "s/{{ pillar\['dns_server'\] }}/${DNS_SERVER_IP}/g" ${skydns_svc_file} > ${KUBE_TEMP}/skydns-svc.yaml
 
@@ -102,6 +110,7 @@ function deploy-addons {
   # dns rc/svc
   cp ${KUBE_TEMP}/skydns-rc.yaml \
      ${KUBE_TEMP}/skydns-svc.yaml \
+     ${KUBE_TEMP}/dns-hpa.yaml \
      ${KUBE_TEMP}/addons/dns
   # logging rc/svc
   cp ${KUBE_TEMP}/elasticsearch-rc.yaml \

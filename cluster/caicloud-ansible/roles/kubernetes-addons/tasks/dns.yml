@@ -15,3 +15,4 @@
   with_items:
     - skydns-rc.yaml
     - skydns-svc.yaml
+    - dns-hpa.yaml
