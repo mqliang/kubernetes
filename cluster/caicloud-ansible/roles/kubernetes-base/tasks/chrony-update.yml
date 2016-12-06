@@ -1,0 +1,80 @@
+---
+# Update chrony service and config file
+#
+# Assumed vars:
+#   chrony_service_name
+#   chrony_config_file
+
+- name: Enable chrony to start on boot
+  service: name={{ chrony_service_name }} enabled=yes
+
+- name: Remove the former time servers
+  command: "sed -i -e '/^server /d' -e '/^peer /d' {{ chrony_config_file }}"
+
+- name: Check if the node is a time server
+  set_fact:
+    is_time_server: False
+
+- set_fact:
+    is_time_server: True
+  when: inventory_hostname in groups['masters']
+
+# Serve time even if not synchronized to any time server.
+- name: Allow chronyd to appear synchronized from the viewpoint of clients
+  lineinfile:
+    dest: "{{ chrony_config_file }}"
+    regexp: "^local stratum 10"
+    line: "local stratum 10"
+    insertbefore: BOF
+  when: is_time_server
+
+- name: Update peer time servers for masters
+  lineinfile:
+    dest: "{{ chrony_config_file }}"
+    regexp: "^peer {{ hostvars[item]['internal_ip'] }}"
+    line: "peer {{ hostvars[item]['internal_ip'] }}"
+    insertbefore: BOF
+  when: is_time_server and inventory_hostname != item
+  with_items: "{{ groups['masters'] }}"
+
+- name: Update external time servers for masters
+  lineinfile:
+    dest: "{{ chrony_config_file }}"
+    regexp: "^server {{ item }}"
+    line: "server {{ item }}"
+    insertbefore: BOF
+  with_items:
+    - "3.uk.pool.ntp.org iburst"
+    - "2.uk.pool.ntp.org iburst"
+    - "1.uk.pool.ntp.org iburst"
+    - "0.uk.pool.ntp.org iburst"
+    - "3.asia.pool.ntp.org iburst"
+    - "2.asia.pool.ntp.org iburst"
+    - "1.asia.pool.ntp.org iburst"
+    - "0.asia.pool.ntp.org iburst"
+  when: is_time_server and custom_time_server == ""
+
+- name: Update custom time server for masters
+  lineinfile:
+    dest: "{{ chrony_config_file }}"
+    regexp: "^server {{ custom_time_server }}"
+    line: "server {{ custom_time_server }}"
+    insertbefore: BOF
+  when: is_time_server and custom_time_server != ""
+
+- name: Update time servers for nodes
+  lineinfile:
+    dest: "{{ chrony_config_file }}"
+    regexp: "^server {{ hostvars[item]['internal_ip'] }}"
+    line: "server {{ hostvars[item]['internal_ip'] }} iburst prefer"
+    insertbefore: BOF
+  with_items: "{{ groups['masters'] }}"
+  when: not is_time_server
+
+# Allows access by any node (IPv4 or IPv6)
+- name: Allow NTP client access
+  lineinfile:
+    dest: "{{ chrony_config_file }}"
+    regexp: "^allow$"
+    line: "allow"
+    insertbefore: EOF
