@@ -47,7 +47,13 @@ kube_push: true
 cluster_ingress: true
 
 # Number of dns replicas.
-dns_replicas: 1
+min_dns_replicas: 2
+
+# cores per dns replica
+cores_per_dns_replica: 256
+
+# nodes per dns replica
+nodes_per_dns_replica: 16
 
 # Internal DNS domain name. This domain must not be used in internal network.
 # Services will be discoverable under <service-name>.<namespace>.<domainname>,
@@ -220,6 +226,9 @@ common_image_mongo: "{{ registry_prefix_caicloud }}/mongo:3.0.5"
 common_image_nginx: "{{ registry_prefix_caicloud }}/nginx:1.9.4"
 kubedns_image_kubedns: "{{ registry_prefix_caicloudgcr }}/google_containers_kubedns-amd64:1.8"
 kubedns_image_dnsmasq: "{{ registry_prefix_caicloudgcr }}/google_containers_kube-dnsmasq-amd64:1.4"
+kubedns_image_dnsmasq_metrics: "{{ registry_prefix_caicloudgcr }}/google_containers_dnsmasq-metrics-amd64:1.0"
+kubedns_image_dns_hpa: "{{ registry_prefix_caicloudgcr }}/google_containers_cluster-proportional-autoscaler-amd64:1.0.0"
+
 kubedns_image_healthz: "{{ registry_prefix_caicloudgcr }}/google_containers_exechealthz-amd64:1.2"
 kubepush_image_kubepush: "{{ registry_prefix_caicloud }}/kubepush:v0.0.1"
 nfs_server_image: "{{ registry_prefix_caicloud }}/nfs-server:v0.0.1"

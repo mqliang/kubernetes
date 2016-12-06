@@ -1,0 +1,46 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kube-dns-autoscaler-v21
+  namespace: kube-system
+  labels:
+    k8s-app: kube-dns-autoscaler
+    version: v21
+    kubernetes.io/cluster-service: "true"
+    kubernetes-admin.caicloud.io/application: kube-dns-autoscaler-v21
+    kubernetes-admin.caicloud.io/type: application
+    addon-manager.caicloud.io/name: dns
+    addon-manager.caicloud.io/version: v0.0.2
+    addon-manager.caicloud.io/key: dns-hpa
+spec:
+  template:
+    metadata:
+      labels:
+        k8s-app: kube-dns-autoscaler
+        kubernetes.io/cluster-service: "true"
+        version: v21
+        kubernetes-admin.caicloud.io/application: kube-dns-autoscaler-v21
+        kubernetes-admin.caicloud.io/type: application
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"CriticalAddonsOnly", "operator":"Exists"}]'
+    spec:
+      containers:
+      - name: autoscaler
+        image: {{ kubedns_image_dns_hpa }} 
+        resources:
+            requests:
+                cpu: "20m"
+                memory: "10Mi"
+        command:
+          - /cluster-proportional-autoscaler
+          - --namespace=kube-system
+          - --configmap=kube-dns-autoscaler
+          - --mode=linear
+          # Should keep target in sync with cluster/addons/dns/skydns-rc.yaml.base
+          - --target=Deployment/kube-dns-v21
+          # When cluster is using large nodes(with more cores), "coresPerReplica" should dominate.
+          # If using small nodes, "nodesPerReplica" should dominate.
+          - --default-params={"linear":{"coresPerReplica":{{ cores_per_dns_replica }},"nodesPerReplica":{{ nodes_per_dns_replica }},"min":{{ min_dns_replicas }}}}
+          - --logtostderr=true
+          - --v=2
