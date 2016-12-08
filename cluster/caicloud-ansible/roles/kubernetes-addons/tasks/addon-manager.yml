@@ -16,6 +16,9 @@
 - name: Write third party resource
   copy: src="thirdpartyresource.yaml" dest="{{ kube_config_dir }}/addons/thirdpartyresource.yaml"
 
+- name: Write ingress default http backend service
+  copy: src="default-http-backend-svc.yaml" dest="{{ kube_config_dir }}/addons/default-http-backend-svc.yaml"
+
 - name: namespace and quota
   command: "{{ bin_dir }}/kubectl apply -f {{ kube_addons_dir }}/{{ item }}"
   with_items:
