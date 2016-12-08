@@ -116,6 +116,8 @@ func readConfig(config io.Reader) (Config, error) {
 		return Config{}, err
 	}
 
+	glog.V(4).Infof("Config for Aliyun cloudprovider: '%v'", cfg)
+
 	return cfg, nil
 }
 
@@ -136,6 +138,8 @@ func newAliyun(config Config) (cloudprovider.Interface, error) {
 		slbEndpoint = config.Endpoints.SlbEndpoint
 	}
 	slbClient := slb.NewClientWithEndpoint(slbEndpoint, config.Global.AccessKeyID, config.Global.AccessKeySecret)
+
+	glog.V(4).Infof("[Aliyun endpoints] ecsEndpoint: %v, slbEndpoint: %v", ecsEndpoint, slbEndpoint)
 
 	if config.LoadBalancer.AddressType == "" {
 		config.LoadBalancer.AddressType = slb.InternetAddressType
