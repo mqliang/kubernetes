@@ -30,8 +30,12 @@ import (
 var _ cloudprovider.LoadBalancer = (*Aliyun)(nil)
 
 func getLoadBalancerName(clusterName string, service *api.Service) string {
-	// Forcibly change to "clusterName-serviceName-serviceNamespace-serviceUID", for aliyun.
-	ret := fmt.Sprintf("%s-%s-%s-%s", clusterName, service.Name, service.Namespace, cloudprovider.GetLoadBalancerName(service))
+	// Forcibly change to "serviceUID-serviceName-serviceNamespace-clusterName", for aliyun.
+	ret := fmt.Sprintf("%s-%s-%s-%s", cloudprovider.GetLoadBalancerName(service), service.Name, service.Namespace, clusterName)
+	//Aliyun requires that the name of a load balancer is shorter than 80 bytes.
+	if len(ret) > 80 {
+		ret = ret[:80]
+	}
 	return ret
 }
 
