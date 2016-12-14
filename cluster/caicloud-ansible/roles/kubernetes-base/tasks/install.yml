@@ -80,7 +80,8 @@
   when: inventory_hostname in groups['masters']
 
 - name: Save important parameters when kube-up
-  synchronize: src={{ local_dir_extra_vars_json_stored }} dest={{ dir_extra_vars_stored }}
+  shell: scp -r {{ local_dir_extra_vars_json_stored }} {{ hostvars[inventory_hostname]['ansible_user'] }}@{{ hostvars[inventory_hostname]['ansible_host'] }}:{{ dir_extra_vars_stored }}
+  delegate_to: localhost
   when: inventory_hostname in groups['masters'] and dir_evs.stat.exists and dir_evs.stat.isdir
 
 #
