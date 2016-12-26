@@ -1971,17 +1971,27 @@ function create-extra-vars-json-file-common {
   set | grep "^${string_prefix}*" | \
   while read line; do
     IFS='=' read -ra var_array <<< "${line}"
+    var_array_len=${#var_array[*]}
     # Get XX_YY and change into lowercase: xx_yy
     var_name=`eval echo \$\{var_array[0]\#${string_prefix}\} | tr '[:upper:]' '[:lower:]'`
-    echo "  \"${var_name}\": \"${var_array[1]}\"," >> ${extra_vars_file}
+    if [[ ${var_array_len} -gt 1 ]]; then
+      echo "  \"${var_name}\": \"${var_array[1]}\"," >> ${extra_vars_file}
+    else
+      echo "  \"${var_name}\": \"\"," >> ${extra_vars_file}
+    fi
   done
 
   # resolve number type environment variables.
   set | grep "^${number_prefix}*" | \
   while read line; do
     IFS='=' read -ra var_array <<< "${line}"
+    var_array_len=${#var_array[*]}
     # Get XX_YY and change into lowercase: xx_yy
     var_name=`eval echo \$\{var_array[0]\#${number_prefix}\} | tr '[:upper:]' '[:lower:]'`
+    if [[ ${var_array_len} -le 1 ]]; then
+      echo "Find error in \"${line}\""
+      exit 1
+    fi
     echo "  \"${var_name}\": ${var_array[1]}," >> ${extra_vars_file}
   done
 
