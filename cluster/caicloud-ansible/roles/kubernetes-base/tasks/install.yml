@@ -73,16 +73,18 @@
 # Save important parameters when kube-up, and may be used when upgrading.
 
 - name: Check if extra vars directory exists in localhost
-  stat: path={{ local_dir_extra_vars_json_stored }}
+  local_action: stat path={{ local_dir_extra_vars_json_stored }}/{{ item }}
   register: dir_evs
-  delegate_to: localhost
+  with_items:
+    - "extra_vars.json"
+    - "extra_vars.aliyun.json"
   run_once: true
   when: inventory_hostname in groups['masters']
 
 - name: Save important parameters when kube-up
-  shell: scp -r {{ local_dir_extra_vars_json_stored }} {{ hostvars[inventory_hostname]['ansible_user'] }}@{{ hostvars[inventory_hostname]['ansible_host'] }}:{{ dir_extra_vars_stored }}
-  delegate_to: localhost
-  when: inventory_hostname in groups['masters'] and dir_evs.stat.exists and dir_evs.stat.isdir
+  copy: src={{ local_dir_extra_vars_json_stored }}/{{ item.item }} dest={{ dir_extra_vars_stored }}/{{ item.item }} force=yes
+  when: inventory_hostname in groups['masters'] and item.stat.exists and item.stat.isreg
+  with_items: "{{ dir_evs.results }}"
 
 #
 # Needed by kubelet/cadvisor.
