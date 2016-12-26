@@ -1,0 +1,9 @@
+
+# configuration for weave
+ipalloc_range: 192.168.64.0/20
+weave_http_addr:
+weave_status_addr:
+expect_npc:
+kube_peers:
+ipalloc_init:
+weave_expose_ip:

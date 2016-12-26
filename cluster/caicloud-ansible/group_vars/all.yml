@@ -175,6 +175,9 @@ kubectl_kubeconfig: "{{ kube_config_dir }}/kubectl.kubeconfig"
 # The directory to store all addon yaml files.
 kube_addons_dir: "{{ kube_config_dir }}/addons"
 
+# The directory to store weave yaml files.
+kube_weave_dir: "{{ kube_config_dir }}/weaves"
+
 # This directory is where all the additional scripts go that Kubernetes normally puts
 # in /srv/kubernetes.  This puts them in a sane location.
 kube_script_dir: "{{ kube_config_dir}}/scripts"
@@ -244,6 +247,8 @@ ingress_keepalived_image: "{{ registry_prefix_caicloud }}/ingress-keepalived-vip
 ingress_nginx_image: "{{ registry_prefix_caicloud }}/nginx-ingress-controller:v0.0.1"
 ingress_loadbalancer_controller_image: "{{ registry_prefix_caicloud }}/loadbalancer-controller:v0.0.1"
 caicloud_self_hosted_image: "{{ registry_prefix_caicloud }}/self-hosted:v0.0.3"
+weave_image: "{{ registry_prefix_caicloud }}/weave:v0.0.1"
+weave_npc_image: "{{ registry_prefix_caicloud }}/weave-npc:v0.0.1"
 
 # Main ports for etcd.
 etcd_client_port: 2379

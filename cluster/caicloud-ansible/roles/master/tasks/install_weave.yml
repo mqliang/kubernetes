@@ -1,0 +1,19 @@
+# used to create weave pods after apiserver
+#
+
+- name: Create directory for weave
+  file: path="{{ kube_weave_dir }}/weave" state=directory owner=root group=root mode=0755
+
+- name: Copy weave daemon set yaml
+  template:
+  args:
+    src: "weave-daemonset.yaml.j2"
+    dest: "{{ kube_weave_dir }}/weave/weave-daemonset.yaml"
+    mode: 0644
+    owner: root
+    group: root
+
+# "create weave pods by kubectl create -f daemonset.yml"
+- name: Create 'weave network' pods
+  command: "{{ bin_dir }}/kubectl apply -f {{ kube_weave_dir }}/weave/weave-daemonset.yaml"
+

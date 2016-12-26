@@ -43,6 +43,12 @@
     sleep_seconds: 0
 
 #
+# Install Weave on master
+- name: Install weave components on master
+  include: install_weave.yml
+  when: networking == 'weave' and inventory_hostname == groups['masters'][0]
+
+#
 # Set up loadbalancer.
 
 - name: Set up loadbalancer
@@ -53,3 +59,11 @@
 
 - name: Create kubeconfig for control machine
   include: gen_cmkubeconfig.yml
+
+#
+# Wait for weave pods run.
+- name: Check weave pod status running
+  include: weave-status.yml
+  when: networking == 'weave' and inventory_hostname == groups['masters'][0]
+
+

@@ -1,0 +1,11 @@
+---
+# Check weave-status for weave-net solution
+
+- name: Copy the weave-status check script
+  copy:
+    src=kube-weave-status.sh
+    dest={{ kube_script_dir }}
+    mode=0744
+
+- name: Loop for status check
+  command: "{{ kube_script_dir }}/kube-weave-status.sh"
