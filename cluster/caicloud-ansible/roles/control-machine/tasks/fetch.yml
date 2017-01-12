@@ -34,6 +34,10 @@
     fetch_kubectl_binary: True
   when: check_res.rc == 0 and check_res.stdout != "{{ bin_dir }}/kubectl"
 
+- name: Remove old kubectl
+  file: path={{ bin_dir }}/kubectl state=absent
+  when: fetch_kubectl_binary
+
 - name: Fetch kubectl binary from master
   fetch: src={{ bin_dir }}/kubectl dest={{ bin_dir }}/kubectl flat=yes
   delegate_to: "{{ random_master }}"

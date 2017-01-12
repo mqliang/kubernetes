@@ -1,0 +1,78 @@
+---
+# Run a instance and get the instance information.
+
+# Assumed vars:
+#   instance_type
+#   instance_name
+#   system_disk_category
+#   system_disk_size
+
+- name: Check if instance {{ instance_name }} exists
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --ZoneId {{ zone_id }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }}
+  register: output
+  until: output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Determine whether to create instance
+  set_fact:
+    instance_create_flag: true
+    instance_info: "{{ output.stdout | from_json }}"
+    instance_status: "Stopped"
+# If the instance is existed, then get the instance id from the output, and
+# it is no need to create another instance.
+- set_fact:
+    instance_create_flag: false
+    instance_id: "{{ instance_info.Instances.Instance[0].InstanceId }}"
+    instance_status: "{{ instance_info.Instances.Instance[0].Status }}"
+  when: instance_info.TotalCount|int > 0
+
+# https://help.aliyun.com/document_detail/25499.html?spm=5176.doc25685.6.230.0ESZ8U
+# Instance is in Stopped status after creating.
+- name: Create aliyun instance {{ instance_name }} by PostPaid
+  command: aliyuncli ecs CreateInstance {{ common_paras }} --ZoneId {{ zone_id }} --ImageId {{ image_id }} --InstanceType {{ instance_type }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }} --InternetChargeType {{ internet_charge_type }} --InternetMaxBandwidthOut {{ internet_max_bandwidth_out }} --Password {{ instance_password }} --SystemDiskCategory {{ system_disk_category }} --SystemDiskSize {{ system_disk_size }} --InstanceChargeType {{ instance_charge_type }}
+  register: output_postpaid
+  until: output_postpaid.stdout.find("InstanceId") != -1
+  retries: 5
+  delay: 5
+  when: instance_create_flag and instance_charge_type == "PostPaid"
+
+- name: Get instance info from the instance just created by PostPaid
+  set_fact:
+    json_instance_id: "{{ output_postpaid.stdout | from_json }}"
+  when: instance_create_flag and instance_charge_type == "PostPaid"
+
+- name: Create aliyun instance {{ instance_name }} by PrePaid
+  command: aliyuncli ecs CreateInstance {{ common_paras }} --ZoneId {{ zone_id }} --ImageId {{ image_id }} --InstanceType {{ instance_type }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }} --InternetChargeType {{ internet_charge_type }} --InternetMaxBandwidthOut {{ internet_max_bandwidth_out }} --Password {{ instance_password }} --SystemDiskCategory {{ system_disk_category }} --SystemDiskSize {{ system_disk_size }} --InstanceChargeType {{ instance_charge_type }} --Period {{ period }}
+  register: output_prepaid
+  until: output_prepaid.stdout.find("InstanceId") != -1
+  retries: 5
+  delay: 5
+  when: instance_create_flag and instance_charge_type == "PrePaid"
+
+- name: Get instance info from the instance just created by PrePaid
+  set_fact:
+    json_instance_id: "{{ output_prepaid.stdout | from_json }}"
+  when: instance_create_flag and instance_charge_type == "PrePaid"
+
+- name: Get instance id from the instance just created
+  set_fact:
+    instance_id: "{{ json_instance_id.InstanceId }}"
+  when: instance_create_flag
+
+# If the instance already has a public ip adress, then it will just return it.
+- name: Allocate public ip address
+  command: aliyuncli ecs AllocatePublicIpAddress {{ common_paras }} --InstanceId {{ instance_id }}
+  register: allocate_output
+  until: allocate_output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+  when: public_ip_needed == "YES" and (instance_status == "Stopped" or instance_status == "Running")
+
+- name: Start instance
+  command: aliyuncli ecs StartInstance {{ common_paras }} --InstanceId {{ instance_id }}
+  register: start_output
+  until: start_output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+  when: instance_status == "Stopped"

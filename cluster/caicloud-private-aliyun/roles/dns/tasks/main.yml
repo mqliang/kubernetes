@@ -1,0 +1,25 @@
+---
+
+- name: Set common parametes
+  set_fact:
+    common_paras: "--AccessKeyId {{ access_key_id }} --AccessKeySecret {{ access_key_secret }} --RegionId {{ region_id }} --output json"
+
+- name: Search the security group by name for dns
+  command: aliyuncli ecs DescribeSecurityGroups {{ common_paras }} --SecurityGroupName {{ security_group_name }}
+  register: sg_info
+  until: sg_info.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Get security group id from an existing cluster for dns
+  set_fact:
+    json_sg_info: "{{ sg_info.stdout | from_json }}"
+- fail: msg="Failed to get security group ID"
+  when: json_sg_info.TotalCount|int == 0
+- set_fact:
+    aliyun_sgid: "{{ json_sg_info.SecurityGroups.SecurityGroup[0].SecurityGroupId }}"
+  when: json_sg_info.TotalCount|int > 0
+
+- name: Dns operation
+  include: dns.yml
+  when: domain_name_in_dns == "YES"

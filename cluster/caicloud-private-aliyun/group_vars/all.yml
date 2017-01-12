@@ -1,0 +1,33 @@
+---
+
+# Required to overwrite with the correct values
+access_key_id: "fake"
+access_key_secret: "fake"
+
+# The security group instances to be in
+security_group_name: "kube-default"
+
+# Default region:
+region_id: "cn-hangzhou"
+zone_id: "cn-hangzhou-a"
+
+master_node_num: 1
+minion_node_num: 2
+master_name_prefix: "kube-master-"
+node_name_prefix: "kube-node-"
+instance_password: "Caicloud-k8s"
+
+ecs_endpoint: "http://ecs.aliyuncs.com"
+slb_endpoint: "http://slb.aliyuncs.com"
+
+endpoints_path_ubuntu: "/usr/local/lib/python2.7/dist-packages/aliyunsdkcore"
+endpoints_path_centos: "/usr/lib/python2.7/site-packages/aliyunsdkcore"
+
+caicloud_customer: ""
+
+# OP_INSTALL|OP_UNINSTALL|OP_UPGRADE|OP_DOWNGRADE
+k8s_op: ""
+
+domain_name_in_dns: ""
+dns_host_name: ""
+base_domain_name: ""

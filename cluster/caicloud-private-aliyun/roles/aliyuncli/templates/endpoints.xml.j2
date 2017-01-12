@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Endpoints>
+    <Endpoint name="cn-hangzhou">
+        <RegionIds>
+            {% for region in supported_regions %}
+            <RegionId>{{ region }}</RegionId>
+            {% endfor %}
+        </RegionIds>
+        <Products>
+            {% for product in supported_products %}
+            <Product>
+                <ProductName>{{ product.name }}</ProductName>
+                <DomainName>{{ product.domain }}</DomainName>
+            </Product>
+            {% endfor %}
+        </Products>
+    </Endpoint>
+</Endpoints>

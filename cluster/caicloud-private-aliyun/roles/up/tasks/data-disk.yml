@@ -1,0 +1,76 @@
+---
+# Attach two data disk to a instance.
+
+# Assumed vars:
+#   instance_name
+
+- name: Get the instance info for data-disk
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --ZoneId {{ zone_id }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ instance_name }}
+  register: search_output
+  until: search_output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- set_fact:
+    instance_info: "{{ search_output.stdout | from_json }}"
+
+- fail: msg="Failed to get the instance info"
+  when: instance_info.TotalCount | int == 0
+
+- set_fact:
+    instance_id: "{{ instance_info.Instances.Instance[0].InstanceId }}"
+    data_disk_name: "{{ instance_id }}_dockerkubelet"
+
+- set_fact:
+    instance_ip: "{{ instance_info.Instances.Instance[0].InnerIpAddress.IpAddress[0] }}"
+
+- set_fact:
+    instance_ip: "{{ instance_info.Instances.Instance[0].PublicIpAddress.IpAddress[0] }}"
+  when: public_ip_needed == "YES"
+
+- name: Check if the data disk exists
+  command: aliyuncli ecs DescribeDisks {{ common_paras }} --ZoneId {{ zone_id }} --DiskName {{ data_disk_name }}
+  register: dd_output
+  until: dd_output.stdout.find("TotalCount") != -1
+  retries: 5
+  delay: 5
+
+- set_fact:
+    disk_exists_flag: False
+    disk_attach_flag: True
+    disk_info: "{{ dd_output.stdout | from_json }}"
+
+- set_fact:
+    disk_exists_flag: True
+  when: disk_info.TotalCount|int > 0
+
+- set_fact:
+    disk_attach_flag: False
+  when: disk_info.TotalCount|int > 0 and disk_info.Disks.Disk[0].InstanceId == "{{ instance_id }}"
+
+- name: Create the data disk
+  command: aliyuncli ecs CreateDisk {{ common_paras }} --ZoneId {{ zone_id }} --DiskName {{ data_disk_name }} --DiskCategory cloud --Size {{ data_disk_size }}
+  register: output
+  until: output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+  when: not disk_exists_flag
+
+- name: Check if the data disk exists after creating
+  command: aliyuncli ecs DescribeDisks {{ common_paras }} --ZoneId {{ zone_id }} --DiskName {{ data_disk_name }}
+  register: dd_output
+  until: dd_output.stdout.find("TotalCount") != -1
+  retries: 5
+  delay: 5
+  when: not disk_exists_flag
+
+- set_fact:
+    disk_info: "{{ dd_output.stdout | from_json }}"
+  when: not disk_exists_flag
+
+- fail: msg="Failed to get the disk info"
+  when: not disk_exists_flag and disk_info.TotalCount | int == 0
+
+- name: Attach the data disk to the instance
+  include: attach-fdisk.yml
+  when: disk_attach_flag

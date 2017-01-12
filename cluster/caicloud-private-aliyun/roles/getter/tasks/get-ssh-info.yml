@@ -1,0 +1,24 @@
+---
+# Get aliyun instance ssh info
+#
+# Assumed vars:
+#   instance_id
+#   save_to_file
+
+- name: Get instance info
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --ZoneId {{ zone_id }} --SecurityGroupId {{ aliyun_sgid }} --InstanceIds '["{{ instance_id }}"]'
+  register: search_output
+  until: search_output.stdout.find("Code") == -1 and search_output.stdout.find("Running") != -1
+  retries: 5
+  delay: 5
+
+- name: Change instance info output to be in json format
+  set_fact:
+    instance_info: "{{ search_output.stdout | from_json }}"
+
+- name: Save instance info
+  lineinfile:
+    dest="{{ save_to_file }}"
+    regexp="{{ instance_info.Instances.Instance[0].InstanceName }}"
+    line="InstanceId:{{ instance_info.Instances.Instance[0].InstanceId }} InstanceName:{{ instance_info.Instances.Instance[0].InstanceName }} HostName:{{ instance_info.Instances.Instance[0].HostName }} User:root Password:{{ instance_password }} PublicIpAddress:{{ instance_info.Instances.Instance[0].PublicIpAddress.IpAddress[0] | default("NONE") }} InnerIpAddress:{{ instance_info.Instances.Instance[0].InnerIpAddress.IpAddress[0] | default("NONE") }}" dest="{{ save_to_file }}"
+    state=present

@@ -1,0 +1,40 @@
+---
+# Attach and fdisk the data disk
+
+# Assumed vars:
+#   disk_info
+#   instance_id
+#   instance_ip
+
+- name: Attach the data disk to the instance
+  command: aliyuncli ecs AttachDisk {{ common_paras }} --InstanceId {{ instance_id }} --DiskId {{ disk_info.Disks.Disk[0].DiskId }} --DeleteWithInstance {{ data_disk_delete_with_instance }}
+  register: output
+  until: output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- name: Get the disk info
+  command: aliyuncli ecs DescribeDisks {{ common_paras }} --DiskIds '["{{ disk_info.Disks.Disk[0].DiskId }}"]'
+  register: dd_output
+  until: dd_output.stdout.find("TotalCount") != -1 and dd_output.stdout.find("In_use") != -1
+  retries: 20
+  delay: 5
+
+- set_fact:
+    get_disk_info: "{{ dd_output.stdout | from_json }}"
+
+- fail: msg="Failed to attach the disk"
+  when: get_disk_info.TotalCount|int == 0 or get_disk_info.Disks.Disk[0].InstanceId != "{{ instance_id }}" or get_disk_info.Disks.Disk[0].Status != "In_use" or get_disk_info.Disks.Disk[0].Device == ""
+
+- set_fact:
+    dd_device_name: "{{ get_disk_info.Disks.Disk[0].Device }}"
+
+# TODO: one disk for one partition, and check if the disk is successfully mounted.
+
+#
+#Create two disk partition for /var/lib/docker and /var/lib/kubelet
+
+- name: Create two disk partition
+  script: create_disk_partion.sh "root" "{{ instance_password }}" "{{ instance_ip }}" "{{ get_disk_info.Disks.Disk[0].Device }}" "{{ data_disk_size_docker }}" "cdp_success_flag"
+  register: cdp_ret
+  failed_when: cdp_ret.stdout.find("cdp_success_flag") == -1

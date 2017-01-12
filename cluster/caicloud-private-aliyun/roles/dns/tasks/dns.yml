@@ -1,0 +1,30 @@
+---
+# Add dns record
+
+- fail: msg="dns_host_name or base_domain_name is empty"
+  when: dns_host_name == "" or base_domain_name == ""
+
+- name: Get the instance ip for dns
+  command: aliyuncli ecs DescribeInstances {{ common_paras }} --ZoneId {{ zone_id }} --SecurityGroupId {{ aliyun_sgid }} --InstanceName {{ master_name_prefix }}1
+  register: output
+  until: output.stdout.find("Code") == -1
+  retries: 5
+  delay: 5
+
+- set_fact:
+    instance_info: "{{ output.stdout | from_json }}"
+
+- fail: msg="Failed to get the instance ip for dns"
+  when: instance_info.TotalCount|int == 0
+
+- set_fact:
+    dns_record_name: "{{ dns_host_name }}.{{ base_domain_name }}"
+    dns_recore_ip: "{{ instance_info.Instances.Instance[0].InnerIpAddress.IpAddress[0] }}"
+
+- set_fact:
+    dns_recore_ip: "{{ instance_info.Instances.Instance[0].PublicIpAddress.IpAddress[0] }}"
+  when: public_ip_needed == "YES"
+
+- name: Set Dns record for {{ caicloud_customer }}
+  script: dns_record.sh "{{ dns_record_name }}" "{{ dns_recore_ip }}" "{{ k8s_op }}"
+  when: caicloud_customer == "stategrid"

@@ -1,0 +1,7 @@
+---
+
+ubuntu_python_lib_path: "/usr/lib/python2.7/dist-packages"
+ubuntu_pip_python_lib_path: "/usr/local/lib/python2.7/dist-packages"
+
+# YES/NO
+aliyuncli_install_flag: "NO"

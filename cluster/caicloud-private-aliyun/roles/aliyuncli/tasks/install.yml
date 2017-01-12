@@ -1,0 +1,43 @@
+---
+# Install aliyuncli tool and related sdk
+
+- name: Ubuntu or Debian | Install requires for aliyuncli
+  apt: name={{ item }}
+  with_items:
+    - build-essential
+    - python-dev
+    - libxml2-dev
+    - libxslt1-dev
+    - zlib1g-dev
+    - libffi-dev
+    - libssl-dev
+    - python-pip
+  when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+
+- name: CentOS | Install requires for aliyuncli
+  yum: name={{ item }}
+  with_items:
+    - epel-release
+    - gcc 
+    - g++ 
+    - kernel-devel
+    - python-simplejson
+    - openssl-devel
+    - python-devel
+    - libffi-devel
+    - python-pip
+  when: ansible_distribution == "CentOS"
+
+# https://help.aliyun.com/document_detail/30003.html?spm=5176.product29991.4.18.njgOh7
+- name: Install aliyuncli tool and related libs
+  command: "pip install {{ item }}"
+  with_items:
+    - --upgrade pip
+    - pyopenssl
+    - ndg-httpsclient
+    - pyasn1
+    - aliyuncli
+    - aliyun-python-sdk-ecs
+    - aliyun-python-sdk-slb
+    - aliyun-python-sdk-alidns
+    - aliyun-python-sdk-oss

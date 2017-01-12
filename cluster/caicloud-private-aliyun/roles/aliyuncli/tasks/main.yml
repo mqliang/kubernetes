@@ -1,0 +1,31 @@
+---
+# Install and config aliyuncli
+
+#
+# Install aliyuncli by pip
+
+- name: Install aliyuncli
+  include: install.yml
+  when: aliyuncli_install_flag == "YES"
+
+#
+# Do config for aliyuncli in aliyun private cloud
+
+- name: Create aliyuncli config directory
+  file: path={{ ansible_env.HOME }}/.aliyuncli state=directory
+
+- name: Copy config for aliyuncli
+  template: src="{{ item }}.j2" dest="{{ ansible_env.HOME}}/.aliyuncli/{{ item }}"
+  with_items:
+    - configure
+    - credentials
+    - oascredentials
+    - osscredentials
+
+- name: Ubuntu or Debian | Copy endpoints.xml
+  copy: src="endpoints.xml" dest="{{ endpoints_path_ubuntu }}/endpoints.xml"
+  when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+
+- name: CentOS | Copy endpoints.xml
+  copy: src="endpoints.xml" dest="{{ endpoints_path_centos }}/endpoints.xml"
+  when: ansible_distribution == "CentOS"

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Endpoints>
+    <Endpoint name="cn-hangzhou">
+        <RegionIds>
+            <RegionId>cn-linping-zjdw-d01</RegionId>
+        </RegionIds>
+        <Products>
+            <Product>
+                <ProductName>Ecs</ProductName>
+                <DomainName>http://ecs.cloud.zj.sgcc.com.cn</DomainName>
+            </Product>
+        </Products>
+    </Endpoint>
+</Endpoints>

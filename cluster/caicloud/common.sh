@@ -2019,7 +2019,7 @@ function save-extra-vars-json-file {
     cp -f $KUBE_CURRENT/.ansible/extra_vars.json $save_dir
   fi
 
-  if [[ -f "$KUBE_CURRENT/.extra_vars.aliyun.json" ]]; then
+  if [[ -f "$KUBE_CURRENT/.ansible/.extra_vars.aliyun.json" ]]; then
     temp_file="$KUBE_CURRENT/.ansible/extra_vars.aliyun.json.temp"
     cp -f $KUBE_CURRENT/.ansible/extra_vars.aliyun.json $temp_file
     # Remove sensitive information

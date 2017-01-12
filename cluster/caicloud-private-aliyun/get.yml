@@ -1,0 +1,18 @@
+---
+# Get aliyun instances ssh info
+
+- name: Config for aliyuncli
+  hosts: localhost
+  become: yes
+  roles:
+    - aliyuncli
+  tags:
+    - aliyuncli
+
+- name: Get aliyun instances ssh info
+  hosts: localhost
+  become: yes
+  roles:
+    - getter
+  tags:
+    - getter
