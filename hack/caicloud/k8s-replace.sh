@@ -53,9 +53,8 @@ for i in `seq "${#PATTERNS[@]}"`; do
        ${KUBE_ROOT}/examples \
        ${KUBE_ROOT}/cluster/addons \
        ${KUBE_ROOT}/cluster/saltbase \
-       ${KUBE_ROOT}/contrib \
        ${KUBE_ROOT}/docs \
-       ${KUBE_ROOT}/build \
+       ${KUBE_ROOT}/build-tools \
        ${KUBE_ROOT}/cmd \
        ${KUBE_ROOT}/test/e2e/testing-manifests |
     xargs perl -X -i -pe "${SUBSTITUTIONS[$index]}"
@@ -86,6 +85,6 @@ perl -i -pe "s|google.com|baidu.com|g" \
      ${KUBE_ROOT}/test/e2e/networking.go \
      ${KUBE_ROOT}/test/e2e/dns.go
 
-# Change image in build/common.sh, which is not replaced above
+# Change image in build-tools/common.sh, which is not replaced above
 perl -i -pe "s|gcr.io/google_containers/debian-iptables-amd64|index.caicloud.io/caicloudgcr/google_containers_debian-iptables-amd64|g" \
-     ${KUBE_ROOT}/build/common.sh
+     ${KUBE_ROOT}/build-tools/common.sh
