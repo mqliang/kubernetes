@@ -63,6 +63,9 @@ type DescribeDisksArgs struct {
 	Portable           *bool //optional
 	DeleteWithInstance *bool //optional
 	DeleteAutoSnapshot *bool //optional
+	EnableAutoSnapshot *bool //optional
+	DiskChargeType     DiskChargeType
+	Tag                map[string]string
 	common.Pagination
 }
 
@@ -268,7 +271,7 @@ type ModifyDiskAttributeResponse struct {
 // You can read doc at http://docs.aliyun.com/#/pub/ecs/open-api/disk&modifydiskattribute
 func (client *Client) ModifyDiskAttribute(args *ModifyDiskAttributeArgs) error {
 	response := ModifyDiskAttributeResponse{}
-	err := client.Invoke("ModifyDiskAttribute", &args, &response)
+	err := client.Invoke("ModifyDiskAttribute", args, &response)
 	return err
 }
 

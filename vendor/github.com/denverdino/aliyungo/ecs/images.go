@@ -1,11 +1,12 @@
 package ecs
 
 import (
-	"github.com/denverdino/aliyungo/common"
-	"github.com/denverdino/aliyungo/util"
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/denverdino/aliyungo/common"
+	"github.com/denverdino/aliyungo/util"
 )
 
 // ImageOwnerAlias represents image owner
@@ -27,6 +28,13 @@ const (
 	ImageStatusUnAvailable  = ImageStatus("UnAvailable")
 	ImageStatusCreating     = ImageStatus("Creating")
 	ImageStatusCreateFailed = ImageStatus("CreateFailed")
+)
+
+type ImageUsage string
+
+const (
+	ImageUsageInstance = ImageUsage("instance")
+	ImageUsageNone     = ImageUsage("none")
 )
 
 // DescribeImagesArgs repsents arguements to describe images
@@ -70,14 +78,20 @@ type ImageType struct {
 	Size               int
 	ImageOwnerAlias    string
 	OSName             string
+	OSType             string
+	Platform           string
 	DiskDeviceMappings struct {
 		DiskDeviceMapping []DiskDeviceMapping
 	}
-	ProductCode  string
-	IsSubscribed bool
-	Progress     string
-	Status       ImageStatus
-	CreationTime util.ISO6801Time
+	ProductCode          string
+	IsSubscribed         bool
+	IsSelfShared         string
+	IsCopied             bool
+	IsSupportIoOptimized bool
+	Progress             string
+	Usage                ImageUsage
+	Status               ImageStatus
+	CreationTime         util.ISO6801Time
 }
 
 // DescribeImages describes images
@@ -262,8 +276,5 @@ type CancelCopyImageRequest struct {
 func (client *Client) CancelCopyImage(regionId common.Region, imageId string) error {
 	response := &common.Response{}
 	err := client.Invoke("CancelCopyImage", &CancelCopyImageRequest{regionId, imageId}, &response)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

@@ -12,12 +12,19 @@ const (
 	IntranetAddressType = AddressType("intranet")
 )
 
+type InternetChargeType string
+
+const (
+	PayByBandwidth = InternetChargeType("paybybandwidth")
+	PayByTraffic   = InternetChargeType("paybytraffic")
+)
+
 type CreateLoadBalancerArgs struct {
 	RegionId           common.Region
 	LoadBalancerName   string
 	AddressType        AddressType
 	VSwitchId          string
-	InternetChargeType common.InternetChargeType
+	InternetChargeType InternetChargeType
 	Bandwidth          int
 	ClientToken        string
 }
@@ -61,15 +68,12 @@ func (client *Client) DeleteLoadBalancer(loadBalancerId string) (err error) {
 	}
 	response := &DeleteLoadBalancerResponse{}
 	err = client.Invoke("DeleteLoadBalancer", args, response)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
 type ModifyLoadBalancerInternetSpecArgs struct {
 	LoadBalancerId     string
-	InternetChargeType common.InternetChargeType
+	InternetChargeType InternetChargeType
 	Bandwidth          int
 }
 
@@ -84,9 +88,6 @@ type ModifyLoadBalancerInternetSpecResponse struct {
 func (client *Client) ModifyLoadBalancerInternetSpec(args *ModifyLoadBalancerInternetSpecArgs) (err error) {
 	response := &ModifyLoadBalancerInternetSpecResponse{}
 	err = client.Invoke("ModifyLoadBalancerInternetSpec", args, response)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
@@ -116,9 +117,6 @@ func (client *Client) SetLoadBalancerStatus(loadBalancerId string, status Status
 	}
 	response := &SetLoadBalancerStatusResponse{}
 	err = client.Invoke("SetLoadBalancerStatus", args, response)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
@@ -142,21 +140,19 @@ func (client *Client) SetLoadBalancerName(loadBalancerId string, name string) (e
 	}
 	response := &SetLoadBalancerNameResponse{}
 	err = client.Invoke("SetLoadBalancerName", args, response)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
 type DescribeLoadBalancersArgs struct {
 	RegionId           common.Region
 	LoadBalancerId     string
+	LoadBalancerName   string
 	AddressType        AddressType
 	NetworkType        string
 	VpcId              string
 	VSwitchId          string
 	Address            string
-	InternetChargeType common.InternetChargeType
+	InternetChargeType InternetChargeType
 	ServerId           string
 }
 
@@ -182,7 +178,7 @@ type LoadBalancerType struct {
 	VpcId              string
 	NetworkType        string
 	Bandwidth          int
-	InternetChargeType common.InternetChargeType
+	InternetChargeType InternetChargeType
 	CreateTime         string //Why not ISO 6801
 	CreateTimeStamp    util.ISO6801Time
 	ListenerPorts      struct {
