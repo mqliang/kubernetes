@@ -7250,6 +7250,84 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 		Dependencies: []string{
 			"v1.NodeAffinity", "v1.PodAffinity", "v1.PodAntiAffinity"},
 	},
+	"v1.AliyunPersistentDiskVolumeSource": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AliyunPersistentDiskVolumeSource represents a Persistent Disk resource in Aliyun.\n\nAn aliyun PD must exist and be formatted before mounting to a container. An aliyun PD can only be mounted as read/write once.",
+				Properties: map[string]spec.Schema{
+					"volumeID": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Unique name of the PD resource. Used to identify the disk in aliyun",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"fsType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Required: Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\", \"ntfs\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"partition": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Optional: Partition on the disk to mount. If omitted, kubelet will attempt to mount the device name. Ex. For /dev/sda1, this field is \"1\", for /dev/sda, this field is 0 or empty.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"readOnly": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"volumeID"},
+			},
+		},
+		Dependencies: []string{},
+	},
+	"v1.AnchnetPersistentDiskVolumeSource": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AnchnetPersistentDiskVolumeSource represents a Persistent Disk resource in Anchnet.\n\nAn anchnet PD must exist and be formatted before mounting to a container. An anchnet PD can only be mounted as read/write once.",
+				Properties: map[string]spec.Schema{
+					"volumeID": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Unique name of the PD resource. Used to identify the disk in Anchnet",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"fsType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Required: Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\", \"ntfs\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"partition": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Optional: Partition on the disk to mount. If omitted, kubelet will attempt to mount the device name. Ex. For /dev/sda1, this field is \"1\", for /dev/sda, this field is 0 or empty.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"readOnly": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"volumeID"},
+			},
+		},
+		Dependencies: []string{},
+	},
 	"v1.AttachedVolume": {
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -11580,11 +11658,23 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Ref:         spec.MustCreateRef("#/definitions/v1.PhotonPersistentDiskVolumeSource"),
 						},
 					},
+					"anchnetPersistentDisk": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a kubelet's host machine and then exposed to the pod.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.AnchnetPersistentDiskVolumeSource"),
+						},
+					},
+					"aliyunPersistentDisk": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a kubelet's host machine and then exposed to the pod.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.AliyunPersistentDiskVolumeSource"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"v1.AWSElasticBlockStoreVolumeSource", "v1.AzureDiskVolumeSource", "v1.AzureFileVolumeSource", "v1.CephFSVolumeSource", "v1.CinderVolumeSource", "v1.FCVolumeSource", "v1.FlexVolumeSource", "v1.FlockerVolumeSource", "v1.GCEPersistentDiskVolumeSource", "v1.GlusterfsVolumeSource", "v1.HostPathVolumeSource", "v1.ISCSIVolumeSource", "v1.NFSVolumeSource", "v1.PhotonPersistentDiskVolumeSource", "v1.QuobyteVolumeSource", "v1.RBDVolumeSource", "v1.VsphereVirtualDiskVolumeSource"},
+			"v1.AWSElasticBlockStoreVolumeSource", "v1.AliyunPersistentDiskVolumeSource", "v1.AnchnetPersistentDiskVolumeSource", "v1.AzureDiskVolumeSource", "v1.AzureFileVolumeSource", "v1.CephFSVolumeSource", "v1.CinderVolumeSource", "v1.FCVolumeSource", "v1.FlexVolumeSource", "v1.FlockerVolumeSource", "v1.GCEPersistentDiskVolumeSource", "v1.GlusterfsVolumeSource", "v1.HostPathVolumeSource", "v1.ISCSIVolumeSource", "v1.NFSVolumeSource", "v1.PhotonPersistentDiskVolumeSource", "v1.QuobyteVolumeSource", "v1.RBDVolumeSource", "v1.VsphereVirtualDiskVolumeSource"},
 	},
 	"v1.PersistentVolumeSpec": {
 		Schema: spec.Schema{
@@ -14810,11 +14900,23 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Ref:         spec.MustCreateRef("#/definitions/v1.PhotonPersistentDiskVolumeSource"),
 						},
 					},
+					"anchnetPersistentDisk": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a kubelet's host machine and then exposed to the pod.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.AnchnetPersistentDiskVolumeSource"),
+						},
+					},
+					"aliyunPersistentDisk": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a kubelet's host machine and then exposed to the pod.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.AliyunPersistentDiskVolumeSource"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"v1.AWSElasticBlockStoreVolumeSource", "v1.AzureDiskVolumeSource", "v1.AzureFileVolumeSource", "v1.CephFSVolumeSource", "v1.CinderVolumeSource", "v1.ConfigMapVolumeSource", "v1.DownwardAPIVolumeSource", "v1.EmptyDirVolumeSource", "v1.FCVolumeSource", "v1.FlexVolumeSource", "v1.FlockerVolumeSource", "v1.GCEPersistentDiskVolumeSource", "v1.GitRepoVolumeSource", "v1.GlusterfsVolumeSource", "v1.HostPathVolumeSource", "v1.ISCSIVolumeSource", "v1.NFSVolumeSource", "v1.PersistentVolumeClaimVolumeSource", "v1.PhotonPersistentDiskVolumeSource", "v1.QuobyteVolumeSource", "v1.RBDVolumeSource", "v1.SecretVolumeSource", "v1.VsphereVirtualDiskVolumeSource"},
+			"v1.AWSElasticBlockStoreVolumeSource", "v1.AliyunPersistentDiskVolumeSource", "v1.AnchnetPersistentDiskVolumeSource", "v1.AzureDiskVolumeSource", "v1.AzureFileVolumeSource", "v1.CephFSVolumeSource", "v1.CinderVolumeSource", "v1.ConfigMapVolumeSource", "v1.DownwardAPIVolumeSource", "v1.EmptyDirVolumeSource", "v1.FCVolumeSource", "v1.FlexVolumeSource", "v1.FlockerVolumeSource", "v1.GCEPersistentDiskVolumeSource", "v1.GitRepoVolumeSource", "v1.GlusterfsVolumeSource", "v1.HostPathVolumeSource", "v1.ISCSIVolumeSource", "v1.NFSVolumeSource", "v1.PersistentVolumeClaimVolumeSource", "v1.PhotonPersistentDiskVolumeSource", "v1.QuobyteVolumeSource", "v1.RBDVolumeSource", "v1.SecretVolumeSource", "v1.VsphereVirtualDiskVolumeSource"},
 	},
 	"v1.VsphereVirtualDiskVolumeSource": {
 		Schema: spec.Schema{

@@ -38,6 +38,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_AWSElasticBlockStoreVolumeSource, InType: reflect.TypeOf(&AWSElasticBlockStoreVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_Affinity, InType: reflect.TypeOf(&Affinity{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_AliyunPersistentDiskVolumeSource, InType: reflect.TypeOf(&AliyunPersistentDiskVolumeSource{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_AnchnetPersistentDiskVolumeSource, InType: reflect.TypeOf(&AnchnetPersistentDiskVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_AttachedVolume, InType: reflect.TypeOf(&AttachedVolume{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_AvoidPods, InType: reflect.TypeOf(&AvoidPods{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_AzureDiskVolumeSource, InType: reflect.TypeOf(&AzureDiskVolumeSource{})},
@@ -238,6 +240,30 @@ func DeepCopy_v1_Affinity(in interface{}, out interface{}, c *conversion.Cloner)
 		} else {
 			out.PodAntiAffinity = nil
 		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_AliyunPersistentDiskVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*AliyunPersistentDiskVolumeSource)
+		out := out.(*AliyunPersistentDiskVolumeSource)
+		out.VolumeID = in.VolumeID
+		out.FSType = in.FSType
+		out.Partition = in.Partition
+		out.ReadOnly = in.ReadOnly
+		return nil
+	}
+}
+
+func DeepCopy_v1_AnchnetPersistentDiskVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*AnchnetPersistentDiskVolumeSource)
+		out := out.(*AnchnetPersistentDiskVolumeSource)
+		out.VolumeID = in.VolumeID
+		out.FSType = in.FSType
+		out.Partition = in.Partition
+		out.ReadOnly = in.ReadOnly
 		return nil
 	}
 }
@@ -2239,6 +2265,20 @@ func DeepCopy_v1_PersistentVolumeSource(in interface{}, out interface{}, c *conv
 		} else {
 			out.PhotonPersistentDisk = nil
 		}
+		if in.AnchnetPersistentDisk != nil {
+			in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+			*out = new(AnchnetPersistentDiskVolumeSource)
+			**out = **in
+		} else {
+			out.AnchnetPersistentDisk = nil
+		}
+		if in.AliyunPersistentDisk != nil {
+			in, out := &in.AliyunPersistentDisk, &out.AliyunPersistentDisk
+			*out = new(AliyunPersistentDiskVolumeSource)
+			**out = **in
+		} else {
+			out.AliyunPersistentDisk = nil
+		}
 		return nil
 	}
 }
@@ -3730,6 +3770,20 @@ func DeepCopy_v1_VolumeSource(in interface{}, out interface{}, c *conversion.Clo
 			**out = **in
 		} else {
 			out.PhotonPersistentDisk = nil
+		}
+		if in.AnchnetPersistentDisk != nil {
+			in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+			*out = new(AnchnetPersistentDiskVolumeSource)
+			**out = **in
+		} else {
+			out.AnchnetPersistentDisk = nil
+		}
+		if in.AliyunPersistentDisk != nil {
+			in, out := &in.AliyunPersistentDisk, &out.AliyunPersistentDisk
+			*out = new(AliyunPersistentDiskVolumeSource)
+			**out = **in
+		} else {
+			out.AliyunPersistentDisk = nil
 		}
 		return nil
 	}
