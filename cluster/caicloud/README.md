@@ -63,7 +63,7 @@ tarballs tagged with version v1.2.0+v1.0.1, assuming upstream kubernetes version
     so only need to run once)
   - Note as we've changed API types, we'll always get conflict with generated files: it is better to just
     use upstream code and re-generate the files, i.e. if there is conflict with generated files, use
-    `git checkout --theirs`, e.g. `git checkout --theirs -- pkg/apis/extensions/deep_copy_generated.go`
+    `git checkout --ours`, e.g. `git checkout --ours -- pkg/apis/extensions/deep_copy_generated.go`
 - Run `hack/caicloud/sync-images.sh` to sync all gcr.io images to index.caicloud.io
   - The script needs to be ran in a remote server (outside of GFW)
   - Make sure it works with newer kubernetes version, and no images are left over
