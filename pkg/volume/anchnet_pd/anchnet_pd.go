@@ -116,7 +116,7 @@ func (plugin *anchnetPersistentDiskPlugin) newMounterInternal(spec *volume.Spec,
 	fsType := pd.FSType
 	partition := ""
 	if pd.Partition != 0 {
-		partition = strconv.Itoa(pd.Partition)
+		partition = strconv.Itoa(int(pd.Partition))
 	}
 
 	return &anchnetPersistentDiskMounter{
@@ -171,9 +171,6 @@ func (plugin *anchnetPersistentDiskPlugin) newDeleterInternal(spec *volume.Spec,
 
 // NewProvisioner returns a provisioner to create the volumes.
 func (plugin *anchnetPersistentDiskPlugin) NewProvisioner(options volume.VolumeOptions) (volume.Provisioner, error) {
-	if len(options.AccessModes) == 0 {
-		options.AccessModes = plugin.GetAccessModes()
-	}
 	return plugin.newProvisionerInternal(options, &AnchnetDiskUtil{})
 }
 
@@ -253,6 +250,13 @@ type anchnetPersistentDiskMounter struct {
 }
 
 var _ volume.Mounter = &anchnetPersistentDiskMounter{}
+
+// Checks prior to mount operations to verify that the required components (binaries, etc.)
+// to mount the volume are available on the underlying node.
+// If not, it returns an error
+func (b *anchnetPersistentDiskMounter) CanMount() error {
+	return nil
+}
 
 // GetAttributes returns the attributes of the mounter.
 func (b *anchnetPersistentDiskMounter) GetAttributes() volume.Attributes {
@@ -416,7 +420,7 @@ func (c *anchnetPersistentDiskProvisioner) Provision() (*api.PersistentVolume, e
 		},
 		Spec: api.PersistentVolumeSpec{
 			PersistentVolumeReclaimPolicy: c.options.PersistentVolumeReclaimPolicy,
-			AccessModes:                   c.options.AccessModes,
+			AccessModes:                   c.options.PVC.Spec.AccessModes,
 			Capacity: api.ResourceList{
 				api.ResourceName(api.ResourceStorage): resource.MustParse(fmt.Sprintf("%dGi", sizeGB)),
 			},

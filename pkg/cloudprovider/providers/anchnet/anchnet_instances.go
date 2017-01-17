@@ -26,6 +26,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/types"
 
 	anchnet_client "github.com/caicloud/anchnet-go"
 )
@@ -49,7 +50,9 @@ var _ cloudprovider.Instances = (*Anchnet)(nil)
 // NodeAddresses returns an implementation of Instances.NodeAddresses. The 'name'
 // parameter means node name (which equals to lower case'd instance ID). Before
 // querying anchnet, we convert it to InstanceID.
-func (an *Anchnet) NodeAddresses(name string) ([]api.NodeAddress, error) {
+func (an *Anchnet) NodeAddresses(nodeName types.NodeName) ([]api.NodeAddress, error) {
+
+	name := string(nodeName)
 	name = convertToInstanceID(name)
 
 	// Return directly if we find node address in cache.
@@ -122,30 +125,30 @@ func (an *Anchnet) NodeAddresses(name string) ([]api.NodeAddress, error) {
 }
 
 // ExternalID returns the cloud provider ID of the specified instance (deprecated).
-func (an *Anchnet) ExternalID(name string) (string, error) {
-	return convertToInstanceID(name), nil
+func (an *Anchnet) ExternalID(nodeName types.NodeName) (string, error) {
+	return convertToInstanceID(string(nodeName)), nil
 }
 
 // InstanceID returns the cloud provider ID of the specified instance.
-func (an *Anchnet) InstanceID(name string) (string, error) {
-	return convertToInstanceID(name), nil
+func (an *Anchnet) InstanceID(nodeName types.NodeName) (string, error) {
+	return convertToInstanceID(string(nodeName)), nil
 }
 
 // InstanceType returns the type of the specified instance.
-func (an *Anchnet) InstanceType(name string) (string, error) {
+func (an *Anchnet) InstanceType(nodeName types.NodeName) (string, error) {
 	return "", nil
 }
 
 // List is an implementation of Instances.List.
 // TODO: Figure out how this works.
-func (an *Anchnet) List(filter string) ([]string, error) {
+func (an *Anchnet) List(filter string) ([]types.NodeName, error) {
 	response, err := an.searchInstances(filter)
 	if err != nil {
 		return nil, err
 	}
-	result := []string{}
+	result := []types.NodeName{}
 	for _, item := range response.ItemSet {
-		result = append(result, item.InstanceID)
+		result = append(result, types.NodeName(item.InstanceID))
 	}
 	return result, nil
 }
@@ -170,8 +173,8 @@ func (an *Anchnet) AddSSHKeyToAllInstances(user string, keyData []byte) error {
 // CurrentNodeName returns the name of the node we are currently running on. The
 // method is used to determine nodename from hostname. Since we already override
 // hostname to nodename, simply return hostname.
-func (an *Anchnet) CurrentNodeName(hostname string) (string, error) {
-	return hostname, nil
+func (an *Anchnet) CurrentNodeName(hostname string) (types.NodeName, error) {
+	return types.NodeName(hostname), nil
 }
 
 // describeInstance returns details of node from anchnet; 'name' is instance id,

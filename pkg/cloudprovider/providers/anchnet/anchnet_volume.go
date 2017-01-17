@@ -22,10 +22,11 @@ import (
 	"strings"
 	"time"
 
+	anchnet_client "github.com/caicloud/anchnet-go"
 	"github.com/golang/glog"
 
-	anchnet_client "github.com/caicloud/anchnet-go"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/types"
 )
 
 const (
@@ -37,53 +38,38 @@ const (
 
 // Volumes is an interface for managing cloud-provisioned volumes.
 type Volumes interface {
-	// AttachDisk attaches the disk to the specified instance. `instanceID` can be empty
-	// to mean "the instance on which we are running".
-	// Returns the device path (e.g. /dev/xvdf) where we attached the volume.
-	AttachDisk(instanceID string, volumeID string, readOnly bool) (string, error)
-	// DetachDisk detaches the disk from the specified instance. `instanceID` can be empty
-	// to mean "the instance on which we are running"
-	DetachDisk(instanceID string, volumeID string) error
-	// Create a volume with the specified options.
-	CreateDisk(volumeOptions *VolumeOptions) (volumeID string, err error)
-	// Delete a volume.
-	DeleteDisk(volumeID string) error
-	// Check if the volume is already attached to the instance
-	DiskIsAttached(instanceID, diskName string) (bool, error)
+	// Attach the disk to the node with the specified NodeName
+	// nodeName can be empty to mean "the instance on which we are running"
+	// Returns the device (e.g. /dev/xvdf) where we attached the volume
+	AttachDisk(diskName string, nodeName types.NodeName, readOnly bool) (string, error)
+	// Detach the disk from the node with the specified NodeName
+	// nodeName can be empty to mean "the instance on which we are running"
+	// Returns the device where the volume was attached
+	DetachDisk(diskName string, nodeName types.NodeName) error
+
+	// Create a disk with the specified options.
+	CreateDisk(volumeOptions *VolumeOptions) (diskName string, err error)
+	// Delete a disk.
+	DeleteDisk(diskName string) error
+
+	// Check if the volume is already attached to the node with the specified NodeName
+	DiskIsAttached(diskName string, nodeName types.NodeName) (bool, error)
+
+	// Check if a list of volumes are attached to the node with the specified NodeName.
+	// Assumption: If node doesn't exist, disks are not attached to the node.
+	DisksAreAttached(diskNames []string, nodeName types.NodeName) (map[string]bool, error)
 }
 
 var _ Volumes = (*Anchnet)(nil)
 
-// AttachDisk attaches the disk to the specified instance. `instanceID` can be empty
-// to mean "the instance on which we are running".
-// Returns the device path (e.g. /dev/xvdf) where we attached the volume.
-func (an *Anchnet) AttachDisk(instanceID string, volumeID string, readOnly bool) (string, error) {
-	glog.Infof("AttachDisk(%v, %v, %v)", instanceID, volumeID, readOnly)
-	/*
-		// Do not support attaching volume for other instances.
-		if instanceID != "" {
-			return "", errors.New("unable to attach disk for instance other than self instance")
-		}
-
-		// Get hostname and convert it to instance ID. During cluster provisioning, we set hostname to
-		// lowercased instance ID. Ideally, we can issue a request to cloudprovider to get instance
-		// information of the host itself, but anchnet lacks the API.
-		hostname, err := os.Hostname()
-		if err != nil {
-			return "", err
-		}
-		instanceID = convertToInstanceID(hostname)
-
-		// Before attaching volume, check /sys/block for known disks. This is used in case anchnet
-		// doesn't return device name from describe volume API.
-		existing, err := readSysBlock("sd")
-		if err != nil {
-			return "", err
-		}
-	*/
+// Attach the disk to the node with the specified NodeName
+// nodeName can be empty to mean "the instance on which we are running"
+// Returns the device (e.g. /dev/xvdf) where we attached the volume
+func (an *Anchnet) AttachDisk(diskName string, nodeName types.NodeName, readOnly bool) (string, error) {
+	glog.Infof("AttachDisk(%v, %v, %v)", diskName, nodeName, readOnly)
 
 	// Do the volume attach.
-	attach_response, err := an.attachVolume(instanceID, volumeID)
+	attach_response, err := an.attachVolume(string(nodeName), diskName)
 	if err != nil {
 		return "", err
 	}
@@ -92,14 +78,14 @@ func (an *Anchnet) AttachDisk(instanceID string, volumeID string, readOnly bool)
 		return "", err
 	}
 	if !jobSucceeded {
-		return "", fmt.Errorf("Failed to attach volume %v to instance %v", volumeID, instanceID)
+		return "", fmt.Errorf("Failed to attach volume %v to instance %v", diskName, nodeName)
 	}
 
 	devicePath := ""
 	for i := 0; i < RetryCountOnDeviceEmpty; i++ {
-		describe_response, err := an.describeVolume(volumeID)
+		describe_response, err := an.describeVolume(diskName)
 		if err != nil || describe_response.ItemSet[0].Device == "" {
-			glog.Infof("Volume %s device path is empty, retrying", volumeID)
+			glog.Infof("Volume %s device path is empty, retrying", diskName)
 			time.Sleep(RetryIntervalOnDeviceEmpty)
 		} else {
 			return describe_response.ItemSet[0].Device, nil
@@ -139,11 +125,12 @@ func (an *Anchnet) AttachDisk(instanceID string, volumeID string, readOnly bool)
 	return devicePath, nil
 }
 
-// DetachDisk detaches the disk from the specified instance. `instanceID` can be empty
-// to mean "the instance on which we are running"
-func (an *Anchnet) DetachDisk(instanceID string, volumeID string) error {
-	glog.Infof("DetachDisk(%v, %v)", instanceID, volumeID)
-	detach_response, err := an.detachVolume(volumeID)
+// Detach the disk from the node with the specified NodeName
+// nodeName can be empty to mean "the instance on which we are running"
+// Returns the device where the volume was attached
+func (an *Anchnet) DetachDisk(diskName string, nodeName types.NodeName) error {
+	glog.Infof("DetachDisk(%v, %v)", diskName, nodeName)
+	detach_response, err := an.detachVolume(diskName)
 	if err != nil {
 		return err
 	}
@@ -152,13 +139,13 @@ func (an *Anchnet) DetachDisk(instanceID string, volumeID string) error {
 		return err
 	}
 	if !jobSucceeded {
-		return fmt.Errorf("Failed to detach volume %v from instance %v", volumeID, instanceID)
+		return fmt.Errorf("Failed to detach volume %v from instance %v", diskName, nodeName)
 	}
 	return nil
 }
 
 // Create a volume with the specified options.
-func (an *Anchnet) CreateDisk(volumeOptions *VolumeOptions) (volumeID string, err error) {
+func (an *Anchnet) CreateDisk(volumeOptions *VolumeOptions) (diskName string, err error) {
 	glog.Infof("CreateDisk(%v, %v)", volumeOptions.Name, volumeOptions.CapacityGB)
 
 	if volumeOptions.CapacityGB < 10 || volumeOptions.CapacityGB > 1000 || volumeOptions.CapacityGB%10 != 0 {
@@ -180,9 +167,9 @@ func (an *Anchnet) CreateDisk(volumeOptions *VolumeOptions) (volumeID string, er
 }
 
 // Delete a volume.
-func (an *Anchnet) DeleteDisk(volumeID string) error {
-	glog.Infof("DeleteDisk: %v", volumeID)
-	delete_response, err := an.deleteVolume(volumeID)
+func (an *Anchnet) DeleteDisk(diskName string) error {
+	glog.Infof("DeleteDisk: %v", diskName)
+	delete_response, err := an.deleteVolume(diskName)
 	if err != nil {
 		return err
 	}
@@ -191,7 +178,7 @@ func (an *Anchnet) DeleteDisk(volumeID string) error {
 		return err
 	}
 	if !jobSucceeded {
-		fmt.Errorf("Failed to delete volume %v", volumeID)
+		fmt.Errorf("Failed to delete volume %v", diskName)
 	}
 	return nil
 }
@@ -311,15 +298,37 @@ func (an *Anchnet) GetAutoLabelsForPD(name string) (map[string]string, error) {
 	return labels, nil
 }
 
-func (aly *Anchnet) DiskIsAttached(instanceID, volumeID string) (bool, error) {
-	info, err := aly.describeVolume(volumeID)
+// Check if the volume is already attached to the node with the specified NodeName
+func (an *Anchnet) DiskIsAttached(diskName string, nodeName types.NodeName) (bool, error) {
+	info, err := an.describeVolume(diskName)
 	if err != nil {
 		return false, err
 	}
-	if info.ItemSet[0].Instance.InstanceID == instanceID {
+	if info.ItemSet[0].Instance.InstanceID == string(nodeName) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// Check if a list of volumes are attached to the node with the specified NodeName.
+// Assumption: If node doesn't exist, disks are not attached to the node.
+func (an *Anchnet) DisksAreAttached(diskNames []string, nodeName types.NodeName) (map[string]bool, error) {
+	attached := make(map[string]bool)
+	for _, diskName := range diskNames {
+		attached[diskName] = false
+	}
+
+	for _, diskName := range diskNames {
+		diskInfo, err := an.describeVolume(diskName)
+		if err != nil {
+			continue
+		}
+		if diskInfo.ItemSet[0].Instance.InstanceID == string(nodeName) {
+			attached[diskName] = true
+		}
+	}
+
+	return attached, nil
 }
 
 // readSysBlock reads /sys/block and returns a list of devices start with `prefix`.

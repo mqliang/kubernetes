@@ -22,7 +22,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/denverdino/aliyungo/slb"
 	"github.com/golang/glog"
@@ -45,8 +44,8 @@ const (
 
 type LoadBalancerOpts struct {
 	// internet | intranet, default: internet
-	AddressType        slb.AddressType           `json:"addressType"`
-	InternetChargeType common.InternetChargeType `json:"internetChargeType"`
+	AddressType        slb.AddressType        `json:"addressType"`
+	InternetChargeType slb.InternetChargeType `json:"internetChargeType"`
 	// Bandwidth peak of the public network instance charged per fixed bandwidth.
 	// Value:1-1000(in Mbps), default: 1
 	Bandwidth int `json:"bandwidth"`
@@ -146,18 +145,10 @@ func newAliyun(config Config) (cloudprovider.Interface, error) {
 	}
 
 	if config.LoadBalancer.InternetChargeType == "" {
-		/* Valid value: paybytraffic|paybybandwidth
-		 *  https://help.aliyun.com/document_detail/27577.html?spm=5176.product27537.6.118.R6Bqe6
-		 *
-		 * aliyun bug:
-		 * We cloudn't use common.PayByBandwidth:
-		 *     PayByBandwidth = InternetChargeType("PayByBandwidth"))
-		 * but InternetChargeType("paybybandwidth")
-		 */
-		config.LoadBalancer.InternetChargeType = common.InternetChargeType("paybytraffic")
+		config.LoadBalancer.InternetChargeType = slb.PayByBandwidth
 	}
 
-	if config.LoadBalancer.AddressType == slb.InternetAddressType && config.LoadBalancer.InternetChargeType == common.InternetChargeType("paybybandwidth") {
+	if config.LoadBalancer.AddressType == slb.InternetAddressType && config.LoadBalancer.InternetChargeType == slb.PayByBandwidth {
 		if config.LoadBalancer.Bandwidth == 0 {
 			config.LoadBalancer.Bandwidth = 1
 		}

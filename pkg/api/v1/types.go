@@ -414,12 +414,15 @@ type PersistentVolumeSource struct {
 	// +optional
 	AzureDisk *AzureDiskVolumeSource `json:"azureDisk,omitempty" protobuf:"bytes,16,opt,name=azureDisk"`
 	// PhotonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine
+	// +optional
 	PhotonPersistentDisk *PhotonPersistentDiskVolumeSource `json:"photonPersistentDisk,omitempty" protobuf:"bytes,17,opt,name=photonPersistentDisk"`
 	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
+	// +optional
 	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty" protobuf:"bytes,18,opt,name=anchnetPersistentDisk"`
 	// AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
+	// +optional
 	AliyunPersistentDisk *AliyunPersistentDiskVolumeSource `json:"aliyunPersistentDisk,omitempty" protobuf:"bytes,19,opt,name=aliyunPersistentDisk"`
 }
 
@@ -799,13 +802,16 @@ type AnchnetPersistentDiskVolumeSource struct {
 	// Must be a filesystem type supported by the host operating system.
 	// Ex. "ext4", "xfs", "ntfs"
 	// TODO: how do we prevent errors in the filesystem from compromising the machine
+	// +optional
 	FSType string `json:"fsType,omitempty" protobuf:"bytes,2,opt,name=fsType"`
 	// Optional: Partition on the disk to mount.
 	// If omitted, kubelet will attempt to mount the device name.
 	// Ex. For /dev/sda1, this field is "1", for /dev/sda, this field is 0 or empty.
+	// +optional
 	Partition int32 `json:"partition,omitempty" protobuf:"varint,3,opt,name=partition"`
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
+	// +optional
 	ReadOnly bool `json:"readOnly,omitempty" protobuf:"varint,4,opt,name=readOnly"`
 }
 
@@ -820,13 +826,16 @@ type AliyunPersistentDiskVolumeSource struct {
 	// Must be a filesystem type supported by the host operating system.
 	// Ex. "ext4", "xfs", "ntfs"
 	// TODO: how do we prevent errors in the filesystem from compromising the machine
+	// +optional
 	FSType string `json:"fsType,omitempty" protobuf:"bytes,2,opt,name=fsType"`
 	// Optional: Partition on the disk to mount.
 	// If omitted, kubelet will attempt to mount the device name.
 	// Ex. For /dev/sda1, this field is "1", for /dev/sda, this field is 0 or empty.
+	// +optional
 	Partition int32 `json:"partition,omitempty" protobuf:"varint,3,opt,name=partition"`
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
+	// +optional
 	ReadOnly bool `json:"readOnly,omitempty" protobuf:"varint,4,opt,name=readOnly"`
 }
 

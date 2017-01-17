@@ -58,7 +58,6 @@ func newKubeDNS() *KubeDNS {
 		endpointsStore: cache.NewStore(cache.MetaNamespaceKeyFunc),
 		servicesStore:  cache.NewStore(cache.MetaNamespaceKeyFunc),
 		nodesStore:     cache.NewStore(cache.MetaNamespaceKeyFunc),
-		podsStore:      cache.NewStore(cache.MetaNamespaceKeyFunc),
 
 		cache:               treecache.NewTreeCache(),
 		reverseRecordMap:    make(map[string]*skymsg.Service),
@@ -274,81 +273,6 @@ func TestSimpleExternalService(t *testing.T) {
 	assertDNSForExternalService(t, kd, s)
 	kd.removeService(s)
 	assertNoDNSForExternalService(t, kd, s)
-}
-
-func TestSimpleAnnotatedPod(t *testing.T) {
-	kd := newKubeDNS()
-	pod := newAnnotatedPod("192.168.79.253", "true")
-	assert.NoError(t, kd.podsStore.Add(pod))
-	kd.newPod(pod)
-	assertReverseRecordForPod(t, kd, pod)
-	kd.removePod(pod)
-	assertNoReverseRecordForPod(t, kd, pod)
-}
-
-func TestAnnotatedPodChangeIP(t *testing.T) {
-	kd := newKubeDNS()
-	pod := newAnnotatedPod("192.168.79.253", "true")
-	assert.NoError(t, kd.podsStore.Add(pod))
-
-	kd.newPod(pod)
-	assertReverseRecordForPod(t, kd, pod)
-	// Update the pod's ip from 192.168.79.253 to 192.168.79.254
-	newpod := newAnnotatedPod("192.168.79.254", "true")
-	kd.updatePod(pod, newpod)
-	assertNoReverseRecordForPod(t, kd, pod)
-	assertReverseRecordForPod(t, kd, newpod)
-	kd.removePod(newpod)
-	assertNoReverseRecordForPod(t, kd, newpod)
-}
-
-func TestAnnotatedPodUpdate(t *testing.T) {
-	kd := newKubeDNS()
-	pod := newAnnotatedPod("192.168.79.253", "true")
-	assert.NoError(t, kd.podsStore.Add(pod))
-
-	kd.newPod(pod)
-	assertReverseRecordForPod(t, kd, pod)
-	// If a pod gets updated, but with the same ip, the record
-	// should NOT change.
-	newpod := newAnnotatedPod("192.168.79.253", "true")
-	kd.updatePod(pod, newpod)
-	assertReverseRecordForPod(t, kd, pod)
-	kd.removePod(pod)
-	assertNoReverseRecordForPod(t, kd, pod)
-}
-
-func TestPodAddAnnotation(t *testing.T) {
-	kd := newKubeDNS()
-	pod := newAnnotatedPod("192.168.79.253", "false")
-
-	assert.NoError(t, kd.podsStore.Add(pod))
-
-	kd.newPod(pod)
-	// Annotation is false, so no reverse record.
-	assertNoReverseRecordForPod(t, kd, pod)
-	// Set annotation to "true"
-	newpod := newAnnotatedPod("192.168.79.253", "true")
-	kd.updatePod(pod, newpod)
-	assertReverseRecordForPod(t, kd, newpod)
-	kd.removePod(newpod)
-	assertNoReverseRecordForPod(t, kd, newpod)
-}
-
-func TestPodRemoveAnnotation(t *testing.T) {
-	kd := newKubeDNS()
-	pod := newAnnotatedPod("192.168.79.253", "true")
-
-	assert.NoError(t, kd.podsStore.Add(pod))
-
-	kd.newPod(pod)
-	assertReverseRecordForPod(t, kd, pod)
-	// Set annotation to "false"
-	newpod := newAnnotatedPod("192.168.79.253", "false")
-	kd.updatePod(pod, newpod)
-	assertNoReverseRecordForPod(t, kd, newpod)
-	kd.removePod(newpod)
-	assertNoReverseRecordForPod(t, kd, newpod)
 }
 
 func TestSimpleHeadlessService(t *testing.T) {
@@ -741,22 +665,6 @@ func newHeadlessService() *kapi.Service {
 	return &service
 }
 
-func newAnnotatedPod(ip string, annotated string) *kapi.Pod {
-	pod := kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:      testService,
-			Namespace: testNamespace,
-			Annotations: map[string]string{
-				ANNOTATION_KEY: annotated,
-			},
-		},
-		Status: kapi.PodStatus{
-			PodIP: ip,
-		},
-	}
-	return &pod
-}
-
 func newEndpoints(service *kapi.Service, subsets ...kapi.EndpointSubset) *kapi.Endpoints {
 	endpoints := kapi.Endpoints{
 		ObjectMeta: service.ObjectMeta,
@@ -904,26 +812,9 @@ func assertReverseRecord(t *testing.T, kd *KubeDNS, s *kapi.Service) {
 	assert.Equal(t, getServiceFQDN(kd.domain, s), reverseRecord.Host)
 }
 
-func assertReverseRecordForPod(t *testing.T, kd *KubeDNS, p *kapi.Pod) {
-	segments := reverseArray(strings.Split(p.Status.PodIP, "."))
-	reverseLookup := fmt.Sprintf("%s%s", strings.Join(segments, "."), arpaSuffix)
-	reverseRecord, err := kd.ReverseRecord(reverseLookup)
-	require.NoError(t, err)
-	assert.Equal(t, kd.getPodFQDN(p), reverseRecord.Host)
-	fmt.Println(reverseLookup, reverseRecord)
-}
-
 func assertNoReverseRecord(t *testing.T, kd *KubeDNS, s *kapi.Service) {
 	segments := util.ReverseArray(strings.Split(s.Spec.ClusterIP, "."))
 	reverseLookup := fmt.Sprintf("%s%s", strings.Join(segments, "."), util.ArpaSuffix)
-	reverseRecord, err := kd.ReverseRecord(reverseLookup)
-	require.Error(t, err)
-	require.Nil(t, reverseRecord)
-}
-
-func assertNoReverseRecordForPod(t *testing.T, kd *KubeDNS, p *kapi.Pod) {
-	segments := reverseArray(strings.Split(p.Status.PodIP, "."))
-	reverseLookup := fmt.Sprintf("%s%s", strings.Join(segments, "."), arpaSuffix)
 	reverseRecord, err := kd.ReverseRecord(reverseLookup)
 	require.Error(t, err)
 	require.Nil(t, reverseRecord)

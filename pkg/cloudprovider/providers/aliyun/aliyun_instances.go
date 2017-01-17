@@ -25,6 +25,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/types"
 )
 
 // IMPORTANT: In kubernetes, hostname is queried from local machine using 'uname -n',
@@ -37,9 +38,10 @@ import (
 var _ cloudprovider.Instances = (*Aliyun)(nil)
 
 // NodeAddresses returns the addresses of the specified instance.
-func (aly *Aliyun) NodeAddresses(name string) ([]api.NodeAddress, error) {
-	glog.V(4).Infof("NodeAddresses(%v) called", name)
+func (aly *Aliyun) NodeAddresses(nodeName types.NodeName) ([]api.NodeAddress, error) {
+	glog.V(4).Infof("NodeAddresses(%v) called", nodeName)
 
+	name := string(nodeName)
 	// Return directly if we find node address in cache.
 	data, exists, err := aly.addressCache.GetByKey(name)
 	if exists && err == nil {
@@ -72,31 +74,31 @@ func (aly *Aliyun) NodeAddresses(name string) ([]api.NodeAddress, error) {
 }
 
 // ExternalID returns the cloud provider ID of the specified instance (deprecated).
-func (aly *Aliyun) ExternalID(name string) (string, error) {
-	return nameToInstanceId(name), nil
+func (aly *Aliyun) ExternalID(nodeName types.NodeName) (string, error) {
+	return nameToInstanceId(string(nodeName)), nil
 }
 
 // InstanceID returns the cloud provider ID of the specified instance.
 // Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound)
-func (aly *Aliyun) InstanceID(name string) (string, error) {
-	return nameToInstanceId(name), nil
+func (aly *Aliyun) InstanceID(nodeName types.NodeName) (string, error) {
+	return nameToInstanceId(string(nodeName)), nil
 }
 
 // InstanceType returns the type of the specified instance.
-func (aly *Aliyun) InstanceType(name string) (string, error) {
+func (aly *Aliyun) InstanceType(nodeName types.NodeName) (string, error) {
 	return "", nil
 }
 
 // List lists instances that match 'filter' which is a regular expression which must match the entire instance name (fqdn)
-func (aly *Aliyun) List(name_filter string) ([]string, error) {
+func (aly *Aliyun) List(name_filter string) ([]types.NodeName, error) {
 	instances, err := aly.getInstancesByNameFilter(name_filter)
 	if err != nil {
 		glog.Errorf("Error getting instances by name_filter '%s': %v", name_filter, err)
 		return nil, err
 	}
-	result := []string{}
+	result := []types.NodeName{}
 	for _, instance := range instances {
-		result = append(result, instance.InstanceId)
+		result = append(result, types.NodeName(instance.InstanceId))
 	}
 
 	glog.V(4).Infof("List instances: %s => %v", name_filter, result)
@@ -112,8 +114,8 @@ func (aly *Aliyun) AddSSHKeyToAllInstances(user string, keyData []byte) error {
 
 // CurrentNodeName returns the name of the node we are currently running on
 // On most clouds (e.g. GCE) this is the hostname, so we provide the hostname
-func (aly *Aliyun) CurrentNodeName(hostname string) (string, error) {
-	return hostname, nil
+func (aly *Aliyun) CurrentNodeName(hostname string) (types.NodeName, error) {
+	return types.NodeName(hostname), nil
 }
 
 // getAddressesByInstanceId return an address slice by it's instanceId.

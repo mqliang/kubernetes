@@ -135,7 +135,6 @@ func ProbeControllerVolumePlugins(cloud cloudprovider.Interface, config componen
 			allPlugins = append(allPlugins, azure_dd.ProbeVolumePlugins()...)
 		case photon.ProviderName == cloud.ProviderName():
 			allPlugins = append(allPlugins, photon_pd.ProbeVolumePlugins()...)
-		case anchnet_pd.ProviderName == cloud.ProviderName():
 		case anchnet_cloud.ProviderName == cloud.ProviderName():
 			allPlugins = append(allPlugins, anchnet_pd.ProbeVolumePlugins()...)
 		case aliyun.ProviderName == cloud.ProviderName():

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/anchnet"
 	"k8s.io/kubernetes/pkg/util/mount"
@@ -44,8 +45,9 @@ func (util *AnchnetDiskUtil) CreateDisk(p *anchnetPersistentDiskProvisioner) (vo
 
 	// No limit about an Anchnet PD' name length, by now, set it at most 255 characters
 	name := volume.GenerateVolumeName(p.options.ClusterName, p.options.PVName, 255)
-	requestBytes := p.options.Capacity.Value()
-	requestGB := volume.RoundUpSize(requestBytes, 1024*1024*1024)
+	capacity := p.options.PVC.Spec.Resources.Requests[api.ResourceName(api.ResourceStorage)]
+	requestBytes := capacity.Value()
+	requestGB := int(volume.RoundUpSize(requestBytes, 1024*1024*1024))
 
 	volumeID, err = cloud.CreateDisk(&anchnet_cloud.VolumeOptions{
 		Name:       name,

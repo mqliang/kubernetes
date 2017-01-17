@@ -126,7 +126,7 @@ func (aly *Aliyun) EnsureLoadBalancer(clusterName string, apiService *api.Servic
 	// the Bandwidth on Listener can be set to -1, indicating the
 	// bandwidth peak is unlimited.
 	bandwidth := -1
-	if len(apiService.Spec.Ports) > 0 && aly.lbOpts.AddressType == slb.InternetAddressType && aly.lbOpts.InternetChargeType == common.InternetChargeType("paybybandwidth") {
+	if len(apiService.Spec.Ports) > 0 && aly.lbOpts.AddressType == slb.InternetAddressType && aly.lbOpts.InternetChargeType == slb.PayByBandwidth {
 		bandwidth = aly.lbOpts.Bandwidth / len(apiService.Spec.Ports)
 	}
 

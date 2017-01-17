@@ -25,6 +25,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/anchnet"
+	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
@@ -56,23 +57,59 @@ func (plugin *anchnetPersistentDiskPlugin) GetDeviceMountRefs(deviceMountPath st
 	return mount.GetMountRefs(mounter, deviceMountPath)
 }
 
-func (attacher *anchnetPersistentDiskAttacher) Attach(spec *volume.Spec, hostName string) (string, error) {
+func (attacher *anchnetPersistentDiskAttacher) Attach(spec *volume.Spec, nodeName types.NodeName) (string, error) {
 	volumeSource, readOnly, err := getVolumeSource(spec)
 	if err != nil {
 		return "", err
 	}
 
-	volumeID := volumeSource.VolumeID
+	diskName := volumeSource.VolumeID
 
 	// anchnetCloud.AttachDisk checks if disk is already attached to node and
 	// succeeds in that case, so no need to do that separately.
-	devicePath, err := attacher.anchnetVolumes.AttachDisk(hostName, volumeID, readOnly)
+	devicePath, err := attacher.anchnetVolumes.AttachDisk(diskName, nodeName, readOnly)
 	if err != nil {
-		glog.Errorf("Error attaching volume %q: %+v", volumeID, err)
+		glog.Errorf("Error attaching volume %q: %+v", diskName, err)
 		return "", err
 	}
 
 	return devicePath, nil
+}
+
+// VolumesAreAttached checks whether the list of volumes still attached to the specified
+// the node. It returns a map which maps from the volume spec to the checking result.
+// If an error is occured during checking, the error will be returned
+func (attacher *anchnetPersistentDiskAttacher) VolumesAreAttached(specs []*volume.Spec, nodeName types.NodeName) (map[*volume.Spec]bool, error) {
+	volumesAttachedCheck := make(map[*volume.Spec]bool)
+	volumeSpecMap := make(map[string]*volume.Spec)
+	volumeIDList := []string{}
+	for _, spec := range specs {
+		volumeSource, _, err := getVolumeSource(spec)
+		if err != nil {
+			glog.Errorf("Error getting volume (%q) source : %v", spec.Name(), err)
+			continue
+		}
+
+		volumeIDList = append(volumeIDList, volumeSource.VolumeID)
+		volumesAttachedCheck[spec] = true
+		volumeSpecMap[volumeSource.VolumeID] = spec
+	}
+	attachedResult, err := attacher.anchnetVolumes.DisksAreAttached(volumeIDList, nodeName)
+	if err != nil {
+		glog.Errorf(
+			"Error checking if volumes (%v) are attached to current node (%q). err=%v",
+			volumeIDList, nodeName, err)
+		return volumesAttachedCheck, err
+	}
+
+	for volumeID, attached := range attachedResult {
+		if !attached {
+			spec := volumeSpecMap[volumeID]
+			volumesAttachedCheck[spec] = false
+			glog.V(2).Infof("VolumesAreAttached: check volume %q (specName: %q) is no longer attached", volumeID, spec.Name())
+		}
+	}
+	return volumesAttachedCheck, nil
 }
 
 func (attacher *anchnetPersistentDiskAttacher) WaitForAttach(spec *volume.Spec, devicePath string, timeout time.Duration) (string, error) {
@@ -184,24 +221,24 @@ func (plugin *anchnetPersistentDiskPlugin) NewDetacher() (volume.Detacher, error
 	}, nil
 }
 
-func (detacher *anchnetPersistentDiskDetacher) Detach(deviceMountPath string, hostName string) error {
+func (detacher *anchnetPersistentDiskDetacher) Detach(deviceMountPath string, nodeName types.NodeName) error {
 	volumeID := path.Base(deviceMountPath)
 
-	attached, err := detacher.anchnetVolumes.DiskIsAttached(hostName, volumeID)
+	attached, err := detacher.anchnetVolumes.DiskIsAttached(volumeID, nodeName)
 	if err != nil {
 		// Log error and continue with detach
 		glog.Errorf(
 			"Error checking if volume (%q) is already attached to current node (%q). Will continue and try detach anyway. err=%v",
-			volumeID, hostName, err)
+			volumeID, nodeName, err)
 	}
 
 	if err == nil && !attached {
 		// Volume is already detached from node.
-		glog.Infof("detach operation was successful. volume %q is already detached from node %q.", volumeID, hostName)
+		glog.Infof("detach operation was successful. volume %q is already detached from node %q.", volumeID, nodeName)
 		return nil
 	}
 
-	if err = detacher.anchnetVolumes.DetachDisk(hostName, volumeID); err != nil {
+	if err = detacher.anchnetVolumes.DetachDisk(volumeID, nodeName); err != nil {
 		glog.Errorf("Error detaching volumeID %q: %v", volumeID, err)
 		return err
 	}

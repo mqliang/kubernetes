@@ -21,6 +21,7 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/aliyun"
 	"k8s.io/kubernetes/pkg/volume"
 
@@ -44,8 +45,9 @@ func (util *AliyunDiskUtil) CreateDisk(p *aliyunPersistentDiskProvisioner) (volu
 	}
 
 	// No limit about an Aliyun PD' name length, by now, set it at most 255 characters
-	name := volume.GenerateVolumeName(p.options.ClusterName, p.options.PVCName, 255)
-	requestBytes := p.options.Capacity.Value()
+	name := volume.GenerateVolumeName(p.options.ClusterName, p.options.PVName, 255)
+	capacity := p.options.PVC.Spec.Resources.Requests[api.ResourceName(api.ResourceStorage)]
+	requestBytes := capacity.Value()
 	requestGB := volume.RoundUpSize(requestBytes, 1024*1024*1024)
 
 	volumeID, err = cloud.CreateDisk(&aliyun.VolumeOptions{

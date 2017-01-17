@@ -26,6 +26,7 @@ import (
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/volume"
 )
@@ -50,21 +51,26 @@ const (
 
 // Volumes is an interface for managing cloud-provisioned volumes.
 type Volumes interface {
-	// AttachDisk attaches the disk to the specified instance. `instanceID` can be empty
-	// to mean "the instance on which we are running".
-	// Returns the device path (e.g. /dev/xvdf) where we attached the volume.
-	AttachDisk(instanceID string, volumeID string, readOnly bool) (string, error)
-	// DetachDisk detaches the disk from the specified instance. `instanceID` can be empty
-	// to mean "the instance on which we are running"
-	DetachDisk(instanceID string, volumeID string) error
+	// Attach the disk to the node with the specified NodeName
+	// nodeName can be empty to mean "the instance on which we are running"
+	// Returns the device (e.g. /dev/xvdf) where we attached the volume
+	AttachDisk(diskName string, nodeName types.NodeName, readOnly bool) (string, error)
+	// Detach the disk from the node with the specified NodeName
+	// nodeName can be empty to mean "the instance on which we are running"
+	// Returns the device where the volume was attached
+	DetachDisk(diskName string, nodeName types.NodeName) error
 
 	// Create a disk with the specified options.
-	CreateDisk(volumeOptions *VolumeOptions) (volumeID string, err error)
+	CreateDisk(volumeOptions *VolumeOptions) (diskName string, err error)
 	// Delete a disk.
-	DeleteDisk(volumeID string) error
+	DeleteDisk(diskName string) error
 
-	// Check if the volume is already attached to the instance
-	DiskIsAttached(instanceID, diskName string) (bool, error)
+	// Check if the volume is already attached to the node with the specified NodeName
+	DiskIsAttached(diskName string, nodeName types.NodeName) (bool, error)
+
+	// Check if a list of volumes are attached to the node with the specified NodeName.
+	// Assumption: If node doesn't exist, disks are not attached to the node.
+	DisksAreAttached(diskNames []string, nodeName types.NodeName) (map[string]bool, error)
 }
 
 type VolumeOptions struct {
@@ -74,11 +80,11 @@ type VolumeOptions struct {
 
 var _ Volumes = (*Aliyun)(nil)
 
-// AttachDisk attaches the disk to the specified instance. `instanceID` can be empty
-// to mean "the instance on which we are running".
-// Returns the device path (e.g. /dev/xvdf) where we attached the volume.
-func (aly *Aliyun) AttachDisk(instanceID string, volumeID string, readOnly bool) (string, error) {
-	glog.Infof("AttachDisk(%v, %v, %v)", instanceID, volumeID, readOnly)
+// Attach the disk to the node with the specified NodeName
+// nodeName can be empty to mean "the instance on which we are running"
+// Returns the device (e.g. /dev/xvdf) where we attached the volume
+func (aly *Aliyun) AttachDisk(diskName string, nodeName types.NodeName, readOnly bool) (string, error) {
+	glog.Infof("AttachDisk(%v, %v, %v)", diskName, nodeName, readOnly)
 	/*
 		// Do not support attaching volume for other instances.
 		if instanceID != "" {
@@ -103,15 +109,15 @@ func (aly *Aliyun) AttachDisk(instanceID string, volumeID string, readOnly bool)
 	*/
 
 	// Do the volume attach.
-	if err := aly.attachVolume(instanceID, volumeID); err != nil {
+	if err := aly.attachVolume(string(nodeName), diskName); err != nil {
 		return "", err
 	}
 
 	devicePath := ""
 	for i := 0; i < RetryCountOnDeviceEmpty; i++ {
-		diskInfo, err := aly.describeVolume(volumeID)
+		diskInfo, err := aly.describeVolume(diskName)
 		if err != nil || diskInfo.Device == "" {
-			glog.Infof("Volume %s device path is empty, retrying", volumeID)
+			glog.Infof("Volume %s device path is empty, retrying", diskName)
 			time.Sleep(RetryIntervalOnDeviceEmpty)
 		} else {
 			return diskInfo.Device, nil
@@ -150,11 +156,12 @@ func (aly *Aliyun) AttachDisk(instanceID string, volumeID string, readOnly bool)
 	return devicePath, nil
 }
 
-// DetachDisk detaches the disk from the specified instance. `instanceID` can be empty
-// to mean "the instance on which we are running"
-func (aly *Aliyun) DetachDisk(instanceID string, volumeID string) error {
-	glog.Infof("DetachDisk(%v, %v)", instanceID, volumeID)
-	return aly.detachVolume(instanceID, volumeID)
+// Detach the disk from the node with the specified NodeName
+// nodeName can be empty to mean "the instance on which we are running"
+// Returns the device where the volume was attached
+func (aly *Aliyun) DetachDisk(diskName string, nodeName types.NodeName) error {
+	glog.Infof("DetachDisk(%v, %v)", diskName, nodeName)
+	return aly.detachVolume(string(nodeName), diskName)
 }
 
 // Create a volume with the specified options.
@@ -191,28 +198,28 @@ func (aly *Aliyun) CreateDisk(options *VolumeOptions) (string, error) {
 }
 
 // Delete a volume.
-func (aly *Aliyun) DeleteDisk(volumeID string) error {
-	glog.Infof("DeleteDisk: %v", volumeID)
+func (aly *Aliyun) DeleteDisk(diskName string) error {
+	glog.Infof("DeleteDisk: %v", diskName)
 
-	volume, err := aly.describeVolume(volumeID)
+	volume, err := aly.describeVolume(diskName)
 	if err != nil {
 		return err
 	}
 	if volume.Status != ecs.DiskStatusAvailable {
-		return fmt.Errorf("Could not delete volume %v since its status is %v", volumeID, volume.Status)
+		return fmt.Errorf("Could not delete volume %v since its status is %v", diskName, volume.Status)
 	}
 
 	for i := 0; i < RetryCountOnError; i++ {
-		err := aly.ecsClient.DeleteDisk(volumeID)
+		err := aly.ecsClient.DeleteDisk(diskName)
 		if err == nil {
-			glog.Infof("Delete volume ID: %v", volumeID)
+			glog.Infof("Delete volume ID: %v", diskName)
 			return nil
 		} else {
 			glog.Infof("Attempt %d: failed to delete volume: %v\n", i, err)
 		}
 		time.Sleep(time.Duration(i+1) * RetryIntervalOnError)
 	}
-	return fmt.Errorf("Unable to delete volume %v", volumeID)
+	return fmt.Errorf("Unable to delete volume %v", diskName)
 }
 
 // attachVolumes attaches a volume to given instance.
@@ -345,15 +352,44 @@ func (aly *Aliyun) GetAutoLabelsForPD(volumeID string) (map[string]string, error
 	return labels, nil
 }
 
-func (aly *Aliyun) DiskIsAttached(instanceID, volumeID string) (bool, error) {
-	info, err := aly.describeVolume(volumeID)
+// Check if the volume is already attached to the node with the specified NodeName
+func (aly *Aliyun) DiskIsAttached(diskName string, nodeName types.NodeName) (bool, error) {
+	info, err := aly.describeVolume(diskName)
 	if err != nil {
 		return false, err
 	}
-	if info.InstanceId == instanceID {
+	if info.InstanceId == string(nodeName) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// Check if a list of volumes are attached to the node with the specified NodeName.
+// Assumption: If node doesn't exist, disks are not attached to the node.
+func (aly *Aliyun) DisksAreAttached(diskNames []string, nodeName types.NodeName) (map[string]bool, error) {
+	attached := make(map[string]bool)
+	for _, diskName := range diskNames {
+		attached[diskName] = false
+	}
+
+	// instance, err := aly.getInstanceByInstanceId(string(nodeName))
+	// if err != nil {
+	//	glog.Warningf("Cannot find node %q, DisksAreAttached will assume disks %v are not attached to it.",
+	//		nodeName, diskNames)
+	//	return attached, err
+	//}
+
+	for _, diskName := range diskNames {
+		diskInfo, err := aly.describeVolume(diskName)
+		if err != nil {
+			continue
+		}
+		if diskInfo.InstanceId == string(nodeName) {
+			attached[diskName] = true
+		}
+	}
+
+	return attached, nil
 }
 
 // getAllZones retrieves  a list of all the zones in which nodes are running

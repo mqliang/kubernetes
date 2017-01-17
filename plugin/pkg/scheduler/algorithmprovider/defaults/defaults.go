@@ -22,6 +22,7 @@ import (
 	"strconv"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aliyun"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/anchnet"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -32,7 +33,6 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/scheduler/factory"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/cloudprovider/providers/aliyun"
 )
 
 const (

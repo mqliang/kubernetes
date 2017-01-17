@@ -207,12 +207,6 @@ type Volume struct {
 // VolumeSource represents the source location of a volume to mount.
 // Only one of its members may be specified.
 type VolumeSource struct {
-	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
-	// kubelet's host machine and then exposed to the pod.
-	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty"`
-	// AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a
-	// kubelet's host machine and then exposed to the pod.
-	AliyunPersistentDisk *AliyunPersistentDiskVolumeSource `json:"aliyunPersistentDisk,omitempty"`
 	// HostPath represents file or directory on the host machine that is
 	// directly exposed to the container. This is generally used for system
 	// agents or other privileged things that are allowed to see the host
@@ -296,7 +290,16 @@ type VolumeSource struct {
 	// +optional
 	AzureDisk *AzureDiskVolumeSource `json:"azureDisk,omitempty"`
 	// PhotonPersistentDisk represents a Photon Controller persistent disk attached and mounted on kubelets host machine
+	// +optional
 	PhotonPersistentDisk *PhotonPersistentDiskVolumeSource `json:"photonPersistentDisk,omitempty"`
+	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	// +optional
+	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty"`
+	// AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	// +optional
+	AliyunPersistentDisk *AliyunPersistentDiskVolumeSource `json:"aliyunPersistentDisk,omitempty"`
 }
 
 // Similar to VolumeSource but meant for the administrator who creates PVs.
@@ -358,12 +361,15 @@ type PersistentVolumeSource struct {
 	// +optional
 	AzureDisk *AzureDiskVolumeSource `json:"azureDisk,omitempty"`
 	// PhotonPersistentDisk represents a Photon Controller persistent disk attached and mounted on kubelets host machine
+	// +optional
 	PhotonPersistentDisk *PhotonPersistentDiskVolumeSource `json:"photonPersistentDisk,omitempty"`
 	// AnchnetPersistentDisk represents an Anchnet Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
+	// +optional
 	AnchnetPersistentDisk *AnchnetPersistentDiskVolumeSource `json:"anchnetPersistentDisk,omitempty"`
 	// AliyunPersistentDisk represents an Aliyun Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
+	// +optional
 	AliyunPersistentDisk *AliyunPersistentDiskVolumeSource `json:"aliyunPersistentDisk,omitempty"`
 }
 
@@ -592,13 +598,16 @@ type AnchnetPersistentDiskVolumeSource struct {
 	// Must be a filesystem type supported by the host operating system.
 	// Ex. "ext4", "xfs", "ntfs"
 	// TODO: how do we prevent errors in the filesystem from compromising the machine
+	// +optional
 	FSType string `json:"fsType,omitempty"`
 	// Optional: Partition on the disk to mount.
 	// If omitted, kubelet will attempt to mount the device name.
 	// Ex. For /dev/sda1, this field is "1", for /dev/sda, this field is 0 or empty.
+	// +optional
 	Partition int `json:"partition,omitempty"`
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
+	// +optional
 	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
@@ -613,13 +622,16 @@ type AliyunPersistentDiskVolumeSource struct {
 	// Must be a filesystem type supported by the host operating system.
 	// Ex. "ext4", "xfs", "ntfs"
 	// TODO: how do we prevent errors in the filesystem from compromising the machine
+	// +optional
 	FSType string `json:"fsType,omitempty" protobuf:"bytes,2,opt,name=fsType"`
 	// Optional: Partition on the disk to mount.
 	// If omitted, kubelet will attempt to mount the device name.
 	// Ex. For /dev/sda1, this field is "1", for /dev/sda, this field is 0 or empty.
+	// +optional
 	Partition int32 `json:"partition,omitempty" protobuf:"varint,3,opt,name=partition"`
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
+	// +optional
 	ReadOnly bool `json:"readOnly,omitempty" protobuf:"varint,4,opt,name=readOnly"`
 }
 
