@@ -4381,16 +4381,6 @@ func Convert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.Volu
 }
 
 func autoConvert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
-	if in.AnchnetPersistentDisk != nil {
-		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
-		*out = new(AnchnetPersistentDiskVolumeSource)
-		if err := Convert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.AnchnetPersistentDisk = nil
-	}
-	out.AliyunPersistentDisk = (*AliyunPersistentDiskVolumeSource)(unsafe.Pointer(in.AliyunPersistentDisk))
 	out.HostPath = (*HostPathVolumeSource)(unsafe.Pointer(in.HostPath))
 	out.EmptyDir = (*EmptyDirVolumeSource)(unsafe.Pointer(in.EmptyDir))
 	out.GCEPersistentDisk = (*GCEPersistentDiskVolumeSource)(unsafe.Pointer(in.GCEPersistentDisk))
@@ -4414,6 +4404,16 @@ func autoConvert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *
 	out.VsphereVolume = (*VsphereVirtualDiskVolumeSource)(unsafe.Pointer(in.VsphereVolume))
 	out.AzureDisk = (*AzureDiskVolumeSource)(unsafe.Pointer(in.AzureDisk))
 	out.PhotonPersistentDisk = (*PhotonPersistentDiskVolumeSource)(unsafe.Pointer(in.PhotonPersistentDisk))
+	if in.AnchnetPersistentDisk != nil {
+		in, out := &in.AnchnetPersistentDisk, &out.AnchnetPersistentDisk
+		*out = new(AnchnetPersistentDiskVolumeSource)
+		if err := Convert_api_AnchnetPersistentDiskVolumeSource_To_v1_AnchnetPersistentDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.AnchnetPersistentDisk = nil
+	}
+	out.AliyunPersistentDisk = (*AliyunPersistentDiskVolumeSource)(unsafe.Pointer(in.AliyunPersistentDisk))
 	return nil
 }
 
