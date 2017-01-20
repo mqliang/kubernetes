@@ -95,6 +95,23 @@ SSH_PUBLIC_KEY_FILE
 
 ```
 
+### Docker storage driver
+
+We use `devicemapper` as docker's default storage driver. The default mode for devicemapper storage driver is `loop-lvm`, which is not recommended for production. We suggest use `direct-lvm` if an extra disk partition is available.
+
+```
+
+CAICLOUD_K8S_CFG_NUMBER_DOCKER_DIRECT_LVM
+    Use direct-lvm or not.
+    Default value is "false".
+    Allowed value is "true" or "false".
+
+CAICLOUD_K8S_CFG_STRING_DOCKER_LVM_PARTITION
+    Which disk partition docker should use for `direct-lvm`, `CAICLOUD_K8S_CFG_STRING_DOCKER_LVM_PARTITION` must be defined when use `direct-lvm`.
+    You may use an extra disk. e.g. `/dev/sda`
+
+```
+
 **Note:**
 
 The machine on which we deploy kubernetes cluster is “Control Machine”. By default, control machine is not one of masters. If control machine is just one of masters, then we should set:

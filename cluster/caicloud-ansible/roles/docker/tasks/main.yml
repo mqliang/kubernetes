@@ -61,6 +61,11 @@
     - reload systemd
   when: not kubernetes_use_upstart
 
+# Only for centos for now
+- name: Configure direct-lvm mode
+  include: config-lvm-centos.yml
+  when: ansible_distribution == "CentOS" and docker_direct_lvm
+
 #
 # Enable and start docker
 

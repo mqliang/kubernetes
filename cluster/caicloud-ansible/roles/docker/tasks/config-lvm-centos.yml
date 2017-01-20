@@ -1,0 +1,50 @@
+---
+# Configure direct-lvm for docker.
+#
+
+- name: CentOS | Fails when docker_lvm_partition is not defined
+  fail:
+    msg: docker_lvm_partition is not defined
+  when: docker_lvm_partition is not defined
+
+- name: CentOS | Setup docker use devicemapper-lvm
+  script: config-lvm.sh
+  environment:
+    DOCKER_PARTITION: "{{ docker_lvm_partition }}"
+
+- name: CentOS | Check which file to use
+  stat: path=/etc/systemd/system/docker.service
+  register: systemd_docker_conf
+
+- name: CentOS | Check which file to use
+  stat: path=/usr/lib/systemd/system/docker.service
+  register: lib_systemd_docker_conf
+
+- name: CentOS | Choose which file to use
+  set_fact:
+    docker_conf_file: /etc/systemd/system/docker.service
+  when: systemd_docker_conf.stat.exists
+
+- name: CentOS | Choose which file to use
+  set_fact:
+    docker_conf_file: /usr/lib/systemd/system/docker.service
+  when: systemd_docker_conf.stat.exists == False and lib_systemd_docker_conf.stat.exists == True
+
+- name: CentOS | Fails when docker_conf_file is not defined
+  fail:
+    msg: docker_conf_file is not defined
+  when: docker_conf_file is not defined
+
+- name: CentOS | Remove old docker storage config
+  shell: sed -e '/ExecStart/s/ *--storage-opt=[^ ]* */ /g' -e '/ExecStart/s/ *--storage-driver=[^ ]* */ /g' -e '/ExecStart/s/  */ /g' -i {{ docker_conf_file }}
+
+- name: CentOS | Add new log config for docker service
+  lineinfile:
+    dest: "{{ docker_conf_file }}"
+    regexp: '(^\s*ExecStart=.*$)'
+    line: '\1 --storage-driver=devicemapper --storage-opt=dm.thinpooldev=/dev/mapper/docker-thinpool --storage-opt=dm.use_deferred_removal=true --storage-opt=dm.use_deferred_deletion=true'
+    state: present
+    backrefs: yes
+
+- name: CentOS | reload systemd
+  command: systemctl --system daemon-reload

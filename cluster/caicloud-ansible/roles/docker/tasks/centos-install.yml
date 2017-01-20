@@ -33,7 +33,6 @@
 # https://github.com/docker/docker/issues/20484
 - name: CentOS | Install lvm2
   command: yum install -y lvm2
-  when: ansible_distribution_version | version_compare('7.2.1511', '<')
 
 - name: CentOS | Install yum-utils
   yum: name=yum-utils

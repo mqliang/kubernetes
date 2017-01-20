@@ -314,3 +314,6 @@ dns_host_name: cluster
 base_domain_name: "{{ caicloud_private_test_domain }}"
 
 custom_time_server: ""
+
+# Use direct-lvm for docker devicemapper or not.
+docker_direct_lvm: false
