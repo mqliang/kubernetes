@@ -730,6 +730,38 @@ function setup-instances {
 function setup-instance {
   attempt=0
 
+  # If user is root, just run without sudo.
+  # User root may not in /etc/sudoers, so sudo will fail.
+  sudo_if_need="sudo"
+  if [[ ${2} == "root" ]]; then
+    sudo_if_need=""
+  fi
+
+  # Disable gssapi and reverse DNS which may cause ssh hang
+  if [[ ${SETUP_QUICK_INSTANCES-"YES"} == "YES" ]]; then
+    expect <<EOF
+set timeout 120
+spawn ssh -t -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oLogLevel=quiet \
+  ${2}@${1} "\
+${sudo_if_need} sed -i 's/^\\\\(GSSAPI.*\\\\)/#\\\\1/g' /etc/ssh/sshd_config && \
+${sudo_if_need} sed -i 's/^\\\\(UseDNS.*\\\\)/#\\\\1/g' /etc/ssh/sshd_config && \
+${sudo_if_need} sh -c \"echo '' >> /etc/ssh/sshd_config\" && \
+${sudo_if_need} sh -c \"echo 'GSSAPIAuthentication no' >> /etc/ssh/sshd_config\" && \
+${sudo_if_need} sh -c \"echo 'UseDNS no' >> /etc/ssh/sshd_config\" && \
+(${sudo_if_need} service ssh restart || ${sudo_if_need} systemctl restart sshd)"
+
+expect {
+  "*?assword*" {
+    send -- "${3}\r"
+    exp_continue
+  }
+  "lost connection" { exit 1 }
+  timeout { exit 1 }
+  eof {}
+}
+EOF
+  fi
+
   while true; do
     log "Attempt $(($attempt+1)) to setup instance ssh for $1"
     local fail=0
@@ -756,7 +788,7 @@ set timeout $((($attempt+1)*3))
 spawn ssh -t -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oLogLevel=quiet \
   ${2}@${1} "\
 umask 077 && mkdir -p ~/.ssh && cat ~/host_rsa.pub >> ~/.ssh/authorized_keys && rm -rf ~/host_rsa.pub && \
-sudo sh -c 'echo \"${2} ALL=(ALL) NOPASSWD: ALL\" | (EDITOR=\"tee -a\" visudo)'"
+${sudo_if_need} sh -c 'echo \"${2} ALL=(ALL) NOPASSWD: ALL\" | (EDITOR=\"tee -a\" visudo)'"
 
 expect {
   "*?assword*" {
@@ -778,8 +810,8 @@ EOF
 set timeout $((($attempt+1)*3))
 spawn ssh -t -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oLogLevel=quiet \
   ${2}@${1} "\
-sudo adduser --quiet --disabled-password --gecos \"${4}\" ${4} &&
-echo \"${4}:${5}\" | sudo chpasswd"
+${sudo_if_need} adduser --quiet --disabled-password --gecos \"${4}\" ${4} &&
+echo \"${4}:${5}\" | ${sudo_if_need} chpasswd"
 
 expect {
   "*?assword*" {

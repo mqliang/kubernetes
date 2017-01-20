@@ -1,0 +1,38 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    k8s-app: monitoring-controller
+    kubernetes.io/cluster-service: "true"
+    kubernetes-admin.caicloud.io/type: application
+    kubernetes-admin.caicloud.io/application: monitoring-controller
+  name: monitoring-controller
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      k8s-app: monitoring-controller
+  template:
+    metadata:
+      labels:
+        k8s-app: monitoring-controller
+        kubernetes.io/cluster-service: "true"
+        kubernetes-admin.caicloud.io/application: monitoring-controller
+        kubernetes-admin.caicloud.io/type: application
+    spec:
+      containers:
+      - name: collector-controller
+        image: {{ monitoring_image_ng_controller }}
+        imagePullPolicy: Always
+        args:
+        - "--module=collector"
+        - "--healthz-port=23334"
+        - "--watch-config=monitoring-collector"
+        - "--watch-namespace=kube-system"
+      - name: alert-discovery
+        image: {{ monitoring_image_alert_discovery }}
+        imagePullPolicy: Always
+        args:
+        - "--healthz-port=23335"
+        - "--configmap-ns=kube-system"
+        - "--configmap-name=prometheus-config"

@@ -49,6 +49,17 @@
     replace: 'enabled=0'
   when: ansible_distribution == "CentOS" and fastestmirror_stat.stat.isreg is defined and fastestmirror_stat.stat.isreg
 
+- name: Setup offline mode | Overwrite Ubuntu sources.list
+  template:
+  args:
+    src: "apt-mirror.list.j2"
+    dest: "/etc/apt/sources.list"
+    mode: 0644
+    owner: root
+    group: root
+    backup: yes
+  when: ansible_distribution == "Ubuntu"
+
 - name: Setup offline mode | Create apt proxy conf
   file: path=/etc/apt/apt.conf.d/01proxy state=touch owner=root group=root mode=0644
   when: ansible_distribution == "Ubuntu"

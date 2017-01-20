@@ -10,6 +10,7 @@
     - name: Set use_hyperkube to true by default
       set_fact:
         use_hyperkube: true
+        networking: weave
 
     - name: Display system information
       debug: msg="{{ ansible_distribution }} {{ ansible_distribution_version }}"
@@ -316,5 +317,5 @@
     # avoid "Device or resource busy" when run in pod
     - name: Update /etc/hosts if uninstalling caicloudstack
       become: yes
-      shell: newhosts=`mktemp` && sed -e '/{{ kube_apiserver_endpoint_ip }} {{ dns_host_name }}/d' /etc/hosts > $newhosts && cp $newhosts /etc/hosts && rm $newhosts
+      shell: newhosts=`mktemp` && sed -e '/{{ kube_apiserver_endpoint_ip }} {{ dns_host_name }}/d' /etc/hosts > $newhosts && /bin/cp $newhosts /etc/hosts && /bin/rm $newhosts
       when: (dns_host_name is defined) and (dns_host_name == "caicloudstack")

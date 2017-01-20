@@ -124,12 +124,20 @@
 # Misc preparations for bringing up cluster.
 
 - name: Update /etc/hosts | Remove wrong registry hosts
-  lineinfile: dest=/etc/hosts regexp='.*{{ registry_prefix }}$' state=absent
+  shell: newhosts=`mktemp` && sed -e '/.*{{ registry_prefix }}$/d' /etc/hosts > $newhosts && /bin/cp $newhosts /etc/hosts && /bin/rm $newhosts
+  # lineinfile: dest=/etc/hosts regexp='.*{{ registry_prefix }}$' state=absent
   when: ensure_registry_hosts and registry_ip != ""
 
 - name: Update /etc/hosts | Add registry hosts
-  lineinfile: dest=/etc/hosts regexp='.*{{ registry_prefix }}$' line="{{ registry_ip }} {{ registry_prefix }}" state=present
+  shell: echo "{{ registry_ip }} {{ registry_prefix }}" >> /etc/hosts
+  # lineinfile: dest=/etc/hosts regexp='.*{{ registry_prefix }}$' line="{{ registry_ip }} {{ registry_prefix }}" state=present
   when: ensure_registry_hosts and registry_ip != ""
+
+# Ensure `127.0.0.1 localhost` in /etc/hosts, apiserver bind to localhost ipv4
+- name: Update /etc/hosts | Ensure localhost to 127.0.0.1
+  shell: |-
+    cat /etc/hosts | grep '^127\.0\.0\.1\s' || echo "127.0.0.1 localhost" >> /etc/hosts;
+    cat /etc/hosts | grep '^127\.0\.0\.1\s\s*\(localhost\(\s\|$\)\|.*\slocalhost\(\s\|$\)\)' || ( newhosts=`mktemp` && sed -e '/^127\.0\.0\.1\s/ s/$/ localhost /' /etc/hosts > $newhosts && /bin/cp $newhosts /etc/hosts && /bin/rm $newhosts )
 
 - name: Copy cloud-config to {{ kube_config_dir }}
   copy: src={{ cloud_config_dir }}/cloud-config dest={{ kube_config_dir }}/cloud-config

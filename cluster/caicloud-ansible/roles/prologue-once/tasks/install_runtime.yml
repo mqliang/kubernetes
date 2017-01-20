@@ -1,6 +1,15 @@
 ---
 # Tasks for installing runtime dependencies
 
+- name: Ubuntu | Update repository cache
+  apt: update_cache=yes
+  # Register and retry to work around transient http issues
+  register: apt_cache_update
+  until: apt_cache_update|success
+  retries: 3
+  delay: 5
+  when: ansible_distribution == "Ubuntu"
+
 - name: Install runtime dependencies
   yum: name={{ item }}
   with_items:
@@ -22,3 +31,20 @@
 
 - name: Send nsenter to all instances
   copy: src=nsenter dest={{ bin_dir }}/nsenter owner=root group=root mode=0755 force=no
+
+# Sudo may warn if hostname can't be resolved
+# Uncomment if this affects cluster deploy
+# - name: Ensure hostname in /etc/hosts file
+#   hosts:
+#     - nodes
+#     - masters
+#   become: yes
+#   tasks:
+#     - name: Get hostname
+#       shell:  hostname
+#       register: host_name
+#     - name: Update /etc/hosts file
+#       # This may not work fine: IP 127.0.0.1 should only map to localhost, and not to the hostname if the host is connected to the net.
+#       # This may also hosts like `127.0.0.1 localhost hostname`
+#       shell: newhosts=`mktemp` && sed -e '/.*{{ host_name.stdout }}$/d' /etc/hosts > $newhosts && echo "127.0.0.1 {{ host_name.stdout }}" >> $newhosts && /bin/cp $newhosts /etc/hosts && /bin/rm $newhosts
+#       # lineinfile: dest=/etc/hosts regexp='.*{{ host_name.stdout }}$' line="127.0.0.1 {{ host_name.stdout }}" state=present

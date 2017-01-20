@@ -24,13 +24,13 @@ spec:
         kubernetes-admin.caicloud.io/type: application
     spec:
       containers:
-      - image: {{ elasticsearch_image_elasticsearch }}
+      - image: {{ caicloud_elasticsearch_image_elasticsearch }}
         name: elasticsearch-logging
         resources:
           # keep request = limit to keep this container in guaranteed class
           limits:
-            cpu: 800m
-            memory: 1.5Gi
+            cpu: 1000m
+            memory: 2Gi
           requests:
             cpu: 300m
             memory: 1Gi

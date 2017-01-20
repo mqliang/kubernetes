@@ -24,3 +24,6 @@ KUBE_ADMISSION_CONTROL="--admission-control={{ admission_controllers }}"
 
 # Add your own!
 KUBE_API_ARGS="{{ apiserver_extra_args | default('') }} --tls-cert-file={{ kube_cert_dir }}/server.crt --tls-private-key-file={{ kube_cert_dir }}/server.key --client-ca-file={{ kube_cert_dir }}/ca.crt --token-auth-file={{ kube_token_dir }}/known_tokens.csv --basic-auth-file={{ kube_token_dir }}/basic-auth.csv --authorization-mode=ABAC --authorization-policy-file={{ kube_token_dir}}/abac.json --service-account-key-file={{ kube_cert_dir }}/server.crt --bind-address={{ kube_apiserver_bind_address }} --runtime-config=extensions/v1beta1/networkpolicies"
+
+# Needed on kubernetes 1.6
+# --tls-ca-file={{ kube_cert_dir }}/ca.crt

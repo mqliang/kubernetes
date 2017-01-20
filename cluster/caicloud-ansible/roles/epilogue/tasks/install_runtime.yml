@@ -3,22 +3,24 @@
 
 - include_vars: ../../kubernetes-base/defaults/main.yml
 
-- name: Logging | Copy upstart fluentd pod into manifest directory of each kubelet
-  template:
-  args:
-    src: "fluentd-es-upstart.yaml"
-    dest: "{{ kube_manifest_dir }}"
-    mode: 0644
-    owner: root
-    group: root
-  when: cluster_logging and kubernetes_use_upstart
+# We now use daemonset instead of static pod
 
-- name: Logging | Copy systemd fluentd pod into manifest directory of each kubelet
-  template:
-  args:
-    src: "fluentd-es-systemd.yaml"
-    dest: "{{ kube_manifest_dir }}"
-    mode: 0644
-    owner: root
-    group: root
-  when: cluster_logging and not kubernetes_use_upstart
+# - name: Logging | Copy upstart fluentd pod into manifest directory of each kubelet
+#   template:
+#   args:
+#     src: "fluentd-es-upstart.yaml"
+#     dest: "{{ kube_manifest_dir }}"
+#     mode: 0644
+#     owner: root
+#     group: root
+#   when: cluster_logging and kubernetes_use_upstart
+
+# - name: Logging | Copy systemd fluentd pod into manifest directory of each kubelet
+#   template:
+#   args:
+#     src: "fluentd-es-systemd.yaml"
+#     dest: "{{ kube_manifest_dir }}"
+#     mode: 0644
+#     owner: root
+#     group: root
+#   when: cluster_logging and not kubernetes_use_upstart

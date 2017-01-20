@@ -10,7 +10,7 @@
   when: host_provider == "anchnet" or host_provider == "aliyun"
 
 - name: Update /etc/hosts | Remove wrong hosts
-  shell: newhosts=`mktemp` && sed -e '/{{ dns_host_name }}.{{ base_domain_name }}/d' /etc/hosts > $newhosts && cp $newhosts /etc/hosts && rm $newhosts
+  shell: newhosts=`mktemp` && sed -e '/{{ dns_host_name }}.{{ base_domain_name }}/d' /etc/hosts > $newhosts && /bin/cp $newhosts /etc/hosts && /bin/rm $newhosts
   when: mapping_domain_to_ip
 
 - name: Update /etc/hosts for mapping domain name to ip

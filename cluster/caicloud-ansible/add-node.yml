@@ -51,19 +51,6 @@
   tags:
     - update-master
 
-
-- name: Ensure hostname in /etc/hosts file
-  hosts:
-    - nodes
-    - masters
-  become: yes
-  tasks:
-    - name: Get hostname
-      shell:  hostname
-      register: host_name
-    - name: Update /etc/hosts file
-      lineinfile: dest=/etc/hosts regexp='.*{{ host_name.stdout }}$' line="127.0.0.1 {{ host_name.stdout }}" state=present
-
 - name: Install docker
   hosts: 
     - nodes

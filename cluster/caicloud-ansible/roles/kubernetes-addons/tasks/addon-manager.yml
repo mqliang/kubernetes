@@ -23,6 +23,10 @@
     - thirdpartyresource.yaml
     # - quota.yaml
   when: inventory_hostname == groups['masters'][0]
+  register: kubectl_apply_result
+  until: kubectl_apply_result|success
+  retries: 3
+  delay: 5
 
 - name: namespace and quota for cyclone
   command: "{{ bin_dir }}/kubectl apply -f {{ kube_addons_dir }}/{{ item }}"
@@ -30,6 +34,10 @@
     - namespace-cyclone.yaml
     - quota-cyclone.yaml
   when: inventory_hostname == groups['masters'][0] and deploy_caicloud_stack|bool
+  register: kubectl_apply_result
+  until: kubectl_apply_result|success
+  retries: 3
+  delay: 5
 
 - name: DNS | Make sure dns direcotry exists
   file: path={{ kube_addons_dir }}/dns state=directory
@@ -52,6 +60,10 @@
     - skydns-svc.yaml
     - skydns-rc.yaml
   when: inventory_hostname == groups['masters'][0]
+  register: kubectl_apply_result
+  until: kubectl_apply_result|success
+  retries: 3
+  delay: 5
 
 - name: Addon-manager | Prepare configmap and secret
   command: "{{ bin_dir }}/kubectl apply -f {{ addon_manager_root }}/{{ item }}"
@@ -60,6 +72,10 @@
     - configmap.yaml
     - cds-executor-secret.yaml
   when: deploy_caicloud_stack|bool and inventory_hostname == groups['masters'][0]
+  register: kubectl_apply_result
+  until: kubectl_apply_result|success
+  retries: 3
+  delay: 5
 
 - name: Addon-manager | Make sure addon-manager direcotry exists
   file: path={{ kube_addons_dir }}/addon-manager state=directory
@@ -92,6 +108,10 @@
     - master-mongo-pv.yaml
     - master-mongo-pvc.yaml
   when: nfs_setup and inventory_hostname == groups['masters'][0]
+  register: kubectl_apply_result
+  until: kubectl_apply_result|success
+  retries: 3
+  delay: 5
 
 - name: Addon-manager | Write addon-manager-minion template from converted saltfiles
   template:
@@ -125,6 +145,10 @@
   with_items:
     - minion-rc.yaml
   when: inventory_hostname == groups['masters'][0]
+  register: kubectl_apply_result
+  until: kubectl_apply_result|success
+  retries: 3
+  delay: 5
 
 - name: Addon-manager | Install addon-manager-master addon
   command: "{{ bin_dir }}/kubectl apply -f {{ kube_addons_dir }}/addon-manager/{{ item }}"
@@ -135,6 +159,10 @@
     - master-minion-rc.yaml
     - master-rc.yaml
   when: deploy_caicloud_stack|bool and inventory_hostname == groups['masters'][0]
+  register: kubectl_apply_result
+  until: kubectl_apply_result|success
+  retries: 3
+  delay: 5
 
 - name: Addon-manager | Publish addons
   include: addon-manager-publish-addons.yml

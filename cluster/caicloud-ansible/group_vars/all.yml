@@ -12,8 +12,8 @@ host_provider: vagrant
 # Name of the cluster.
 cluster_name: "kube-default"
 
-# Network implementation, valid options: flannel, calico
-networking: flannel
+# Network implementation, valid options: flannel, calico, weave
+networking: weave
 
 # Network plugins configure.
 # install common CNI network plugins
@@ -79,6 +79,7 @@ nfs_dirs:
   - cyclone-etcd
   - cyclone-kafka
   - cyclone-mongo
+  - clever-storage-mongo
 
 # Number of replicas.
 elasticsearch_replicas: 2
@@ -211,27 +212,34 @@ cw_download_url_base: "{{ download_url_base }}"
 
 ensure_registry_hosts: false
 registry_ip: ""
-registry_prefix: "index.caicloud.io"
+registry_prefix: "cargo.caicloud.io"
 registry_prefix_caicloud: "{{ registry_prefix }}/caicloud"
 registry_prefix_caicloudgcr: "{{ registry_prefix }}/caicloudgcr"
 
-elasticsearch_image_elasticsearch: "{{ registry_prefix_caicloudgcr }}/google_containers_elasticsearch:1.9"
+# elasticsearch_image_elasticsearch: "{{ registry_prefix_caicloudgcr }}/google_containers_elasticsearch:1.9"
+caicloud_elasticsearch_image_elasticsearch: "{{ registry_prefix_caicloud }}/elasticsearch:v1.0.0"
 elasticsearch_image_escron: "{{ registry_prefix_caicloud }}/es-cron:v0.1.2"
-fluentd_elasticsearch_image: "{{ registry_prefix_caicloudgcr }}/google_containers_fluentd-elasticsearch:1.19"
+# fluentd_elasticsearch_image: "{{ registry_prefix_caicloudgcr }}/google_containers_fluentd-elasticsearch:1.19"
+caicloud_fluentd_elasticsearch_image: "{{ registry_prefix_caicloud }}/fluentd-elasticsearch:v1.0.0"
 kibana_image: "{{ registry_prefix_caicloudgcr }}/google_containers_kibana:1.3"
 heapster_image_heapster: "{{ registry_prefix_caicloud }}/heapster:v1.2.0-v0.0.3"
-monitoring_image_influxdb: "{{ registry_prefix_caicloud }}/influxdb:1.0.0-beta2"
+# monitoring_image_influxdb: "{{ registry_prefix_caicloud }}/influxdb:1.0.0-beta2"
 monitoring_image_grafana: "{{ registry_prefix_caicloud }}/monitoring-grafana:v3.1.0-withfields"
-monitoring_image_watcher: "{{ registry_prefix_caicloud }}/monitoring-watcher:v1.0.1"
-monitoring_image_server: "{{ registry_prefix_caicloud }}/monitoring-server:v1.0.1"
-monitoring_image_network_checker_minion: "{{ registry_prefix_caicloud }}/network-checker-minion:canary"
+# monitoring_image_watcher: "{{ registry_prefix_caicloud }}/monitoring-watcher:v1.0.1"
+# monitoring_image_server: "{{ registry_prefix_caicloud }}/monitoring-server:v1.0.1"
+monitoring_image_server_ng: "{{ registry_prefix_caicloud }}/monitoring-server:v1.0.2"
+# monitoring_image_network_checker_minion: "{{ registry_prefix_caicloud }}/network-checker-minion:canary"
+monitoring_image_prometheus: "{{ registry_prefix_caicloud }}/prometheus:v0.0"
+monitoring_image_event_exporter: "{{ registry_prefix_caicloud }}/event-exporter:v0.0"
+monitoring_image_hierarchy_exporter: "{{ registry_prefix_caicloud }}/hierarchy-exporter:v0.0"
+monitoring_image_ng_controller: "{{ registry_prefix_caicloud }}/monitor-ng-controller:v0.0"
+monitoring_image_alert_discovery: "{{ registry_prefix_caicloud }}/alert-discovery:v0.0"
 common_image_mongo: "{{ registry_prefix_caicloud }}/mongo:3.0.5"
 common_image_nginx: "{{ registry_prefix_caicloud }}/nginx:1.9.4"
 kubedns_image_kubedns: "{{ registry_prefix_caicloudgcr }}/google_containers_kubedns-amd64:1.8"
 kubedns_image_dnsmasq: "{{ registry_prefix_caicloudgcr }}/google_containers_kube-dnsmasq-amd64:1.4"
 kubedns_image_dnsmasq_metrics: "{{ registry_prefix_caicloudgcr }}/google_containers_dnsmasq-metrics-amd64:1.0"
 kubedns_image_dns_hpa: "{{ registry_prefix_caicloudgcr }}/google_containers_cluster-proportional-autoscaler-amd64:1.0.0"
-
 kubedns_image_healthz: "{{ registry_prefix_caicloudgcr }}/google_containers_exechealthz-amd64:1.2"
 kubepush_image_kubepush: "{{ registry_prefix_caicloud }}/kubepush:v0.0.1"
 nfs_server_image: "{{ registry_prefix_caicloud }}/nfs-server:v0.0.1"
@@ -249,7 +257,7 @@ ingress_default_backend_image: "{{ registry_prefix_caicloud }}/default-http-back
 ingress_loadbalancer_controller_image: "{{ registry_prefix_caicloud }}/loadbalancer-controller:v0.0.1"
 caicloud_self_hosted_image: "{{ registry_prefix_caicloud }}/self-hosted:v0.0.3"
 weave_image: "{{ registry_prefix_caicloud }}/weave:v0.0.1"
-weave_npc_image: "{{ registry_prefix_caicloud }}/weave-npc:v0.0.1"
+weave_npc_image: "{{ registry_prefix_caicloud }}/weave-npc:v0.0.1-fix"
 
 # Main ports for etcd.
 etcd_client_port: 2379
@@ -318,3 +326,7 @@ custom_time_server: ""
 
 # Use direct-lvm for docker devicemapper or not.
 docker_direct_lvm: false
+
+# Disable negative caching if needed. See: http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
+# TODO: use configmap
+dnsmasq_no_negcache: false

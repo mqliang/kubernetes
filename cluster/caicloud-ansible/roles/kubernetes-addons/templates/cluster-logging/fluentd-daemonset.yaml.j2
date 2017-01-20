@@ -1,0 +1,59 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: fluentd-elasticsearch-v1
+  namespace: kube-system
+  labels:
+    k8s-app: fluentd-logging
+    version: v1
+    kubernetes.io/cluster-service: "true"
+    kubernetes-admin.caicloud.io/application: fluentd-logging-v1
+    kubernetes-admin.caicloud.io/type: application
+spec:
+  template:
+    metadata:
+      name: fluentd-elasticsearch
+      namespace: kube-system
+      labels:
+        k8s-app: fluentd-logging
+        version: v1
+        kubernetes-admin.caicloud.io/type: application
+        kubernetes-admin.caicloud.io/application: fluentd-logging-v1
+        kubernetes-admin.caicloud.io/type: application
+    spec:
+      containers:
+      - name: fluentd-elasticsearch
+        image: {{ caicloud_fluentd_elasticsearch_image }}
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: 500m
+            memory: 500Mi
+          requests:
+            cpu: 200m
+            memory: 200Mi
+        args:
+        - -q
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: containerlog
+          mountPath: /var/log/containers
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+{% if kubernetes_use_upstart %}
+          path: /var/log/upstart
+{% else %}
+          path: /var/log
+{% endif %}
+      - name: containerlog
+        hostPath:
+          path: /var/log/containers
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers

@@ -17,9 +17,12 @@
 # Usage:
 #   VERSION=v1.1.2 [REGISTRY="gcr.io/google_containers"] make build
 
+# Change base image to debian cause issue: https://github.com/caicloud/caicloud-kubernetes/issues/750
+
 REGISTRY?="cargo.caicloud.io/caicloud"
 ARCH=amd64
-BASEIMAGE=cargo.caicloud.io\\/caicloud\\/alpine:3.3
+# BASEIMAGE=cargo.caicloud.io\\/caicloud\\/alpine:3.3
+BASEIMAGE=cargo.caicloud.io\\/caicloud\\/debian:jessie
 TEMP_DIR:=$(shell mktemp -d)
 
 ## Comment in for arm builds, must be run on an arm machine
@@ -34,10 +37,11 @@ ifndef VERSION
     $(error VERSION is undefined)
 endif
 	cp ./* ${TEMP_DIR}
-	if [ ! -f ../../../../_output/local/bin/linux/${ARCH}/hyperkube ] ; then \
-		make -C ../../../../ WHAT=cmd/hyperkube KUBE_STATIC_OVERRIDES="hyperkube" KUBE_BUILD_PLATFORMS="linux/amd64" ; \
+	if [ ! -f ../../../../_output/dockerized/bin/linux/${ARCH}/hyperkube ] ; then \
+		echo "can't find hyperkube" ; \
+		exit 1 ; \
 	fi
-	cp ../../../../_output/local/bin/linux/${ARCH}/hyperkube ${TEMP_DIR}
+	cp ../../../../_output/dockerized/bin/linux/${ARCH}/hyperkube ${TEMP_DIR}
 	cd ${TEMP_DIR} && chmod +x hyperkube && perl -X -i -pe "s/BASEIMAGE/${BASEIMAGE}/g" Dockerfile
 	docker build -t ${REGISTRY}/hyperkube-${ARCH}:${VERSION} ${TEMP_DIR}
 	# Backward compatibility.  TODO: deprecate this image tag

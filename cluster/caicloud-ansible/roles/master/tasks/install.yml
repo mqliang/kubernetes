@@ -17,7 +17,8 @@
   when: user_cert_dir is defined
 
 - name: Build master /etc/hosts file
-  lineinfile: dest=/etc/hosts regexp='.*{{ item }}$' line="{{ hostvars[item]['internal_ip'] }} {{ item }}" state=present
+  shell: newhosts=`mktemp` && sed -e '/.*{{ item }}$/d' /etc/hosts > $newhosts && echo "{{ hostvars[item]['internal_ip'] }} {{ item }}" >> $newhosts && /bin/cp $newhosts /etc/hosts && /bin/rm $newhosts
+  # lineinfile: dest=/etc/hosts regexp='.*{{ item }}$' line="{{ hostvars[item]['internal_ip'] }} {{ item }}" state=present
   with_items:
     - "{{ groups['masters'] }}"
     - "{{ groups['nodes'] }}"

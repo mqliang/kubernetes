@@ -19,3 +19,7 @@
 
 - name: Start caicloud self-hosted job
   command: "{{ bin_dir }}/kubectl apply -f {{ kube_config_dir }}/caicloud-self-hosted.yaml"
+  register: kubectl_apply_result
+  until: kubectl_apply_result|success
+  retries: 3
+  delay: 5

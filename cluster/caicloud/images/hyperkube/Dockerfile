@@ -14,8 +14,31 @@
 
 FROM BASEIMAGE
 
-RUN apk add --update iptables ethtool ca-certificates file util-linux socat curl conntrack-tools \
-	&& rm -rf /var/cache/apk/*
+# Used for alpine.
+# RUN apk add --update iptables ethtool ca-certificates file util-linux socat curl conntrack-tools \
+# 	&& rm -rf /var/cache/apk/*
 
-ADD nsenter /nsenter
+RUN sed -i "s/httpredir.debian.org/mirrors.163.com/g" /etc/apt/sources.list && \
+	DEBIAN_FRONTEND=noninteractive apt-get update -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get -yy -q install \
+    iptables \
+    ebtables \
+    ethtool \
+    ca-certificates \
+    conntrack \
+    util-linux \
+    socat \
+    git \
+    jq \
+    nfs-common \
+    glusterfs-client \
+    cifs-utils \
+    file \
+    curl \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get autoremove -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* # CACHEBUST
+
+RUN cp /usr/bin/nsenter /nsenter
+
 ADD hyperkube /hyperkube

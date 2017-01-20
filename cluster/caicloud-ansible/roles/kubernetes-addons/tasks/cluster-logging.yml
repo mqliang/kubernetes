@@ -16,3 +16,4 @@
     - es-service.yaml
     - kibana-controller.yaml
     - kibana-service.yaml
+    - fluentd-daemonset.yaml

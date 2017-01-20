@@ -281,7 +281,8 @@
       ignore_errors: yes
 
     - name: Update /etc/hosts
-      lineinfile: dest=/etc/hosts regexp="^{{ hostvars[item]['ansible_host'] }} {{ item }}.*" state=absent
+      shell: newhosts=`mktemp` && sed -e '/^{{ hostvars[item]['ansible_host'] }} {{ item }}.*/d' /etc/hosts > $newhosts && /bin/cp $newhosts /etc/hosts && /bin/rm $newhosts
+      # lineinfile: dest=/etc/hosts regexp="^{{ hostvars[item]['ansible_host'] }} {{ item }}.*" state=absent
       with_items: "{{ groups['nodes'] }}"
     
     - set_fact:

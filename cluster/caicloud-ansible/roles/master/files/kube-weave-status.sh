@@ -20,7 +20,7 @@ for i in $wpod; do
   while true;do
     if  [ $i != 'Running' ] && [ $flag -gt 0 ]; then
       echo "*** Detected weave pod's status $i ***\n    wait running ...\n"
-      sleep 60
+      sleep 15
       : $((flag = $flag - 1))
     elif [ $i = 'Running' ]; then
       echo "** weave pod's status turn into running. **\n   weave should be Ready !"

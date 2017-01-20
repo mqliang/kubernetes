@@ -3,6 +3,11 @@
 - name: Monitoring | Assures {{ kube_config_dir }}/addons/cluster-monitoring dir exists
   file: path={{ kube_addons_dir }}/cluster-monitoring state=directory
 
+# Change monitoring to monitoring-ng
+
+- name: Write prometheus configmap
+  copy: src="prometheus-configmap.yaml" dest="{{ kube_addons_dir }}/cluster-monitoring/prometheus-configmap.yaml"
+
 - name: Monitoring | Install template from converted saltfile
   template:
   args:
@@ -12,14 +17,17 @@
     owner: root
     group: root
   with_items:
-    - server-mongo-controller.yaml
-    - server-mongo-service.yaml
-    - influxdb-controller.yaml
-    - influxdb-service.yaml
+    # - server-mongo-controller.yaml
+    # - server-mongo-service.yaml
+    # - influxdb-controller.yaml
+    # - influxdb-service.yaml
     - heapster-controller.yaml
     - heapster-service.yaml
-    - watcher-controller.yaml
+    # - watcher-controller.yaml
     - grafana-controller.yaml
     - grafana-service.yaml
-    - server-daemonset.yaml
+    # - server-daemonset.yaml
     - server-service.yaml
+    - collector-configmap.yaml
+    - server-ng-daemonset.yaml
+    - monitoring-controller.yaml
