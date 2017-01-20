@@ -20,6 +20,7 @@
     - name: Set use_hyperkube to true by default
       set_fact:
         use_hyperkube: true
+        networking: weave
 
     - name: Display system information
       debug: msg="{{ ansible_distribution }} {{ ansible_distribution_version }}"

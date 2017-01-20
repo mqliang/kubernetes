@@ -10,7 +10,7 @@
   failed_when: False
 - set_fact:
     firewalld_existing: False
-  when: output.stdout.find("not-found") != -1
+  when: output.stdout.find("not be found") != -1
 
 - name: CentOS | Stop and mask the firewalld service
   command: "{{ item }}"
@@ -19,6 +19,7 @@
     - systemctl stop firewalld
     - systemctl mask firewalld
   when: firewalld_existing
+  failed_when: False
 
 - name: CentOS | Install the iptables
   yum: name=iptables

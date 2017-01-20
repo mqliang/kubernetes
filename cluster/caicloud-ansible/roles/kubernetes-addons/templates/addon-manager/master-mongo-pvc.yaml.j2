@@ -9,6 +9,9 @@ metadata:
     addon-manager.caicloud.io/version: v0.0.1
     addon-manager.caicloud.io/key: master-mongo-pvc
 spec:
+  selector:
+    matchLabels:
+      caicloud-app: addon-manager-mongo-data
   accessModes:
     - ReadWriteMany
   resources:
