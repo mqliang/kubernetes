@@ -18,6 +18,15 @@
 # on error. Therefore, we disable errexit here.
 set +o errexit
 
+# Source env if exists
+if [[ -f /addon-manager/env.sh ]]; then
+  source /addon-manager/env.sh
+fi
+
+if [[ ! -d /addon-manager/configmap ]]; then
+  mkdir -p /addon-manager/configmap
+fi
+
 # Path of kubernetes root directory.
 KUBE_ROOT="$(dirname ${BASH_SOURCE})/../.."
 
