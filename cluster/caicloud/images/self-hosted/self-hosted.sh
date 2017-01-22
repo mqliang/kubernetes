@@ -3,7 +3,7 @@
 # There are 2 steps to do
 # (1) Create user in authserver, then get uid and token of the created user
 # (2) Register kubernetes cluster to database for display
-# usage : ./self_hosted.sh  caicloud-stack  caicloud-baremetal "vagrant:vagrant@192.168.10.109,vagrant:vagrant@192.168.10.121"  "vagrant:vagrant@192.168.10.110,vagrant:vagrant@192.168.10.122"  caicloud-stack  caicloudprivatetest.com  eSbsyAr2eDatXBxa   7EJncehPDHdVI0kJ true
+# usage : ./self_hosted.sh  caicloud-stack  caicloud-baremetal "vagrant:vagrant@192.168.10.109,vagrant:vagrant@192.168.10.121"  "vagrant:vagrant@192.168.10.110,vagrant:vagrant@192.168.10.122"  caicloud-stack  caicloudprivatetest.com  eSbsyAr2eDatXBxa   7EJncehPDHdVI0kJ true adminuser adminpasswd
 #		para_01:  cluster_name      eg. caicloud-stack
 #		para_02:  provider          eg. caicloud-baremetal
 #		para_03:  master_ssh        eg. "vagrant:vagrant@192.168.10.109,vagrant:vagrant@192.168.10.121"
@@ -13,6 +13,8 @@
 #		para_07:  cluster_token     eg. eSbsyAr2eDatXBxa
 #		para_08:  kube_pwd          eg. 7EJncehPDHdVI0kJ
 #		para_09:  controlcluster    eg. true
+#       para_10:  admin_user        eg. admin
+#       para_11:  admin_user_passwd eg. Pwd123456
 
 #  step 0: Do master_ssh and node_ssh information transform.
 #  The ssh info string before this transform like this : "vagrant:vagrant@192.168.10.109,vagrant:vagrant@192.168.10.121",
@@ -48,8 +50,8 @@ AUTH_SERVER_URL=http://auth-server:3000
 
 for (( i = 0; i < 40; i++ )); do
 	User_Token=`curl -k -w %{http_code} -H "Accept: application/json" -H "Content-Type: application/json"  -X POST -d '{ 
-		"username": "caicloudadmin", 
-		"password": "caicloudadmin"
+		"username": "${10}", 
+		"password": "${11}"
 	}' "$AUTH_SERVER_URL/api/v0.1/admin"`
 
 	ret=`echo $User_Token  | awk -F\} '{print $(NF)}' `

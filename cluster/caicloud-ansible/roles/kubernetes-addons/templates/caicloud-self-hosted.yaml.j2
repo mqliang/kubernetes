@@ -18,7 +18,7 @@ spec:
       containers:
       - name: self-hosted
         image: {{ caicloud_self_hosted_image }}
-        command: ["./self-hosted.sh", "{{ cluster_name }}", "{{ kubernetes_provider }}", "{{ get_masters|join(',') }}", "{{ get_nodes|join(',') }}", "{{ dns_host_name }}", "{{ base_domain_name }}", "{{ cluster_token }}", "{{ kube_pwd }}", "true"]
+        command: ["./self-hosted.sh", "{{ cluster_name }}", "{{ kubernetes_provider }}", "{{ get_masters|join(',') }}", "{{ get_nodes|join(',') }}", "{{ dns_host_name }}", "{{ base_domain_name }}", "{{ cluster_token }}", "{{ kube_pwd }}", "true", "{{ caicloud_admin_user }}", "{{ caicloud_admin_password }}"]
       restartPolicy: Never
 #   para_01:  cluster_name      eg. caicloud-stack
 #   para_02:  provider          eg. caicloud-baremetal
@@ -30,3 +30,5 @@ spec:
 #   para_08:  kube_pwd          eg. 7EJncehPDHdVI0kJ
 #     note: kube_user must be admin
 #   para_09:  controlcluster    eg. true
+#   para_10:  admin_user        eg: admin
+#   para_11:  admin_user_passwd eg: Pwd123456
