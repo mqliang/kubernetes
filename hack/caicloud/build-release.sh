@@ -37,7 +37,7 @@ function usage {
   echo -e " ETCD_VERSION     \tetcd version to use. etcd will be packed into release tarball. Default value ${ETCD_VERSION}"
   echo -e " FLANNEL_VERSION  \tflannel version to use. flannel will be packed into release tarball. Default value: ${FLANNEL_VERSION}"
   echo -e " UPLOAD_TO_QINIU  \tUpload to qiniu.com or not, options: Y or N. Default to ${UPLOAD_TO_QINIU}"
-  echo -e " BUILD_CLOUD_IMAGE\tBuild cloud image or not, options: Y or N. Default to ${BUILD_CLOUD_IMAGE}"
+  echo -e " BUILD_CLOUD_IMAGE\tBuild cloud image (currently only support anchnet cloud) or not, options: Y or N. Default to ${BUILD_CLOUD_IMAGE}"
   echo -e " RELEASE_HYPERKUBE\tBuild and upload hyperkube docker image or not, options: Y or N. Default to ${RELEASE_HYPERKUBE}"
 }
 
@@ -92,8 +92,8 @@ CAICLOUD_KUBE_VERSION=${K8S_VERSION}+${CAICLOUD_VERSION}
 CAICLOUD_KUBE_PKG="caicloud-kube-${CAICLOUD_KUBE_VERSION}.tar.gz"
 CAICLOUD_KUBE_KUBECTL_PKG="caicloud-kubectl-${CAICLOUD_KUBE_VERSION}.tar.gz"
 CAICLOUD_KUBE_SCRIPT_PKG="caicloud-kube-script-${CAICLOUD_KUBE_VERSION}.tar.gz"
-CAICLOUD_KUBE_SCRIPT_DOCKER_IMAGE="index.caicloud.io/caicloud/caicloud-kubernetes"
-CAICLOUD_CAICLOUD_REGISTRY="index.caicloud.io/caicloud"
+CAICLOUD_KUBE_SCRIPT_DOCKER_IMAGE="cargo.caicloud.io/caicloud/caicloud-kubernetes"
+CAICLOUD_CAICLOUD_REGISTRY="cargo.caicloud.io/caicloud"
 
 # -----------------------------------------------------------------------------
 # Start building tarball from current code base.
@@ -109,7 +109,7 @@ export KUBE_GIT_TREE_STATE="clean"
 # Work around mainland network connection.
 hack/caicloud/k8s-replace.sh
 trap '${KUBE_ROOT}/hack/caicloud/k8s-restore.sh' EXIT
-build/run.sh hack/build-go.sh
+build-tools/run.sh hack/build-go.sh
 if [[ "$?" != "0" ]]; then
   echo "Error building server binaries"
   exit 1
@@ -147,7 +147,7 @@ rm -rf etcd-linux flannel-linux caicloud-kube
 # Make tarball caicloud-kub-script-${CAICLOUD_KUBE_VERSION}.tar.gz. Note we preserve
 # kubectl path since kubectl.sh assumes some locations.
 mkdir -p caicloud-kube-script
-cp -R hack cluster build caicloud-kube-script
+cp -R hack cluster build-tools caicloud-kube-script
 rm -rf caicloud-kube-script/cluster/caicloud/certs
 rm -rf caicloud-kube-script/cluster/caicloud-ansible/roles/master/files/caicloudapp_certs
 rm -rf caicloud-kube-script/cluster/caicloud-ansible/roles/master/files/caicloudprivatetest_certs
@@ -175,7 +175,7 @@ cd - > /dev/null
 
 # Build and upload hyperkube docker image.
 if [[ "$RELEASE_HYPERKUBE" == "Y" ]]; then
-  make -C $KUBE_ROOT WHAT=cmd/hyperkube KUBE_STATIC_OVERRIDES="hyperkube" KUBE_BUILD_PLATFORMS="linux/amd64"
+  make -C $KUBE_ROOT WHAT=cmd/hyperkube KUBE_BUILD_PLATFORMS="linux/amd64"
   VERSION="${CAICLOUD_VERSION}" REGISTRY="${CAICLOUD_CAICLOUD_REGISTRY}" make -C $KUBE_ROOT/cluster/caicloud/images/hyperkube/ "push"
 fi
 

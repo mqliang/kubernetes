@@ -17,9 +17,9 @@
 # Usage:
 #   VERSION=v1.1.2 [REGISTRY="gcr.io/google_containers"] make build
 
-REGISTRY?="index.caicloud.io/caicloud"
+REGISTRY?="cargo.caicloud.io/caicloud"
 ARCH=amd64
-BASEIMAGE=index.caicloud.io\\/caicloud\\/alpine:3.3
+BASEIMAGE=cargo.caicloud.io\\/caicloud\\/alpine:3.3
 TEMP_DIR:=$(shell mktemp -d)
 
 ## Comment in for arm builds, must be run on an arm machine

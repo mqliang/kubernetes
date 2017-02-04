@@ -19,18 +19,18 @@
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
 
-# Restore all 'gcr.io' images from index.caicloud.io.
+# Restore all 'gcr.io' images from cargo.caicloud.io.
 PATTERNS=(
-  "index.caicloud.io/caicloudgcr/google_containers_[^\", ]*"
-  "index.caicloud.io/caicloudgcr/google-containers_[^\", ]*"
-  "index.caicloud.io/caicloudgcr/google_samples_[^\", ]*"
-  "index.caicloud.io/caicloudgcr/google-samples_[^\", ]*"
+  "cargo.caicloud.io/caicloudgcr/google_containers_[^\", ]*"
+  "cargo.caicloud.io/caicloudgcr/google-containers_[^\", ]*"
+  "cargo.caicloud.io/caicloudgcr/google_samples_[^\", ]*"
+  "cargo.caicloud.io/caicloudgcr/google-samples_[^\", ]*"
 )
 SUBSTITUTIONS=(
-  "s|index.caicloud.io/caicloudgcr/google_containers_|gcr.io/google_containers/|g"
-  "s|index.caicloud.io/caicloudgcr/google-containers_|gcr.io/google-containers/|g"
-  "s|index.caicloud.io/caicloudgcr/google_samples_|gcr.io/google_samples/|g"
-  "s|index.caicloud.io/caicloudgcr/google-samples_|gcr.io/google-samples/|g"
+  "s|cargo.caicloud.io/caicloudgcr/google_containers_|gcr.io/google_containers/|g"
+  "s|cargo.caicloud.io/caicloudgcr/google-containers_|gcr.io/google-containers/|g"
+  "s|cargo.caicloud.io/caicloudgcr/google_samples_|gcr.io/google_samples/|g"
+  "s|cargo.caicloud.io/caicloudgcr/google-samples_|gcr.io/google-samples/|g"
 )
 
 for i in `seq "${#PATTERNS[@]}"`; do
@@ -67,5 +67,5 @@ perl -i -pe "s|baidu.com|google.com|g" \
      ${KUBE_ROOT}/test/e2e/dns.go
 
 # restore debian-iptables-amd64
-perl -i -pe "s|index.caicloud.io/caicloudgcr/google_containers_debian-iptables-amd64|gcr.io/google_containers/debian-iptables-amd64|g" \
+perl -i -pe "s|cargo.caicloud.io/caicloudgcr/google_containers_debian-iptables-amd64|gcr.io/google_containers/debian-iptables-amd64|g" \
      ${KUBE_ROOT}/build-tools/common.sh

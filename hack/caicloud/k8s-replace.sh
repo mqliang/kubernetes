@@ -18,12 +18,12 @@
 # This is necessary since we don't want to change upstream code.
 #
 # Conversion rule:
-#   gcr.io/google_containers/es-kibana -> index.caicloud.io/caicloudgcr/google_containers_es-kibana
-#   gcr.io/google_samples/frontend     -> index.caicloud.io/caicloudgcr/google_samples_frontend
+#   gcr.io/google_containers/es-kibana -> cargo.caicloud.io/caicloudgcr/google_containers_es-kibana
+#   gcr.io/google_samples/frontend     -> cargo.caicloud.io/caicloudgcr/google_samples_frontend
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
 
-# 'gcr.io' is blocked - replace all gcr.io images to index.caicloud.io/caicloudgcr.
+# 'gcr.io' is blocked - replace all gcr.io images to cargo.caicloud.io/caicloudgcr.
 PATTERNS=(
   "gcr.io/google_containers/[^\", ]*"
   "gcr.io/google-containers/[^\", ]*"
@@ -31,10 +31,10 @@ PATTERNS=(
   "gcr.io/google-samples/[^\", ]*"
 )
 SUBSTITUTIONS=(
-  "s|gcr.io/google_containers/|index.caicloud.io/caicloudgcr/google_containers_|g"
-  "s|gcr.io/google-containers/|index.caicloud.io/caicloudgcr/google-containers_|g"
-  "s|gcr.io/google_samples/|index.caicloud.io/caicloudgcr/google_samples_|g"
-  "s|gcr.io/google-samples/|index.caicloud.io/caicloudgcr/google-samples_|g"
+  "s|gcr.io/google_containers/|cargo.caicloud.io/caicloudgcr/google_containers_|g"
+  "s|gcr.io/google-containers/|cargo.caicloud.io/caicloudgcr/google-containers_|g"
+  "s|gcr.io/google_samples/|cargo.caicloud.io/caicloudgcr/google_samples_|g"
+  "s|gcr.io/google-samples/|cargo.caicloud.io/caicloudgcr/google-samples_|g"
 )
 for i in `seq "${#PATTERNS[@]}"`; do
   index=$(($i-1))
@@ -86,5 +86,5 @@ perl -i -pe "s|google.com|baidu.com|g" \
      ${KUBE_ROOT}/test/e2e/dns.go
 
 # Change image in build-tools/common.sh, which is not replaced above
-perl -i -pe "s|gcr.io/google_containers/debian-iptables-amd64|index.caicloud.io/caicloudgcr/google_containers_debian-iptables-amd64|g" \
+perl -i -pe "s|gcr.io/google_containers/debian-iptables-amd64|cargo.caicloud.io/caicloudgcr/google_containers_debian-iptables-amd64|g" \
      ${KUBE_ROOT}/build-tools/common.sh
