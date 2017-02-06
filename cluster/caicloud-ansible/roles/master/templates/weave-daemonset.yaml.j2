@@ -22,8 +22,8 @@ spec:
       hostNetwork: true
       hostPID: true
       containers:
-        - name: weave
-          image: {{ weave_image }}
+        - name: weave_kube
+          image: {{ weave_kube_image }}
           imagePullPolicy: Always
           env:
           - name: IPALLOC_RANGE
@@ -74,7 +74,8 @@ spec:
       restartPolicy: Always
       volumes:
         - name: weavedb
-          emptyDir: {}
+          hostPath:
+            path: /var/lib/weave/weavedb
         - name: cni-bin
           hostPath:
             path: /opt
