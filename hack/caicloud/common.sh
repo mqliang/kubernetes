@@ -15,10 +15,10 @@
 # limitations under the License.
 
 # The version of upstream kubernetes.
-K8S_VERSION=${K8S_VERSION:-"v1.5.1"}
+K8S_VERSION=${K8S_VERSION:-"v1.5.2"}
 
 # Third-party binary versions, used to create tarball, etc.
-ETCD_VERSION=${ETCD_VERSION:-"v2.2.4"}
+ETCD_VERSION=${ETCD_VERSION:-"v3.0.15"}
 FLANNEL_VERSION=${FLANNEL_VERSION:-"0.5.5"}
 
 # URL of the server hosting packages.
