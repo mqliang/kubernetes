@@ -22,7 +22,7 @@ spec:
       hostNetwork: true
       hostPID: true
       containers:
-        - name: weave_kube
+        - name: weave
           image: {{ weave_kube_image }}
           imagePullPolicy: Always
           env:
@@ -55,11 +55,13 @@ spec:
             - name: weavedb
               mountPath: /weavedb
             - name: cni-bin
-              mountPath: /opt
+              mountPath: /host/opt
             - name: cni-bin2
-              mountPath: /host_home
+              mountPath: /host/home
             - name: cni-conf
-              mountPath: /etc
+              mountPath: /host/etc
+            - name: dbus
+              mountPath: /host/var/lib/dbus
           resources:
             requests:
               cpu: 50m
@@ -85,3 +87,6 @@ spec:
         - name: cni-conf
           hostPath:
             path: /etc
+        - name: dbus
+          hostPath:
+            path: /var/lib/dbus
