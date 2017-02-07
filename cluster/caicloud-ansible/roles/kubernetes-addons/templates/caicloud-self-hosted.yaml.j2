@@ -18,6 +18,7 @@ spec:
       containers:
       - name: self-hosted
         image: {{ caicloud_self_hosted_image }}
+        imagePullPolicy: Always
         command: ["./self-hosted.sh", "{{ cluster_name }}", "{{ kubernetes_provider }}", "{{ get_masters|join(',') }}", "{{ get_nodes|join(',') }}", "{{ dns_host_name }}", "{{ base_domain_name }}", "{{ cluster_token }}", "{{ kube_pwd }}", "true", "{{ caicloud_admin_user }}", "{{ caicloud_admin_password }}"]
       restartPolicy: Never
 #   para_01:  cluster_name      eg. caicloud-stack

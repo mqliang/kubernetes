@@ -48,11 +48,12 @@ node_ssh="${node_ssh//::/\"}"
 #AUTH_SERVER_URL=https://192.168.10.211/api/v1/proxy/namespaces/default/services/auth-server:3000
 AUTH_SERVER_URL=http://auth-server:3000
 
-for (( i = 0; i < 40; i++ )); do
-	User_Token=`curl -k -w %{http_code} -H "Accept: application/json" -H "Content-Type: application/json"  -X POST -d '{ 
-		"username": "${10}", 
-		"password": "${11}"
-	}' "$AUTH_SERVER_URL/api/v0.1/admin"`
+echo "Starting register admin username to get uid and token"
+for (( i = 1; i <= 40; i++ )); do
+	User_Token=`curl -k -w %{http_code} -H "Accept: application/json" -H "Content-Type: application/json"  -X POST -d "{ 
+		\"username\": \"${10}\",
+		\"password\": \"${11}\"
+	}" "$AUTH_SERVER_URL/api/v0.1/admin"`
 
 	ret=`echo $User_Token  | awk -F\} '{print $(NF)}' `
 	if [ "$ret" == "200" ]
@@ -60,11 +61,12 @@ for (( i = 0; i < 40; i++ )); do
 		echo "Getting uid and token success."
 		break
 	else
-		if [ "$i" == "39" ]
+		if [ "$i" == "40" ]
 		then
                 echo "Getting uid and token failure."
                 exit 1
         fi
+        echo "User_Token=$User_Token. Have try for $i times, up to 40 times"
 		sleep 30
 	fi
 done
@@ -75,7 +77,8 @@ Ownertoken=`echo $User_Token  | awk -F\" '{print $(NF-1)}' `
 #CDS_SERVER_URL=https://192.168.10.211/api/v1/proxy/namespaces/default/services/cds-server:9000
 CDS_SERVER_URL=http://cds-server:9000
 
-for (( i = 0; i < 40; i++ )); do
+echo "Starting register cluster"
+for (( i = 1; i <= 40; i++ )); do
 	ClusterID=`curl -X POST -w %{http_code} -H "Accept: application/json" -H "Content-Type: application/json"  -H "Cache-Control: no-cache" -d "{
 		\"cluster_name\": \"$1\",
 		\"provider\": \"$2\",
@@ -100,12 +103,12 @@ for (( i = 0; i < 40; i++ )); do
 		echo "Self-hosting caicloud caicloud-stack cluster success."
 		break
 	else
-		if [ "$i" == "39" ]
+		if [ "$i" == "40" ]
 		then
 			echo "Self-hosting caicloud caicloud-stack cluster failure."
 			exit 1
         fi
-
+        echo "ClusterID=$ClusterID. Have try for $i times, up to 40 times"
 		sleep 30
 	fi
 done
