@@ -46,11 +46,11 @@ function sync_image {
 function replace_special_images {
   # Special handling for gcr.io/google_containers/kube-cross:vX.Y.Z, which
   # uses an environment variable 'KUBE_BUILD_IMAGE_CROSS_TAG' defined in
-  # build-tools/common.sh to decide its tag number.
-  source ${KUBE_ROOT}/build-tools/common.sh
-  cp ${KUBE_ROOT}/build-tools/build-image/Dockerfile ${KUBE_ROOT}/build-tools/build-image/Dockerfile.bk
-  perl -X -i -pe "s/KUBE_BUILD_IMAGE_CROSS_TAG/${KUBE_BUILD_IMAGE_CROSS_TAG}/g" ${KUBE_ROOT}/build-tools/build-image/Dockerfile
-  trap "mv ${KUBE_ROOT}/build-tools/build-image/Dockerfile.bk ${KUBE_ROOT}/build-tools/build-image/Dockerfile" EXIT
+  # build/common.sh to decide its tag number.
+  source ${KUBE_ROOT}/build/common.sh
+  cp ${KUBE_ROOT}/build/build-image/Dockerfile ${KUBE_ROOT}/build/build-image/Dockerfile.bk
+  perl -X -i -pe "s/KUBE_BUILD_IMAGE_CROSS_TAG/${KUBE_BUILD_IMAGE_CROSS_TAG}/g" ${KUBE_ROOT}/build/build-image/Dockerfile
+  trap "mv ${KUBE_ROOT}/build/build-image/Dockerfile.bk ${KUBE_ROOT}/build/build-image/Dockerfile" EXIT
 }
 
 #
@@ -64,7 +64,7 @@ rm -rf $PROCESSED_LOG
 replace_special_images
 
 # Avoid bail out when error pulling/pushing a single image. Must be set after
-# replace_special_images, since it calls source ${KUBE_ROOT}/build-tools/common.sh
+# replace_special_images, since it calls source ${KUBE_ROOT}/build/common.sh
 # which enables errexit.
 set +o errexit
 
@@ -107,7 +107,7 @@ for i in `seq "${#PATTERNS[@]}"`; do
        ${KUBE_ROOT}/cluster/saltbase \
        ${KUBE_ROOT}/docs \
        ${KUBE_ROOT}/cmd \
-       ${KUBE_ROOT}/build-tools \
+       ${KUBE_ROOT}/build \
        ${KUBE_ROOT}/test/e2e/testing-manifests | sort -u |
     while read -r gcr_image ; do
       gcr_image=${gcr_image%;}

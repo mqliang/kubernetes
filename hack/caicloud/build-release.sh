@@ -109,7 +109,7 @@ export KUBE_GIT_TREE_STATE="clean"
 # Work around mainland network connection.
 hack/caicloud/k8s-replace.sh
 trap '${KUBE_ROOT}/hack/caicloud/k8s-restore.sh' EXIT
-build-tools/run.sh hack/build-go.sh
+build/run.sh hack/build-go.sh
 if [[ "$?" != "0" ]]; then
   echo "Error building server binaries"
   exit 1
@@ -147,7 +147,7 @@ rm -rf etcd-linux flannel-linux caicloud-kube
 # Make tarball caicloud-kub-script-${CAICLOUD_KUBE_VERSION}.tar.gz. Note we preserve
 # kubectl path since kubectl.sh assumes some locations.
 mkdir -p caicloud-kube-script
-cp -R hack cluster build-tools caicloud-kube-script
+cp -R hack cluster build caicloud-kube-script
 rm -rf caicloud-kube-script/cluster/caicloud/certs
 rm -rf caicloud-kube-script/cluster/caicloud-ansible/roles/master/files/caicloudapp_certs
 rm -rf caicloud-kube-script/cluster/caicloud-ansible/roles/master/files/caicloudprivatetest_certs
