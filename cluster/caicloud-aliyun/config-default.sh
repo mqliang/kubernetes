@@ -135,7 +135,6 @@ function aliyun-instance-up-prelogue {
   fi
   CAICLOUD_ALIYUN_CFG_NUMBER_MASTER_NODE_NUM=${NUM_MASTERS}
   CAICLOUD_ALIYUN_CFG_NUMBER_MINION_NODE_NUM=${NUM_NODES}
-  CAICLOUD_ALIYUN_CFG_STRING_DNS_PROCESS_OPT="ADD"
 
   aliyun-instance-prelogue-common
 }
@@ -144,7 +143,6 @@ function aliyun-instance-down-prelogue {
   if [[ ! -z "${DELETE_INSTANCE_FLAG-}" ]]; then
     CAICLOUD_ALIYUN_CFG_STRING_DELETE_INSTANCE_FLAG=${DELETE_INSTANCE_FLAG}
   fi
-  CAICLOUD_ALIYUN_CFG_STRING_DNS_PROCESS_OPT="DELETE"
 
   aliyun-instance-prelogue-common
 }
@@ -157,7 +155,7 @@ function aliyun-instance-down-prelogue {
 #   NODE_INTERNAL_SSH_INFO
 #   KUBE_CURRENT
 function read-instance-ssh-info {
-  if [[ ! -s ${KUBE_CURRENT}/instance.master ]] || [[ ! -s ${KUBE_CURRENT}/instance.node ]]; then
+  if [[ ! -s ${KUBE_CURRENT}/.ansible/instance.master ]] || [[ ! -s ${KUBE_CURRENT}/.ansible/instance.node ]]; then
     echo "Maybe instance ssh info file don't exist in ${KUBE_CURRENT}." >&2
     exit 1
   fi
@@ -184,7 +182,7 @@ function read-instance-ssh-info {
     instance_id_info="${instance_id_info},${instance_id}"
     external_ssh_info="${external_ssh_info},${username}:${password}@${public_ip}"
     inner_ssh_info="${inner_ssh_info},${username}:${password}@${inner_ip}"
-  done < ${KUBE_CURRENT}/instance.master
+  done < ${KUBE_CURRENT}/.ansible/instance.master
   MASTER_INSTACE_ID_INFO=${instance_id_info#,}
   MASTER_EXTERNAL_SSH_INFO=${external_ssh_info#,}
   MASTER_INTERNAL_SSH_INFO=${inner_ssh_info#,}
@@ -206,7 +204,7 @@ function read-instance-ssh-info {
     instance_id_info="${instance_id_info},${instance_id}"
     external_ssh_info="${external_ssh_info},${username}:${password}@${public_ip}"
     inner_ssh_info="${inner_ssh_info},${username}:${password}@${inner_ip}"
-  done < ${KUBE_CURRENT}/instance.node
+  done < ${KUBE_CURRENT}/.ansible/instance.node
   # Remove the first ','
   NODE_INSTACE_ID_INFO=${instance_id_info#,}
   NODE_EXTERNAL_SSH_INFO=${external_ssh_info#,}
@@ -247,6 +245,8 @@ function aliyun-instance-epilogue {
   fi
 
   CAICLOUD_K8S_CFG_STRING_CLOUD_CONFIG_DIR=${CLOUD_CONFIG_DIR}
+  CAICLOUD_K8S_CFG_STRING_KUBERNETES_PROVIDER=${KUBERNETES_PROVIDER}
+  CAICLOUD_K8S_CFG_STRING_HOST_PROVIDER="aliyun"
 }
 
 function set-kubectl-path {
@@ -257,4 +257,24 @@ function set-kubectl-path {
     # Install kubectl to CAICLOUD_K8S_CFG_STRING_BIN_DIR
     export KUBECTL_PATH="${CAICLOUD_K8S_CFG_STRING_BIN_DIR}/kubectl"
   fi
+}
+
+function set-k8s-op-install {
+  CAICLOUD_K8S_CFG_STRING_K8S_OP="OP_INSTALL"
+  CAICLOUD_ALIYUN_CFG_STRING_K8S_OP="OP_INSTALL"
+}
+
+function set-k8s-op-uninstall {
+  CAICLOUD_K8S_CFG_STRING_K8S_OP="OP_UNINSTALL"
+  CAICLOUD_ALIYUN_CFG_STRING_K8S_OP="OP_UNINSTALL"
+}
+
+function set-k8s-op-upgrade {
+  CAICLOUD_K8S_CFG_STRING_K8S_OP="OP_UPGRADE"
+  CAICLOUD_ALIYUN_CFG_STRING_K8S_OP="OP_UPGRADE"
+}
+
+function set-k8s-op-downgrade {
+  CAICLOUD_K8S_CFG_STRING_K8S_OP="OP_DOWNGRADE"
+  CAICLOUD_ALIYUN_CFG_STRING_K8S_OP="OP_DOWNGRADE"
 }

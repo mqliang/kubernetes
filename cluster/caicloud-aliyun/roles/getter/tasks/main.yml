@@ -21,32 +21,35 @@
     aliyun_sgid: "{{ json_sg_info.SecurityGroups.SecurityGroup[0].SecurityGroupId }}"
   when: json_sg_info.TotalCount|int > 0
 
+- name: Make sure .ansible dir exists
+  file: path={{ playbook_dir }}/.ansible state=directory
+
 - name: Delete old instance.master
-  file: path={{ playbook_dir }}/instance.master state=absent
+  file: path={{ playbook_dir }}/.ansible/instance.master state=absent
   changed_when: False
 
 - name: Touch instance.master
-  file: path={{ playbook_dir }}/instance.master state=touch
+  file: path={{ playbook_dir }}/.ansible/instance.master state=touch
   changed_when: False
 
 - name: Delete old instance.node
-  file: path={{ playbook_dir }}/instance.node state=absent
+  file: path={{ playbook_dir }}/.ansible/instance.node state=absent
   changed_when: False
 
 - name: Touch instance.node
-  file: path={{ playbook_dir }}/instance.node state=touch
+  file: path={{ playbook_dir }}/.ansible/instance.node state=touch
   changed_when: False
 
 - name: Run master instances
   include: get-ssh-info.yml
   vars:
     instance_name: "{{ master_name_prefix }}{{ item }}"
-    save_to_file: "{{ playbook_dir }}/instance.master"
+    save_to_file: "{{ playbook_dir }}/.ansible/instance.master"
   with_sequence: count={{ master_node_num }}
 
 - name: Run node instances
   include: get-ssh-info.yml
   vars:
     instance_name: "{{ node_name_prefix }}{{ item }}"
-    save_to_file: "{{ playbook_dir }}/instance.node"
+    save_to_file: "{{ playbook_dir }}/.ansible/instance.node"
   with_sequence: count={{ minion_node_num }}

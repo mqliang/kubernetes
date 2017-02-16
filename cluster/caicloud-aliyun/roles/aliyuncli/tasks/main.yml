@@ -42,16 +42,16 @@
     - aliyun-python-sdk-alidns
     - aliyun-python-sdk-oss
 
-- name: Ubuntu | Get PYTHONPATH
-  command: "python -c 'from distutils.sysconfig import get_python_lib; print(get_python_lib())'"
-  register: python_lib_path
-  when: ansible_distribution == "Ubuntu"
+#- name: Ubuntu | Get PYTHONPATH
+#  command: "python -c 'from distutils.sysconfig import get_python_lib; print(get_python_lib())'"
+#  register: python_lib_path
+#  when: ansible_distribution == "Ubuntu"
 
 # Frequently asked questions: Question 7
 #   https://help.aliyun.com/document_detail/30017.html?spm=5176.product29991.4.27.uVLL8J
-- name: Ubuntu | Copy aliyun sdk to PYTHONPATH
-  shell: cp -rf {{ ubuntu_pip_python_lib_path }}/aliyun* {{ ubuntu_python_lib_path }}
-  when: ansible_distribution == "Ubuntu" and python_lib_path.stdout != "{{ ubuntu_pip_python_lib_path }}"
+#- name: Ubuntu | Copy aliyun sdk to PYTHONPATH
+#  shell: cp -rf {{ ubuntu_pip_python_lib_path }}/aliyun* {{ ubuntu_python_lib_path }}
+#  when: ansible_distribution == "Ubuntu" and python_lib_path.stdout != "{{ ubuntu_pip_python_lib_path }}"
 
 - name: Create aliyuncli config directory
   file: path={{ ansible_env.HOME }}/.aliyuncli state=directory

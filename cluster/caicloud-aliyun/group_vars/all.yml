@@ -37,3 +37,6 @@ minion_node_num: 2
 master_name_prefix: "kube-master-"
 node_name_prefix: "kube-node-"
 instance_password: "Caicloud-k8s"
+
+# OP_INSTALL|OP_UNINSTALL|OP_UPGRADE|OP_DOWNGRADE
+k8s_op: ""

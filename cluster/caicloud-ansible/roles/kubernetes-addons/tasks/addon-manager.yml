@@ -174,4 +174,4 @@
 
 - name: Enable caicloud control cluster self-hosted
   include: caicloud-self-hosted.yml
-  when: caicloud_self_hosted == "YES" and inventory_hostname == groups['masters'][0]
+  when: deploy_caicloud_stack|bool and caicloud_self_hosted == "YES" and inventory_hostname == groups['masters'][0]

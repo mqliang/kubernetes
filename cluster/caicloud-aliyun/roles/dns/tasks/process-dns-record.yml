@@ -32,7 +32,7 @@
   until: output.stdout.find("Code") == -1
   retries: 5
   delay: 5
-  when: dns_process_opt == "ADD" and not find_domain_record
+  when: k8s_op == "OP_INSTALL" and not find_domain_record
 
 - name: Delete domain record from aliyun dns
   command: aliyuncli alidns DeleteDomainRecord --AccessKeyId {{ caicloud_access_key_id }} --AccessKeySecret {{ caicloud_access_key_secret }} --RecordId {{ domain_record_id }}
@@ -40,4 +40,4 @@
   until: output.stdout.find("Code") == -1
   retries: 5
   delay: 5
-  when: dns_process_opt == "DELETE" and find_domain_record
+  when: k8s_op == "OP_UNINSTALL" and find_domain_record

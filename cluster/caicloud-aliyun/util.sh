@@ -36,18 +36,21 @@ source "${KUBE_ROOT}/cluster/caicloud-aliyun/config-default.sh"
 source "${KUBE_ROOT}/cluster/caicloud/common.sh"
 
 function create-extra-vars-json-file-aliyun {
-  create-extra-vars-json-file-common ${KUBE_CURRENT}/extra_vars.aliyun.json ${ALIYUN_STRING_PREFIX} ${ALIYUN_NUMBER_PREFIX}
+  if [[ ! -d "$KUBE_CURRENT/.ansible" ]]; then
+    mkdir -p $KUBE_CURRENT/.ansible
+  fi
+  create-extra-vars-json-file-common ${KUBE_CURRENT}/.ansible/extra_vars.aliyun.json ${ALIYUN_STRING_PREFIX} ${ALIYUN_NUMBER_PREFIX}
 }
 
 function aliyun-instances-up {
-  ansible-playbook -v --extra-vars "@$KUBE_CURRENT/extra_vars.aliyun.json" $KUBE_CURRENT/run.yml
+  ansible-playbook -v --extra-vars "@$KUBE_CURRENT/.ansible/extra_vars.aliyun.json" $KUBE_CURRENT/run.yml
   if [[ $? != 0 ]]; then
     exit 1
   fi
 }
 
 function aliyun-instances-down {
-  ansible-playbook -v --extra-vars "@$KUBE_CURRENT/extra_vars.aliyun.json" $KUBE_CURRENT/delete.yml
+  ansible-playbook -v --extra-vars "@$KUBE_CURRENT/.ansible/extra_vars.aliyun.json" $KUBE_CURRENT/delete.yml
   if [[ $? != 0 ]]; then
     exit 1
   fi
@@ -55,7 +58,7 @@ function aliyun-instances-down {
 
 # Get ssh info from aliyun instances.
 function get-aliyun-instances-ssh-info {
-  ansible-playbook -v --extra-vars "@$KUBE_CURRENT/extra_vars.aliyun.json" $KUBE_CURRENT/get.yml
+  ansible-playbook -v --extra-vars "@$KUBE_CURRENT/.ansible/extra_vars.aliyun.json" $KUBE_CURRENT/get.yml
   if [[ $? != 0 ]]; then
     exit 1
   fi
@@ -102,6 +105,7 @@ function verify-prereqs {
 
 # Instantiate a kubernetes cluster
 function kube-up {
+  set-k8s-op-install
   # Creating aliyun instances
   aliyun-instance-up-prelogue
   create-extra-vars-json-file-aliyun
@@ -126,6 +130,7 @@ function kube-up {
 
   create-inventory-file
   create-extra-vars-json-file
+  save-extra-vars-json-file
 
   start-kubernetes-by-ansible
   ret=$?
@@ -137,6 +142,7 @@ function kube-up {
 
 # Delete a kubernetes cluster
 function kube-down {
+  set-k8s-op-uninstall
   aliyun-instance-down-prelogue
   create-extra-vars-json-file-aliyun
 
