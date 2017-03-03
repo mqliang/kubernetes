@@ -252,7 +252,7 @@ load_balancer_keepalived_image: "{{ registry_prefix_caicloud }}/keepalived:v1.2.
 load_balancer_haproxy_image: "{{ registry_prefix_caicloud }}/haproxy:v1.6.5"
 pod_infra_container_image: "{{ registry_prefix_caicloudgcr }}/google_containers_pause-amd64:3.0"
 ingress_keepalived_image: "{{ registry_prefix_caicloud }}/ingress-keepalived-vip:v0.0.1"
-ingress_nginx_image: "{{ registry_prefix_caicloud }}/nginx-ingress-controller:v0.0.1"
+ingress_nginx_image: "{{ registry_prefix_caicloud }}/nginx-ingress-controller:v0.0.2"
 ingress_aliyun_image: "{{ registry_prefix_caicloud }}/aliyun-ingress-controller:v0.0.1"
 ingress_default_backend_image: "{{ registry_prefix_caicloud }}/default-http-backend:v0.0.1"
 ingress_loadbalancer_controller_image: "{{ registry_prefix_caicloud }}/loadbalancer-controller:v0.0.1"
